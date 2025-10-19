@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "public": true,
+  "builds": [
+    { "src": "build/web/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "headers": { "Cache-Control": "public,max-age=31536000,immutable" },
+      "dest": "/build/web/assets/$1"
+    },
+    {
+      "src": "/main.dart.js",
+      "headers": { "Cache-Control": "public,max-age=300" },
+      "dest": "/build/web/main.dart.js"
+    },
+    {
+      "src": "/(.*\\.(js|json|ico|png))",
+      "headers": { "Cache-Control": "public,max-age=31536000,immutable" },
+      "dest": "/build/web/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/build/web/index.html"
+    }
+  ]
+}
