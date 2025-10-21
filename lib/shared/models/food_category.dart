@@ -1,6 +1,6 @@
 // lib/shared/models/food_category.dart - FIXED English Support
 import 'package:equatable/equatable.dart';
-import 'package:soely/core/services/language_service.dart';
+import 'package:Saborly/core/services/language_service.dart';
 
 class FoodCategory extends Equatable {
   final String id;

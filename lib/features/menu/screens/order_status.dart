@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/features/providers/order_provider.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/features/providers/order_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/routes/app_routes.dart';
@@ -65,9 +68,48 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+              DateTime? _lastPressedAt;
+return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        
+        final now = DateTime.now();
+        final maxDuration = const Duration(seconds: 2);
+        final isWarning = _lastPressedAt == null ||
+            now.difference(_lastPressedAt!) > maxDuration;
+
+        if (isWarning) {
+          _lastPressedAt = now;
+          
+          // Show toast message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+  AppStrings.get('pressBackAgain'),
+                style: GoogleFonts.poppins(
+                  fontSize: 14.sp,
+                  color: Colors.white,
+                ),
+              ),
+              duration: const Duration(seconds: 2),
+              backgroundColor: AppColors.textDark,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              margin: EdgeInsets.all(16.r),
+            ),
+          );
+          return;
+        }
+        
+        // Exit app
+        SystemNavigator.pop();
+      },
+    child:Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _buildAppBar(),
+      appBar:null,
       body: Consumer<OrderProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
@@ -100,53 +142,9 @@ return _buildErrorState(provider.error ?? AppStrings.get('orderNotFound'));
         },
       ),
       bottomNavigationBar: isMobile ? _buildBottomBar() : null,
-    );
-  }
+    )
+ ); }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      centerTitle: true,
-      leading: IconButton(
-        onPressed: () => context.go(AppRoutes.orders),
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: AppColors.textDark,
-          size: 20,
-        ),
-      ),
-      title: Text(
-        AppStrings.orderStatus,
-        style: TextStyle(
-          fontSize: isDesktop ? 24 : 20,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textDark,
-          letterSpacing: -0.5,
-        ),
-      ),
-      actions: isDesktop ? [
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: TextButton.icon(
-            onPressed: () => context.go(AppRoutes.home),
-            icon: const Icon(Icons.home_outlined, size: 20),
-            label: Text(
-              AppStrings.home,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-          ),
-        ),
-      ] : null,
-    );
-  }
 
   Widget _buildDesktopLayout(Order order) {
     return Column(

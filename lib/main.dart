@@ -6,24 +6,27 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/services/notification_service.dart';
-import 'package:soely/core/services/language_service.dart';
-import 'package:soely/features/providers/auth_proveder.dart';
-import 'package:soely/features/providers/cart_provider.dart';
-import 'package:soely/features/providers/checkout_provider.dart';
-import 'package:soely/features/providers/home_provider.dart';
-import 'package:soely/features/providers/location_provider.dart';
-import 'package:soely/features/providers/men_provider.dart';
-import 'package:soely/features/providers/offer_provider.dart';
-import 'package:soely/features/providers/order_provider.dart';
-import 'package:soely/features/providers/payment_provider.dart';
-import 'package:soely/firebase_options.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/services/notification_service.dart';
+import 'package:Saborly/core/services/language_service.dart';
+import 'package:Saborly/features/providers/auth_proveder.dart';
+import 'package:Saborly/features/providers/cart_provider.dart';
+import 'package:Saborly/features/providers/checkout_provider.dart';
+import 'package:Saborly/features/providers/home_provider.dart';
+import 'package:Saborly/features/providers/location_provider.dart';
+import 'package:Saborly/features/providers/men_provider.dart';
+import 'package:Saborly/features/providers/notification_provider.dart';
+import 'package:Saborly/features/providers/offer_provider.dart';
+import 'package:Saborly/features/providers/order_provider.dart';
+import 'package:Saborly/features/providers/payment_provider.dart';
+import 'package:Saborly/firebase_options.dart';
+import 'package:Saborly/shared/models/notification_model.dart';
 import 'core/routes/app_routes.dart';
 import 'core/services/api_service.dart';
 
@@ -110,15 +113,18 @@ class FoodKingApp extends StatefulWidget {
   State<FoodKingApp> createState() => _FoodKingAppState();
 }
 
+
+// Find this section in your main.dart and replace ONLY the _FoodKingAppState class:
+
 class _FoodKingAppState extends State<FoodKingApp> {
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  
+  // ✅ ADD THIS LINE
+  NotificationProvider? _notificationProvider;
 
   @override
   void initState() {
     super.initState();
-    _setupNotificationHandlers();
-    
-    // ✅ Listen to language changes and update UI
     widget.languageService.addListener(_onLanguageChanged);
   }
 
@@ -128,36 +134,67 @@ class _FoodKingAppState extends State<FoodKingApp> {
     super.dispose();
   }
 
-  /// ✅ CRITICAL: Force rebuild when language changes
   void _onLanguageChanged() {
     if (mounted) {
       setState(() {
-        // This forces MaterialApp to rebuild with new locale
         AppStrings.setLanguage(widget.languageService.currentLanguage);
       });
     }
   }
 
-  void _setupNotificationHandlers() {
-    widget.notificationService.onNotificationReceived = (data) {
+  // ✅ REPLACE _setupNotificationHandlers with this NEW method:
+  void _setupNotificationHandlersWhenReady(NotificationProvider provider) {
+    if (_notificationProvider != null) {
+      return; // Already setup
+    }
+    
+    _notificationProvider = provider;
+    
+    if (kDebugMode) print('🔧 Setting up notification handlers with provider...');
+    
+    // ✅ THIS IS THE KEY FIX - use provider directly, not context!
+    widget.notificationService.notificationProviderCallback = (notification) async {
+      try {
+        if (kDebugMode) print('💾 Saving notification: ${notification.title}');
+        
+        if (_notificationProvider != null) {
+          await _notificationProvider!.addNotification(notification);
+          if (kDebugMode) print('✅ Notification saved successfully to provider');
+        } else {
+          if (kDebugMode) print('❌ NotificationProvider not available');
+        }
+      } catch (e, stack) {
+        if (kDebugMode) {
+          print('❌ Error in notification callback: $e');
+          print('Stack: $stack');
+        }
+      }
+    };
+    
+    widget.notificationService.onNotificationReceived = (data) async {
       _handleNotificationData(data);
     };
     
-    widget.notificationService.onNotificationTapped = (data) {
+    widget.notificationService.onNotificationTapped = (data) async {
       _handleNotificationNavigation(data);
     };
+    
+    if (kDebugMode) print('✅ Notification handlers setup complete with provider');
   }
   
   void _handleNotificationData(Map<String, dynamic> data) {
     final type = data['type'];
+    if (kDebugMode) print('🔔 Handling notification type: $type');
     
     switch (type) {
       case 'order_update':
-    
+        if (kDebugMode) print('📦 Order update notification');
         break;
       case 'new_order':
+        if (kDebugMode) print('🆕 New order notification');
         break;
       default:
+        if (kDebugMode) print('📨 General notification');
     }
   }
   
@@ -166,26 +203,31 @@ class _FoodKingAppState extends State<FoodKingApp> {
     final context = navigatorKey.currentContext;
     
     if (context == null) {
+      if (kDebugMode) print('❌ No context for navigation');
       return;
     }
+    
+    if (kDebugMode) print('🧭 Navigating for type: $type');
     
     switch (type) {
       case 'order_update':
         final orderId = data['orderId'];
         if (orderId != null) {
-          Navigator.of(context).pushNamed('/order-details', arguments: orderId);
+          context.push(AppRoutes.orderStatus.replaceFirst(':orderId', orderId.toString()));
         }
         break;
       case 'new_order':
-        Navigator.of(context).pushNamed('/orders');
+        context.push(AppRoutes.orders);
         break;
       case 'promotion':
-        Navigator.of(context).pushNamed('/home');
+        context.push(AppRoutes.offer);
         break;
       default:
+        context.push(AppRoutes.home);
     }
   }
 
+  
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -219,39 +261,53 @@ class _FoodKingAppState extends State<FoodKingApp> {
                 ChangeNotifierProvider<LanguageService>.value(
                   value: widget.languageService,
                 ),
-               ChangeNotifierProxyProvider<LanguageService, HomeProvider>(
-      create: (_) {
-        final homeProvider = HomeProvider();
-        // Initialize immediately with current language
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          homeProvider.initializeIfNeeded(widget.languageService.currentLanguage);
-        });
-        return homeProvider;
-      },
-      update: (_, languageService, homeProvider) {
-        homeProvider?.setLanguage(languageService.currentLanguage);
-        return homeProvider ?? HomeProvider();
-      },
-    ),
-    
-    // ✅ FIXED: Initialize MenuProvider with current language
-    ChangeNotifierProxyProvider<LanguageService, MenuProvider>(
-      create: (_) => MenuProvider(),
-      update: (_, languageService, menuProvider) {
-        menuProvider?.setLanguage(languageService.currentLanguage);
-        return menuProvider ?? MenuProvider();
-      },
-    ),
-    
-    // ✅ CRITICAL: Initialize OffersProvider with current language
-    // It will use the API language that was set by HomeProvider
-    ChangeNotifierProxyProvider<LanguageService, OffersProvider>(
-      create: (_) => OffersProvider(),
-      update: (_, languageService, offersProvider) {
-        offersProvider?.setLanguage(languageService.currentLanguage);
-        return offersProvider ?? OffersProvider();
-      },
-    ),
+                
+                // ✅ CRITICAL CHANGE: Setup handlers in create callback
+                ChangeNotifierProvider(
+                  create: (_) {
+                    final provider = NotificationProvider();
+                    provider.initialize();
+                    if (kDebugMode) print('✅ NotificationProvider created and initialized');
+                    
+                    // ✅ THIS IS THE KEY - Setup handlers immediately with provider instance
+                    WidgetsBinding.instance.addPostFrameCallback((__) {
+                      _setupNotificationHandlersWhenReady(provider);
+                    });
+                    
+                    return provider;
+                  },
+                ),
+                
+                ChangeNotifierProxyProvider<LanguageService, HomeProvider>(
+                  create: (_) {
+                    final homeProvider = HomeProvider();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      homeProvider.initializeIfNeeded(widget.languageService.currentLanguage);
+                    });
+                    return homeProvider;
+                  },
+                  update: (_, languageService, homeProvider) {
+                    homeProvider?.setLanguage(languageService.currentLanguage);
+                    return homeProvider ?? HomeProvider();
+                  },
+                ),
+                
+                ChangeNotifierProxyProvider<LanguageService, MenuProvider>(
+                  create: (_) => MenuProvider(),
+                  update: (_, languageService, menuProvider) {
+                    menuProvider?.setLanguage(languageService.currentLanguage);
+                    return menuProvider ?? MenuProvider();
+                  },
+                ),
+                
+                ChangeNotifierProxyProvider<LanguageService, OffersProvider>(
+                  create: (_) => OffersProvider(),
+                  update: (_, languageService, offersProvider) {
+                    offersProvider?.setLanguage(languageService.currentLanguage);
+                    return offersProvider ?? OffersProvider();
+                  },
+                ),
+                
                 ChangeNotifierProvider(create: (_) => OrderProvider()),
                 ChangeNotifierProvider(create: (_) => LocationProvider()),
                 ChangeNotifierProvider(create: (_) => CheckoutProvider()),
@@ -263,23 +319,18 @@ class _FoodKingAppState extends State<FoodKingApp> {
                     title: AppStrings.appName,
                     debugShowCheckedModeBanner: false,
                     theme: _buildThemeData(),
-                    
-                    // ✅ CRITICAL: Use language service's locale
                     locale: languageService.locale,
-                    
                     localizationsDelegates: const [
                       GlobalMaterialLocalizations.delegate,
                       GlobalWidgetsLocalizations.delegate,
                       GlobalCupertinoLocalizations.delegate,
                     ],
-                    
                     supportedLocales: const [
                       Locale('en', ''),
                       Locale('es', ''),
                       Locale('ca', ''),
                       Locale('ar', ''),
                     ],
-                    
                     localeResolutionCallback: (deviceLocale, supportedLocales) {
                       final userLocale = languageService.locale;
                       for (var supportedLocale in supportedLocales) {
@@ -289,7 +340,6 @@ class _FoodKingAppState extends State<FoodKingApp> {
                       }
                       return const Locale('es', '');
                     },
-                    
                     routerConfig: AppRoutes.router,
                     builder: (context, child) {
                       return Directionality(
@@ -391,6 +441,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
     );
   }
 }
+
 
 class AppBackButtonHandler extends StatelessWidget {
   final Widget child;

@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/routes/app_routes.dart';
-import 'package:soely/core/utils/responsive_utils.dart';
-import 'package:soely/features/providers/offer_provider.dart';
-import 'package:soely/shared/models/offer.dart';
-import 'package:soely/core/services/language_service.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/routes/app_routes.dart';
+import 'package:Saborly/core/utils/responsive_utils.dart';
+import 'package:Saborly/features/providers/offer_provider.dart';
+import 'package:Saborly/shared/models/offer.dart';
+import 'package:Saborly/core/services/language_service.dart';
 
 /// ✅ FIXED: Use mixin for automatic language updates
 class OffersSection extends StatefulWidget {

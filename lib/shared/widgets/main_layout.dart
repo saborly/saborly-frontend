@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/services/language_service.dart';
-import 'package:soely/features/providers/cart_provider.dart';
-import 'package:soely/shared/widgets/language_selector.dart';
-import 'package:soely/shared/widgets/search_bar_widget.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/services/language_service.dart';
+import 'package:Saborly/features/providers/cart_provider.dart';
+import 'package:Saborly/shared/widgets/language_selector.dart';
+import 'package:Saborly/shared/widgets/search_bar_widget.dart';
 import '../../core/routes/app_routes.dart';
 
 class MainLayout extends StatefulWidget {

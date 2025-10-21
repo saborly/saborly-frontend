@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/features/providers/cart_provider.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/features/providers/cart_provider.dart';
 import '../models/food_item.dart';
 
 class FoodItemCard extends StatelessWidget {

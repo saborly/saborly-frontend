@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:soely/core/services/notification_service.dart';
+import 'package:Saborly/core/services/notification_service.dart';
 import '../../../shared/models/user.dart';
 import '../../../core/services/api_service.dart';
 

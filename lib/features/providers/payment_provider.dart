@@ -1,8 +1,8 @@
 // ==================== PAYMENT PROVIDER ====================
 import 'package:flutter/foundation.dart';
-import 'package:soely/features/providers/cart_provider.dart';
-import 'package:soely/features/providers/checkout_provider.dart';
-import 'package:soely/features/providers/order_provider.dart';
+import 'package:Saborly/features/providers/cart_provider.dart';
+import 'package:Saborly/features/providers/checkout_provider.dart';
+import 'package:Saborly/features/providers/order_provider.dart';
 import '../../../shared/models/order.dart';
 
 class PaymentProvider extends ChangeNotifier {
@@ -22,7 +22,7 @@ class PaymentProvider extends ChangeNotifier {
   static DeliveryAddress shopAddress = DeliveryAddress(
     id: 'shop_main',
     type: 'pickup',
-    address: 'Saborly C/ de Pere IV, 208, Sant Martí, 08005 Barcelona, Spain',
+    address: 'SaborlyC/ de Pere IV, 208, Sant Martí, 08005 Barcelona, Spain',
     apartment: '+34932112072',
     isDefault: true,
   );

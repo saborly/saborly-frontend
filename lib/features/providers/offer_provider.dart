@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:soely/core/services/api_service.dart';
-import 'package:soely/shared/models/offer.dart';
+import 'package:Saborly/core/services/api_service.dart';
+import 'package:Saborly/shared/models/offer.dart';
 
 class OffersProvider extends ChangeNotifier {
   List<OfferModel> _allOffers = [];
@@ -12,7 +12,7 @@ class OffersProvider extends ChangeNotifier {
   String? _error;
   String _currentLanguage = 'es';
 
-  static const String baseUrl = 'https://soleybackend.vercel.app/api/v1';
+  static const String baseUrl = 'https://saborly-backend.vercel.app/api/v1';
 
   // Getters
   List<OfferModel> get allOffers => _allOffers;

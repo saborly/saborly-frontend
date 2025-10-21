@@ -4,11 +4,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/features/providers/men_provider.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/features/providers/men_provider.dart';
 
-import 'package:soely/shared/widgets/ooter.dart';
+import 'package:Saborly/shared/widgets/ooter.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../shared/widgets/food_item_card.dart';
 import '../../../shared/widgets/search_bar_widget.dart';

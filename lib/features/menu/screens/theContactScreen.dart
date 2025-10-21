@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/services/banner_service.dart';
-import 'package:soely/core/services/language_service.dart';
-import 'package:soely/core/utils/responsive_utils.dart';
-import 'package:soely/shared/widgets/ooter.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/services/banner_service.dart';
+import 'package:Saborly/core/services/language_service.dart';
+import 'package:Saborly/core/utils/responsive_utils.dart';
+import 'package:Saborly/shared/widgets/ooter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ContactScreen extends StatefulWidget {

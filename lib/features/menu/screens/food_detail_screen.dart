@@ -6,11 +6,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/services/language_service.dart';
-import 'package:soely/features/providers/cart_provider.dart';
-import 'package:soely/features/providers/home_provider.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/services/language_service.dart';
+import 'package:Saborly/features/providers/cart_provider.dart';
+import 'package:Saborly/features/providers/home_provider.dart';
 import '../../../shared/models/food_item.dart';
 import '../../../shared/widgets/custom_button.dart';
 

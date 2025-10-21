@@ -3,11 +3,11 @@ import 'dart:math' show cos, sqrt, asin;
 import '../../../core/services/api_service.dart';
 import '../../../shared/models/branch.dart';
 import '../../../shared/models/order.dart';
-import 'cart_provider.dart'; // Add this import
+import 'cart_provider.dart';
 
 class CheckoutProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
-  CartProvider? _cartProvider; // Add this
+  CartProvider? _cartProvider;
   
   List<Branch> _branches = [];
   Branch? _selectedBranch;
@@ -29,6 +29,10 @@ class CheckoutProvider extends ChangeNotifier {
   // Add this method to inject CartProvider
   void setCartProvider(CartProvider cartProvider) {
     _cartProvider = cartProvider;
+    // CRITICAL FIX: Recalculate delivery fee when cart provider is set
+    if (_deliveryType == DeliveryType.delivery && _selectedAddress != null) {
+      _recalculateDeliveryFee();
+    }
   }
 
   // Getters
@@ -61,6 +65,25 @@ class CheckoutProvider extends ChangeNotifier {
       _cartProvider!.setDeliveryFee(fee);
     }
     notifyListeners();
+  }
+
+  // CRITICAL FIX: New method to recalculate delivery fee
+  void _recalculateDeliveryFee() {
+    if (_cartProvider != null && _selectedAddress != null && _deliveryType == DeliveryType.delivery) {
+      // Recalculate distance if coordinates exist
+      if (_selectedAddress!.latitude != null && _selectedAddress!.longitude != null) {
+        _deliveryDistance = _calculateDistance(
+          shopLat,
+          shopLng,
+          _selectedAddress!.latitude!,
+          _selectedAddress!.longitude!,
+        );
+      }
+      
+      // Recalculate fee
+      final fee = calculateDeliveryFee(_cartProvider!.subtotal);
+      _updateDeliveryFee(fee);
+    }
   }
 
   // Calculate distance using Haversine formula
@@ -137,6 +160,19 @@ class CheckoutProvider extends ChangeNotifier {
       
       if (response.isSuccess && response.data != null) {
         _savedAddresses = response.data!;
+        
+        // CRITICAL FIX: If we have a selected address, update it from saved addresses
+        if (_selectedAddress != null) {
+          final updatedAddress = _savedAddresses.firstWhere(
+            (addr) => addr.id == _selectedAddress!.id,
+            orElse: () => _selectedAddress!,
+          );
+          
+          if (updatedAddress.latitude != null && updatedAddress.longitude != null) {
+            _selectedAddress = updatedAddress;
+            _recalculateDeliveryFee();
+          }
+        }
       } else {
         _savedAddresses = [];
       }
@@ -212,10 +248,10 @@ class CheckoutProvider extends ChangeNotifier {
         address.longitude!,
       );
       
-      if (orderTotal != null) {
-        final fee = calculateDeliveryFee(orderTotal);
-        _updateDeliveryFee(fee);
-      }
+      // CRITICAL FIX: Use cart provider's subtotal if orderTotal not provided
+      final total = orderTotal ?? _cartProvider?.subtotal ?? 0.0;
+      final fee = calculateDeliveryFee(total);
+      _updateDeliveryFee(fee);
     } else {
       _deliveryDistance = null;
       _updateDeliveryFee(null);
@@ -231,10 +267,9 @@ class CheckoutProvider extends ChangeNotifier {
     if (type == DeliveryType.pickup) {
       _deliveryDistance = null;
       _updateDeliveryFee(0.0);
-    } else if (type == DeliveryType.delivery && _selectedAddress != null && _cartProvider != null) {
-      // Recalculate delivery fee when switching to delivery
-      final fee = calculateDeliveryFee(_cartProvider!.subtotal);
-      _updateDeliveryFee(fee);
+    } else if (type == DeliveryType.delivery && _selectedAddress != null) {
+      // CRITICAL FIX: Recalculate delivery fee when switching to delivery
+      _recalculateDeliveryFee();
     }
     
     notifyListeners();
@@ -320,5 +355,8 @@ class CheckoutProvider extends ChangeNotifier {
     _selectedTimeSlot = null;
     _error = null;
     notifyListeners();
-  }
-}
+
+
+
+
+  }}

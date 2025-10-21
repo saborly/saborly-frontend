@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/services/language_service.dart';
-import 'package:soely/features/providers/cart_provider.dart';
-import 'package:soely/features/providers/checkout_provider.dart';
-import 'package:soely/features/providers/order_provider.dart';
-import 'package:soely/features/providers/payment_provider.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/services/language_service.dart';
+import 'package:Saborly/features/providers/cart_provider.dart';
+import 'package:Saborly/features/providers/checkout_provider.dart';
+import 'package:Saborly/features/providers/order_provider.dart';
+import 'package:Saborly/features/providers/payment_provider.dart';
 
 import '../../../core/routes/app_routes.dart';
 import '../../../shared/models/order.dart';
@@ -785,22 +785,107 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final success = await provider.processPayment();
 
     if (success && mounted) {
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 24.sp,
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      AppStrings.get('orderPlacedSuccessfully') ?? 
+                      'Order Placed Successfully! 🎉',
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green.shade600,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          margin: EdgeInsets.all(16.w),
+        ),
+      );
+
+      // Navigate to order status
       if (provider.orderId != null) {
-        context.goNamed(
-          'order-status',
-          pathParameters: {'orderId': provider.orderId!},
-        );
+        // Small delay to allow snackbar to be seen
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (mounted) {
+          context.goNamed(
+            'order-status',
+            pathParameters: {'orderId': provider.orderId!},
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppStrings.get('errorFailedToLoadOrder'))),
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error_rounded, color: Colors.white, size: 20.sp),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    AppStrings.get('errorFailedToLoadOrder') ?? 
+                    'Failed to load order details',
+                    style: TextStyle(fontSize: 14.sp),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.orange.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+          ),
         );
       }
     } else if (mounted) {
+      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(AppStrings.get('paymentFailed')
-                .replaceAll('{error}', provider.error ?? ''))),
+          content: Row(
+            children: [
+              Icon(Icons.error_rounded, color: Colors.white, size: 20.sp),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Text(
+                  provider.error ??
+                  AppStrings.get('paymentFailed') ?? 
+                  'Payment failed. Please try again.',
+                  style: TextStyle(fontSize: 14.sp),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          margin: EdgeInsets.all(16.w),
+        ),
       );
     }
-  }
-}
+  }}

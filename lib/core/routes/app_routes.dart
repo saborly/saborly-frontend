@@ -2,23 +2,24 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/features/auth/screens/authforgot.dart';
-import 'package:soely/features/auth/screens/authreset.dart';
-import 'package:soely/features/auth/screens/changeword.dart';
-import 'package:soely/features/home/screens/SplashScreen.dart';
-import 'package:soely/features/menu/screens/AboutUsScreen.dart';
-import 'package:soely/features/menu/screens/cart_screen.dart';
-import 'package:soely/features/auth/screens/eemailVerificationScreen.dart';
-import 'package:soely/features/menu/screens/offersScreen.dart';
-import 'package:soely/features/menu/screens/order_history.dart';
-import 'package:soely/features/menu/screens/order_status.dart';
-import 'package:soely/features/menu/screens/ourfaq.dart';
-import 'package:soely/features/menu/screens/ourprivacy.dart';
-import 'package:soely/features/menu/screens/payment_scree.dart';
-import 'package:soely/features/menu/screens/profile_screen.dart';
-import 'package:soely/features/menu/screens/search_results_page.dart';
-import 'package:soely/features/menu/screens/theContactScreen.dart';
-import 'package:soely/features/providers/auth_proveder.dart';
+import 'package:Saborly/features/auth/screens/authforgot.dart';
+import 'package:Saborly/features/auth/screens/authreset.dart';
+import 'package:Saborly/features/auth/screens/changeword.dart';
+import 'package:Saborly/features/home/screens/SplashScreen.dart';
+import 'package:Saborly/features/menu/screens/AboutUsScreen.dart';
+import 'package:Saborly/features/menu/screens/cart_screen.dart';
+import 'package:Saborly/features/auth/screens/eemailVerificationScreen.dart';
+import 'package:Saborly/features/menu/screens/notifications_screen.dart';
+import 'package:Saborly/features/menu/screens/offersScreen.dart';
+import 'package:Saborly/features/menu/screens/order_history.dart';
+import 'package:Saborly/features/menu/screens/order_status.dart';
+import 'package:Saborly/features/menu/screens/ourfaq.dart';
+import 'package:Saborly/features/menu/screens/ourprivacy.dart';
+import 'package:Saborly/features/menu/screens/payment_scree.dart';
+import 'package:Saborly/features/menu/screens/profile_screen.dart';
+import 'package:Saborly/features/menu/screens/search_results_page.dart';
+import 'package:Saborly/features/menu/screens/theContactScreen.dart';
+import 'package:Saborly/features/providers/auth_proveder.dart';
 
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/signup_screen.dart';
@@ -42,6 +43,8 @@ static const String faq = '/faq';
   static const String home = '/home';
   static const String menu = '/menu';
   static const String offer = '/offer';
+  static const String notifications = '/notifications'; // ✅ ADD THIS
+
   static const String orderStatus = '/order-status/:orderId';
   static const String emailVerification = '/email-verification';
  static const String about = '/about';
@@ -135,6 +138,11 @@ static const String faq = '/faq';
         name: 'forgot-password',
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
+          GoRoute(
+            path: notifications,
+            name: 'notifications',
+            builder: (context, state) => const NotificationsScreen(),
+          ),
       GoRoute(
         path: resetPassword,
         name: 'reset-password',

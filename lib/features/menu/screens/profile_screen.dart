@@ -5,10 +5,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/features/providers/auth_proveder.dart';
-import 'package:soely/shared/widgets/ooter.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/features/providers/auth_proveder.dart';
+import 'package:Saborly/shared/widgets/ooter.dart';
 
 import '../../../core/routes/app_routes.dart';
 import '../../../shared/widgets/custom_button.dart';
@@ -266,7 +266,9 @@ class ProfileScreen extends StatelessWidget {
             crossAxisSpacing: 16.w,
             childAspectRatio: 3.5,
             children: [
-              _buildSettingCard(AppStrings.get('notifications'), Icons.notifications_outlined, () {}),
+              _buildSettingCard(AppStrings.get('notifications'), Icons.notifications_outlined, () {
+                  context.go(AppRoutes.notifications); 
+              }),
               _buildSettingCard(AppStrings.get('privacy'), Icons.privacy_tip_outlined, () {
                 context.go(AppRoutes.privacy); // Already linked to Privacy
               }),
@@ -381,7 +383,10 @@ class ProfileScreen extends StatelessWidget {
         icon: Icons.notifications,
         title: AppStrings.get('notifications'),
         subtitle: AppStrings.get('notificationPreferences'),
-        onTap: () {},
+        onTap: () {
+                            context.go(AppRoutes.notifications); 
+
+        },
       ),
     ];
     return Container(

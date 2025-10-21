@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
-import 'package:soely/core/services/language_service.dart';
+import 'package:Saborly/core/services/language_service.dart';
 
 // Main Offer Model
 class OfferModel extends Equatable {

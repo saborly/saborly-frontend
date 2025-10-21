@@ -862,7 +862,7 @@ class AppStrings {
 
       // Story Section
       'ourStory': 'Our Story',
-      'storyDescription': 'Saborly was born from a passion for delivering delicious, high-quality food. From our beginnings, we have been committed to serving the best dishes, prepared with fresh ingredients and authentic recipes. Every day, we strive to exceed our customers’ expectations and create memorable culinary experiences.',
+      'storyDescription': 'Saborlywas born from a passion for delivering delicious, high-quality food. From our beginnings, we have been committed to serving the best dishes, prepared with fresh ingredients and authentic recipes. Every day, we strive to exceed our customers’ expectations and create memorable culinary experiences.',
 
       // Values Section
       'ourValues': 'Our Values',
@@ -967,6 +967,19 @@ class AppStrings {
       'faq_account_dietary_question': 'Do you have dietary filters?',
       'faq_account_dietary_answer': 'Yes! You can filter menu items by dietary preferences including vegetarian, vegan, gluten-free, dairy-free, nut-free, halal, and kosher. We also provide detailed allergen information for each dish. Look for the filter icon in the app menu.',
 
+    
+ 
+  "noNotifications": "No Notifications",
+  "youWillSeeNotificationsHere": "You will see notifications here",
+  "markAllAsRead": "Mark all as read",
+
+  "allNotificationsMarkedAsRead": "All notifications marked as read",
+  "notificationDeleted": "Notification deleted",
+ 
+  "clearAllNotifications": "Clear All Notifications",
+  "areYouSureYouWantToClearAllNotifications": "Are you sure you want to clear all notifications?",
+  "allNotificationsCleared": "All notifications cleared",
+  "noNotificationsInThisCategory": "No notifications in this category"
     },
     
     // ==================== SPANISH ====================
@@ -1697,7 +1710,7 @@ class AppStrings {
 
       // Story Section
       'ourStory': 'Nuestra Historia',
-      'storyDescription': 'Saborly nació de una pasión por ofrecer comida deliciosa y de calidad. Desde nuestros inicios, nos hemos comprometido a servir los mejores platos, preparados con ingredientes frescos y recetas auténticas. Cada día trabajamos para superar las expectativas de nuestros clientes y crear experiencias culinarias memorables.',
+      'storyDescription': 'Saborlynació de una pasión por ofrecer comida deliciosa y de calidad. Desde nuestros inicios, nos hemos comprometido a servir los mejores platos, preparados con ingredientes frescos y recetas auténticas. Cada día trabajamos para superar las expectativas de nuestros clientes y crear experiencias culinarias memorables.',
 
       // Values Section
       'ourValues': 'Nuestros Valores',
@@ -1714,7 +1727,16 @@ class AppStrings {
   "offerPrice": "Precio de la oferta",
   "startingFrom": "A partir de",
 
-
+  "noNotifications": "Sin notificaciones",
+  "youWillSeeNotificationsHere": "Verás las notificaciones aquí",
+  "markAllAsRead": "Marcar todo como leído",
+  "allNotificationsMarkedAsRead": "Todas las notificaciones marcadas como leídas",
+  "notificationDeleted": "Notificación eliminada",
+  "undo": "Deshacer",
+  "clearAllNotifications": "Borrar todas las notificaciones",
+  "areYouSureYouWantToClearAllNotifications": "¿Estás seguro de que quieres borrar todas las notificaciones?",
+  "allNotificationsCleared": "Todas las notificaciones borradas",
+  "noNotificationsInThisCategory": "No hay notificaciones en esta categoría"
       
     },
     
@@ -2219,7 +2241,7 @@ class AppStrings {
       'pleaseEnterNewPassword': 'Si us plau, introdueix una nova contrasenya',
       'passwordMinLength6': 'La contrasenya ha de tenir almenys 6 caràcters',
       'newPasswordDifferent': 'La nova contrasenya ha de ser diferent de l\'actual',
-      'pleaseConfirmNewPassword': 'Si us plau, confirma la teva nova contrasenya',
+      'pleaseConfirmNewPassword':'Si us plau, confirma la teva nova contrasenya',
 
       // Security Tips
       'passwordRequirements': 'Requisits de Contrasenya',
@@ -2275,7 +2297,7 @@ class AppStrings {
 
       // Story Section
       'ourStory': 'La Nostra Història',
-      'storyDescription': 'Saborly va néixer d’una passió per oferir menjar deliciós i de qualitat. Des dels nostres inicis, ens hem compromès a servir els millors plats, preparats amb ingredients frescos i receptes autèntiques. Cada dia treballem per superar les expectatives dels nostres clients i crear experiències culinàries memorables.',
+      'storyDescription': 'Saborlyva néixer d’una passió per oferir menjar deliciós i de qualitat. Des dels nostres inicis, ens hem compromès a servir els millors plats, preparats amb ingredients frescos i receptes autèntiques. Cada dia treballem per superar les expectatives dels nostres clients i crear experiències culinàries memorables.',
 
       // Values Section
       'ourValues': 'Els Nostres Valors',
@@ -2386,7 +2408,15 @@ class AppStrings {
       'faq_account_incorrect_answer': 'Si hi ha algun problema amb la teva comanda, contacta’ns immediatament a través de l’aplicació o el suport al client. Fes fotos del problema si és possible. Treballarem amb el restaurant per resoldre el problema i oferir un reemborsament, reemplaçament o crèdit al teu compte.',
       'faq_account_dietary_question': 'Teniu filtres dietètics?',
       'faq_account_dietary_answer': 'Sí! Pots filtrar els elements del menú per preferències dietètiques, incloent-hi vegetarià, vegà, sense gluten, sense lactis, sense fruits secs, halal i kosher. També proporcionem informació detallada sobre al·lèrgens per a cada plat. Cerca l’icona de filtre al menú de l’aplicació.',
-
+  "noNotifications": "Sense notificacions",
+  "youWillSeeNotificationsHere": "Veuràs les notificacions aquí",
+  "markAllAsRead": "Marca-ho tot com a llegit",
+  "allNotificationsMarkedAsRead": "Totes les notificacions marcades com a llegides",
+  "notificationDeleted": "Notificació eliminada",
+  "clearAllNotifications": "Esborra totes les notificacions",
+  "areYouSureYouWantToClearAllNotifications": "Estàs segur que vols esborrar totes les notificacions?",
+  "allNotificationsCleared": "Totes les notificacions esborrades",
+  "noNotificationsInThisCategory": "No hi ha notificacions en aquesta categoria"
    },
     
     // ==================== ARABIC ====================
@@ -2961,7 +2991,7 @@ class AppStrings {
 
       // Story Section
       'ourStory': 'قصتنا',
-      'storyDescription': 'وُلد Saborly من شغف بتقديم طعام لذيذ وعالي الجودة. منذ بداياتنا، التزمنا بتقديم أفضل الأطباق، المُعدة بمكونات طازجة ووصفات أصيلة. كل يوم، نسعى لتجاوز توقعات عملائنا وخلق تجارب طهي لا تُنسى.',
+      'storyDescription': 'وُلد Saborlyمن شغف بتقديم طعام لذيذ وعالي الجودة. منذ بداياتنا، التزمنا بتقديم أفضل الأطباق، المُعدة بمكونات طازجة ووصفات أصيلة. كل يوم، نسعى لتجاوز توقعات عملائنا وخلق تجارب طهي لا تُنسى.',
 
       // Values Section
       'ourValues': 'قيمنا',
@@ -3025,8 +3055,17 @@ class AppStrings {
       'contact_questions': 'أسئلة حول خصوصيتك؟',
       'contact_support': 'فريقنا هنا لمساعدتك على فهم كيفية حماية بياناتك',
       'contact_email': 'support@saborly.es',
-      'contact_phone': '+34 932 112 072',
+      'contact_phone': '+34 932 112 072', 
+       "noNotifications": "لا توجد إشعارات",
+  "youWillSeeNotificationsHere": "سترى الإشعارات هنا",
+  "markAllAsRead": "وضع علامة على الكل كمقروء",
+  "allNotificationsMarkedAsRead": "تم وضع علامة على جميع الإشعارات كمقروءة",
+  "notificationDeleted": "تم حذف الإشعار",
 
+  "clearAllNotifications": "مسح جميع الإشعارات",
+  "areYouSureYouWantToClearAllNotifications": "هل أنت متأكد أنك تريد مسح جميع الإشعارات؟",
+  "allNotificationsCleared": "تم مسح جميع الإشعارات",
+  "noNotificationsInThisCategory": "لا توجد إشعارات في هذه الفئة",
     'faq_subtitle': 'ابحث عن إجابات للأسئلة الشائعة',
       'faq_category_all': 'الكل',
       'faq_category_orders': 'الطلبات',

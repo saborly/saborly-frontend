@@ -3,10 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/services/api_service.dart';
-import 'package:soely/features/providers/home_provider.dart';
-import 'package:soely/features/providers/men_provider.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/services/api_service.dart';
+import 'package:Saborly/features/providers/home_provider.dart';
+import 'package:Saborly/features/providers/men_provider.dart';
 import '../../core/constant/app_colors.dart';
 import '../../core/services/language_service.dart';
 

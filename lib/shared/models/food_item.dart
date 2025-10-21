@@ -1,7 +1,7 @@
 // lib/shared/models/food_item.dart - FIXED English Support
 import 'package:equatable/equatable.dart';
-import 'package:soely/shared/models/offer.dart';
-import 'package:soely/core/services/language_service.dart';
+import 'package:Saborly/shared/models/offer.dart';
+import 'package:Saborly/core/services/language_service.dart';
 import 'package:flutter/foundation.dart';
 
 class FoodItem extends Equatable {

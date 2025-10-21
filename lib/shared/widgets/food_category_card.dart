@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:soely/core/routes/app_routes.dart';
-import 'package:soely/features/providers/home_provider.dart';
-import 'package:soely/shared/models/food_category.dart';
+import 'package:Saborly/core/routes/app_routes.dart';
+import 'package:Saborly/features/providers/home_provider.dart';
+import 'package:Saborly/shared/models/food_category.dart';
 
 // Optimized category card without animations
 class FoodCategoryCard extends StatelessWidget {

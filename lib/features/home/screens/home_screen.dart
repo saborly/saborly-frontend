@@ -7,20 +7,21 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/routes/app_routes.dart';
-import 'package:soely/core/services/language_service.dart';
-import 'package:soely/core/utils/responsive_utils.dart';
-import 'package:soely/features/providers/home_provider.dart';
-import 'package:soely/features/providers/offer_provider.dart';
-import 'package:soely/shared/widgets/food_category_card.dart';
-import 'package:soely/shared/widgets/food_item_card.dart';
-import 'package:soely/shared/widgets/language_selector.dart';
-import 'package:soely/shared/widgets/offersSection.dart';
-import 'package:soely/shared/widgets/ooter.dart';
-import 'package:soely/shared/widgets/promotional_banner.dart';
-import 'package:soely/shared/widgets/search_bar_widget.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/routes/app_routes.dart';
+import 'package:Saborly/core/services/language_service.dart';
+import 'package:Saborly/core/utils/responsive_utils.dart';
+import 'package:Saborly/features/providers/home_provider.dart';
+import 'package:Saborly/features/providers/notification_provider.dart';
+import 'package:Saborly/features/providers/offer_provider.dart';
+import 'package:Saborly/shared/widgets/food_category_card.dart';
+import 'package:Saborly/shared/widgets/food_item_card.dart';
+import 'package:Saborly/shared/widgets/language_selector.dart';
+import 'package:Saborly/shared/widgets/offersSection.dart';
+import 'package:Saborly/shared/widgets/ooter.dart';
+import 'package:Saborly/shared/widgets/promotional_banner.dart';
+import 'package:Saborly/shared/widgets/search_bar_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -516,29 +517,71 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   PreferredSizeWidget _buildMobileAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [_buildLogo(context)],
+  return AppBar(
+    backgroundColor: Colors.white,
+    elevation: 0,
+    automaticallyImplyLeading: false,
+    title: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [_buildLogo(context)],
+    ),
+    actions: [
+      Padding(
+        padding: EdgeInsets.only(right: 4.w),
+        child: LanguageSelector(
+          showLabel: false,
+          isCompact: true,
+        ),
       ),
-      actions: [
-        Padding(
-          padding: EdgeInsets.only(right: 4.w),
-          child: LanguageSelector(
-            showLabel: false,
-            isCompact: true,
-          ),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: Icon(Icons.notifications_outlined, color: AppColors.textDark, size: 24.sp),
-        ),
-      ],
-    );
-  }
+      // ✅ REPLACE notification icon with this:
+      Consumer<NotificationProvider>(
+        builder: (context, notificationProvider, _) {
+          final unreadCount = notificationProvider.unreadCount;
+          
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                onPressed: () => context.push(AppRoutes.notifications),
+                icon: Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.textDark,
+                  size: 24.sp,
+                ),
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    constraints: BoxConstraints(
+                      minWidth: 16.w,
+                      minHeight: 16.h,
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 8.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    ],
+  );
+}
 
   Widget _buildLogo(BuildContext context) {
     return GestureDetector(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:soely/core/services/banner_service.dart';
+import 'package:Saborly/core/services/banner_service.dart';
 
 class DynamicPromotionalBanner extends StatefulWidget {
   final String? category;

@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/routes/app_routes.dart';
-import 'package:soely/core/services/language_service.dart';
-import 'package:soely/features/home/screens/home_screen.dart';
-import 'package:soely/features/providers/home_provider.dart';
-import 'package:soely/shared/widgets/food_item_card.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/routes/app_routes.dart';
+import 'package:Saborly/core/services/language_service.dart';
+import 'package:Saborly/features/home/screens/home_screen.dart';
+import 'package:Saborly/features/providers/home_provider.dart';
+import 'package:Saborly/shared/widgets/food_item_card.dart';
 
 class ItemsGridPage extends StatelessWidget {
   final ItemType itemType;

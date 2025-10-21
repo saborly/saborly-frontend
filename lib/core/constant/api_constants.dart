@@ -1,6 +1,6 @@
 class ApiConstants {
   // Base URL - Replace with your actual API URL
-  static const String baseUrl = 'https://soleybackend.vercel.app/api/v1';
+  static const String baseUrl = 'https://saborly-backend.vercel.app/api/v1';
   // For production: static const String baseUrl = 'https://your-api-domain.com/api/v1';
   
   // Auth endpoints

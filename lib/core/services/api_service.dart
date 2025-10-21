@@ -1,9 +1,9 @@
 import 'dart:io';
+import 'package:Saborly/shared/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:soely/core/constant/api_constants.dart';
-import 'package:soely/shared/models/order.dart';
-import 'package:soely/shared/models/user.dart';
+import 'package:Saborly/core/constant/api_constants.dart';
+import 'package:Saborly/shared/models/order.dart';
 import '../../shared/models/food_item.dart';
 import '../../shared/models/food_category.dart';
 

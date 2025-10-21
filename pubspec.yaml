@@ -1,5 +1,5 @@
-name: soely
-description: "Saborly is a modern food delivery and restaurant discovery app that connects users with local eateries, offering fast delivery, easy ordering, and a delightful dining experience"
+name: Saborly
+description: "Saborlyis a modern food delivery and restaurant discovery app that connects users with local eateries, offering fast delivery, easy ordering, and a delightful dining experience"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -45,7 +45,7 @@ dependencies:
   intl: ^0.19.0
   uuid: ^4.2.1
   equatable: ^2.0.5
-
+  timeago: ^3.6.1
   firebase_core: ^4.0.0
   firebase_auth: ^6.0.1
   firebase_messaging: ^16.0.0

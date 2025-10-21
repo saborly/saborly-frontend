@@ -1,11 +1,13 @@
 // File: features/menu/screens/privacy_policy_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/shared/widgets/language_selector.dart';
-import 'package:soely/shared/widgets/ooter.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/shared/widgets/language_selector.dart';
+import 'package:Saborly/shared/widgets/ooter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class PrivacyPolicyScreen extends StatefulWidget {
   const PrivacyPolicyScreen({Key? key}) : super(key: key);
@@ -42,8 +44,47 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> with SingleTi
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1200;
+              DateTime? _lastPressedAt;
 
-    return Scaffold(
+ return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        
+        final now = DateTime.now();
+        final maxDuration = const Duration(seconds: 2);
+        final isWarning = _lastPressedAt == null ||
+            now.difference(_lastPressedAt!) > maxDuration;
+
+        if (isWarning) {
+          _lastPressedAt = now;
+          
+          // Show toast message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+  AppStrings.get('pressBackAgain'),
+                style: GoogleFonts.poppins(
+                  fontSize: 14.sp,
+                  color: Colors.white,
+                ),
+              ),
+              duration: const Duration(seconds: 2),
+              backgroundColor: AppColors.textDark,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              margin: EdgeInsets.all(16.r),
+            ),
+          );
+          return;
+        }
+        
+        // Exit app
+        SystemNavigator.pop();
+      },
+    child:Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: CustomScrollView(
         slivers: [
@@ -53,7 +94,6 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> with SingleTi
   floating: false,
   pinned: true,
   backgroundColor: AppColors.primary,
-  leading: _buildAppBar(context, isDesktop),
   flexibleSpace: FlexibleSpaceBar(
     background: Container(
       decoration: BoxDecoration(
@@ -243,28 +283,9 @@ if (isDesktop)
             ),
         ],
       ),
-    );
-  }
-PreferredSizeWidget _buildAppBar(BuildContext context, bool isWeb) {
-  return AppBar(
-    backgroundColor: AppColors.primary,
-    elevation: 0.5,
-    leading: IconButton(
-      icon: Icon(Icons.arrow_back, color: AppColors.textDark, size: 24.sp),
-      onPressed: () => context.canPop() ? context.pop() : context.go('/profile'),
-    ),
-    title: Text(
-      AppStrings.get('privacy'),
-      style: TextStyle(
-        fontSize: isWeb ? 24.sp : 20.sp,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textDark,
-      ),
-    ),
-
-  );
-}
-  Widget _buildIntroCard() {
+    )
+  );}
+Widget _buildIntroCard() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(

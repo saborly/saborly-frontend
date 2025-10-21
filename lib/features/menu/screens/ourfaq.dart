@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:soely/core/constant/app_colors.dart';
-import 'package:soely/core/constant/app_strings.dart';
-import 'package:soely/core/services/language_service.dart';
-import 'package:soely/features/providers/language_provider_mixin.dart';
-import 'package:soely/shared/widgets/language_selector.dart';
-import 'package:soely/shared/widgets/ooter.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/services/language_service.dart';
+import 'package:Saborly/features/providers/language_provider_mixin.dart';
+import 'package:Saborly/shared/widgets/language_selector.dart';
+import 'package:Saborly/shared/widgets/ooter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class FAQScreen extends StatefulWidget {
@@ -115,8 +117,47 @@ class _FAQScreenState extends State<FAQScreen>
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1200;
+          DateTime? _lastPressedAt;
 
-    return Directionality(
+ return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        
+        final now = DateTime.now();
+        final maxDuration = const Duration(seconds: 2);
+        final isWarning = _lastPressedAt == null ||
+            now.difference(_lastPressedAt!) > maxDuration;
+
+        if (isWarning) {
+          _lastPressedAt = now;
+          
+          // Show toast message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+  AppStrings.get('pressBackAgain'),
+                style: GoogleFonts.poppins(
+                  fontSize: 14.sp,
+                  color: Colors.white,
+                ),
+              ),
+              duration: const Duration(seconds: 2),
+              backgroundColor: AppColors.textDark,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              margin: EdgeInsets.all(16.r),
+            ),
+          );
+          return;
+        }
+        
+        // Exit app
+        SystemNavigator.pop();
+      },
+    child:Directionality(
       textDirection: context.watch<LanguageService>().textDirection,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
@@ -127,7 +168,6 @@ class _FAQScreenState extends State<FAQScreen>
               floating: false,
               pinned: true,
               backgroundColor: AppColors.primary,
-              leading: _buildAppBar(context, isDesktop),
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   decoration: BoxDecoration(
@@ -242,9 +282,8 @@ class _FAQScreenState extends State<FAQScreen>
           ],
         ),
       ),
-    );
-  }
-
+    )
+  );}
   Widget _buildCategoryFilter() {
     final List<String> _categories = [
       'faq_category_all',
@@ -292,26 +331,6 @@ class _FAQScreenState extends State<FAQScreen>
           );
         }).toList(),
       ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(BuildContext context, bool isWeb) {
-    return AppBar(
-      backgroundColor: AppColors.primary,
-      elevation: 0.5,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: AppColors.textDark, size: 24.sp),
-        onPressed: () => context.canPop() ? context.pop() : context.go('/profile'),
-      ),
-      title: Text(
-        AppStrings.get('faq'), // Fixed from 'privacy' to 'faq'
-        style: TextStyle(
-          fontSize: isWeb ? 24.sp : 20.sp,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textDark,
-        ),
-      ),
-   
     );
   }
 
