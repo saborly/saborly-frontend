@@ -9,6 +9,13 @@ class CheckoutProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
   CartProvider? _cartProvider;
   
+  // ✅ NEW: Track delivery availability
+  bool _isDeliveryEnabled = true;
+  String? _deliveryDisabledMessage;
+  
+  bool get isDeliveryEnabled => _isDeliveryEnabled;
+  String? get deliveryDisabledMessage => _deliveryDisabledMessage;
+
   List<Branch> _branches = [];
   Branch? _selectedBranch;
   DeliveryAddress? _selectedAddress;
@@ -21,19 +28,9 @@ class CheckoutProvider extends ChangeNotifier {
   double? _deliveryDistance;
   double? _deliveryFee;
 
-  // Shop coordinates (Saborly-Burgers, Barcelona)
   static const double shopLat = 41.3995;
   static const double shopLng = 2.1909;
-  static const double maxDeliveryDistance = 6.0; // km
-
-  // Add this method to inject CartProvider
-  void setCartProvider(CartProvider cartProvider) {
-    _cartProvider = cartProvider;
-    // CRITICAL FIX: Recalculate delivery fee when cart provider is set
-    if (_deliveryType == DeliveryType.delivery && _selectedAddress != null) {
-      _recalculateDeliveryFee();
-    }
-  }
+  static const double maxDeliveryDistance = 6.0;
 
   // Getters
   List<Branch> get branches => _branches;
@@ -48,6 +45,13 @@ class CheckoutProvider extends ChangeNotifier {
   double? get deliveryDistance => _deliveryDistance;
   double? get deliveryFee => _deliveryFee;
 
+  void setCartProvider(CartProvider cartProvider) {
+    _cartProvider = cartProvider;
+    if (_deliveryType == DeliveryType.delivery && _selectedAddress != null) {
+      _recalculateDeliveryFee();
+    }
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -58,7 +62,6 @@ class CheckoutProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Helper method to update delivery fee in both providers
   void _updateDeliveryFee(double? fee) {
     _deliveryFee = fee;
     if (_cartProvider != null && fee != null) {
@@ -67,10 +70,8 @@ class CheckoutProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // CRITICAL FIX: New method to recalculate delivery fee
   void _recalculateDeliveryFee() {
     if (_cartProvider != null && _selectedAddress != null && _deliveryType == DeliveryType.delivery) {
-      // Recalculate distance if coordinates exist
       if (_selectedAddress!.latitude != null && _selectedAddress!.longitude != null) {
         _deliveryDistance = _calculateDistance(
           shopLat,
@@ -80,13 +81,11 @@ class CheckoutProvider extends ChangeNotifier {
         );
       }
       
-      // Recalculate fee
       final fee = calculateDeliveryFee(_cartProvider!.subtotal);
       _updateDeliveryFee(fee);
     }
   }
 
-  // Calculate distance using Haversine formula
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
     const p = 0.017453292519943295;
     final a = 0.5 - cos((lat2 - lat1) * p) / 2 +
@@ -94,7 +93,6 @@ class CheckoutProvider extends ChangeNotifier {
     return 12742 * asin(sqrt(a));
   }
 
-  // Calculate delivery fee based on distance and order total
   double? calculateDeliveryFee(double orderTotal) {
     if (_deliveryType == DeliveryType.pickup || _selectedAddress == null) {
       return 0.0;
@@ -104,23 +102,63 @@ class CheckoutProvider extends ChangeNotifier {
 
     final distance = _deliveryDistance!;
 
-    // Don't allow delivery beyond 6km
     if (distance > maxDeliveryDistance) {
       return null;
     }
 
-    // Within 3km: Free if order >= €20, else €3.50
     if (distance <= 3) {
       return orderTotal >= 20 ? 0.0 : 3.5;
-    }
-    // Within 5km: €10.00
-    else if (distance <= 5) {
+    } else if (distance <= 5) {
       return 10.0;
-    }
-    // Within 6km: €12.00
-    else {
+    } else {
       return 12.0;
     }
+  }
+
+  // ✅ NEW: Check if delivery is enabled from backend
+  Future<void> checkDeliveryAvailability() async {
+    try {
+      final response = await _apiService.getPublicSettings();
+      
+      if (response.isSuccess && response.data != null) {
+        final settings = response.data!;
+        _isDeliveryEnabled = settings.deliverySettings?.isDeliveryEnabled ?? true;
+        _deliveryDisabledMessage = settings.deliverySettings?.disabledMessage;
+        
+        // If delivery is disabled and currently selected, switch to pickup
+        if (!_isDeliveryEnabled && _deliveryType == DeliveryType.delivery) {
+          _deliveryType = DeliveryType.pickup;
+          _deliveryFee = 0;
+        }
+        
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error checking delivery availability: $e');
+      // Default to enabled on error
+      _isDeliveryEnabled = true;
+    }
+  }
+
+  // ✅ UPDATED: Modified setDeliveryType to check if delivery is enabled
+  void setDeliveryType(DeliveryType type) {
+    // CRITICAL: Prevent setting delivery if it's disabled
+    if (type == DeliveryType.delivery && !_isDeliveryEnabled) {
+      debugPrint('Cannot set delivery type: Delivery is disabled');
+      // Don't call notifyListeners() - no state change should occur
+      return;
+    }
+    
+    _deliveryType = type;
+    
+    if (type == DeliveryType.pickup) {
+      _deliveryFee = 0;
+      clearAddress();
+    } else if (_cartProvider != null) {
+      updateDeliveryFee(_cartProvider!.subtotal);
+    }
+    
+    notifyListeners();
   }
 
   Future<void> loadBranches() async {
@@ -128,7 +166,6 @@ class CheckoutProvider extends ChangeNotifier {
     _setError(null);
 
     try {
-      // Fallback to default branch
       _branches = [
         Branch(
           id: '1',
@@ -161,7 +198,6 @@ class CheckoutProvider extends ChangeNotifier {
       if (response.isSuccess && response.data != null) {
         _savedAddresses = response.data!;
         
-        // CRITICAL FIX: If we have a selected address, update it from saved addresses
         if (_selectedAddress != null) {
           final updatedAddress = _savedAddresses.firstWhere(
             (addr) => addr.id == _selectedAddress!.id,
@@ -248,28 +284,12 @@ class CheckoutProvider extends ChangeNotifier {
         address.longitude!,
       );
       
-      // CRITICAL FIX: Use cart provider's subtotal if orderTotal not provided
       final total = orderTotal ?? _cartProvider?.subtotal ?? 0.0;
       final fee = calculateDeliveryFee(total);
       _updateDeliveryFee(fee);
     } else {
       _deliveryDistance = null;
       _updateDeliveryFee(null);
-    }
-    
-    notifyListeners();
-  }
-
-  void setDeliveryType(DeliveryType type) {
-    _deliveryType = type;
-    
-    // Reset delivery-related fields when switching to pickup
-    if (type == DeliveryType.pickup) {
-      _deliveryDistance = null;
-      _updateDeliveryFee(0.0);
-    } else if (type == DeliveryType.delivery && _selectedAddress != null) {
-      // CRITICAL FIX: Recalculate delivery fee when switching to delivery
-      _recalculateDeliveryFee();
     }
     
     notifyListeners();
@@ -355,8 +375,5 @@ class CheckoutProvider extends ChangeNotifier {
     _selectedTimeSlot = null;
     _error = null;
     notifyListeners();
-
-
-
-
-  }}
+  }
+}

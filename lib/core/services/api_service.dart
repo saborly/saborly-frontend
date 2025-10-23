@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:Saborly/shared/models/app_settings.dart';
 import 'package:Saborly/shared/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -168,6 +169,25 @@ Future<ApiResponse<String>> refreshToken() async {
   
   /// ✅ FIXED: Get food items with current language
  // Add this to your ApiService.getFoodItems() to debug
+
+Future<ApiResponse<AppSettings>> getPublicSettings() async {
+  try {
+    final response = await _dio.get('/settings/public');
+
+    if (response.statusCode == 200) {
+      final settings = AppSettings.fromMap(response.data['settings']);
+      return ApiResponse.success(settings, statusCode: response.statusCode);
+    }
+    return ApiResponse.error('Failed to fetch settings', statusCode: response.statusCode);
+  } on DioException catch (e) {
+    return ApiResponse.error(_handleDioError(e), statusCode: e.response?.statusCode);
+  } catch (e) {
+    return ApiResponse.error('Unexpected error occurred');
+  }
+}
+
+
+
 
 Future<ApiResponse<List<FoodItem>>> getFoodItems({
   String? categoryId,

@@ -1,5 +1,4 @@
-// lib/main.dart - FIXED initialization
-
+import 'package:Saborly/shared/widgets/notification_permission_dialog.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -50,10 +49,10 @@ void main() async {
   
   final prefs = await SharedPreferences.getInstance();
   
-  // ✅ CRITICAL: Initialize API Service first
+  // Initialize API Service first
   ApiService().initialize();
   
-  // ✅ CRITICAL: Initialize Language Service and sync everything
+  // Initialize Language Service and sync everything
   final languageService = LanguageService(prefs);
   final currentLang = languageService.currentLanguage;
   
@@ -63,11 +62,10 @@ void main() async {
   // Sync API service with saved language
   ApiService().setLanguage(currentLang);
   
- 
-  
   final cartProvider = CartProvider();
   await cartProvider.initialize();
   
+  // ✅ Initialize notification service WITHOUT requesting permission
   final notificationService = NotificationService();
   await notificationService.initialize();
   
@@ -113,19 +111,78 @@ class FoodKingApp extends StatefulWidget {
   State<FoodKingApp> createState() => _FoodKingAppState();
 }
 
-
-// Find this section in your main.dart and replace ONLY the _FoodKingAppState class:
-
 class _FoodKingAppState extends State<FoodKingApp> {
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  
-  // ✅ ADD THIS LINE
   NotificationProvider? _notificationProvider;
+  bool _notificationDialogScheduled = false;
 
   @override
   void initState() {
     super.initState();
     widget.languageService.addListener(_onLanguageChanged);
+    
+    // Schedule notification dialog
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scheduleNotificationDialog();
+    });
+  }
+
+  Future<void> _scheduleNotificationDialog() async {
+    if (_notificationDialogScheduled) return;
+    _notificationDialogScheduled = true;
+    
+    // Wait a bit for the app to load
+    await Future.delayed(const Duration(seconds: 3));
+    
+    final notificationService = NotificationService();
+    final shouldShow = await notificationService.shouldShowPermissionDialog();
+    
+    if (!shouldShow || !mounted) return;
+    
+    final navigatorState = navigatorKey.currentState;
+    if (navigatorState == null) return;
+    
+    final navigatorContext = navigatorKey.currentContext;
+    if (navigatorContext == null || !navigatorContext.mounted) return;
+    
+    final route = DialogRoute<void>(
+      context: navigatorContext,
+      builder: (BuildContext dialogContext) => NotificationPermissionDialog(
+        onAllow: () async {
+          Navigator.of(dialogContext).pop();
+          
+          final granted = await notificationService.requestPermissionWithDialog();
+          
+          if (granted && navigatorContext.mounted) {
+            ScaffoldMessenger.of(navigatorContext).showSnackBar(
+              const SnackBar(
+                content: Text('✅ Notifications enabled! You\'ll receive order updates.'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        },
+        onDeny: () {
+          Navigator.of(dialogContext).pop();
+          
+          if (navigatorContext.mounted) {
+            ScaffoldMessenger.of(navigatorContext).showSnackBar(
+              const SnackBar(
+                content: Text('You can enable notifications later in settings.'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        },
+      ),
+      barrierDismissible: false,
+      barrierColor: const Color(0x80000000),
+      barrierLabel: 'Dismiss',
+      settings: const RouteSettings(name: 'notification_permission_dialog'),
+    );
+    
+    navigatorState.push<void>(route);
   }
 
   @override
@@ -142,17 +199,15 @@ class _FoodKingAppState extends State<FoodKingApp> {
     }
   }
 
-  // ✅ REPLACE _setupNotificationHandlers with this NEW method:
   void _setupNotificationHandlersWhenReady(NotificationProvider provider) {
     if (_notificationProvider != null) {
-      return; // Already setup
+      return;
     }
     
     _notificationProvider = provider;
     
     if (kDebugMode) print('🔧 Setting up notification handlers with provider...');
     
-    // ✅ THIS IS THE KEY FIX - use provider directly, not context!
     widget.notificationService.notificationProviderCallback = (notification) async {
       try {
         if (kDebugMode) print('💾 Saving notification: ${notification.title}');
@@ -227,7 +282,6 @@ class _FoodKingAppState extends State<FoodKingApp> {
     }
   }
 
-  
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -261,15 +315,12 @@ class _FoodKingAppState extends State<FoodKingApp> {
                 ChangeNotifierProvider<LanguageService>.value(
                   value: widget.languageService,
                 ),
-                
-                // ✅ CRITICAL CHANGE: Setup handlers in create callback
                 ChangeNotifierProvider(
                   create: (_) {
                     final provider = NotificationProvider();
                     provider.initialize();
                     if (kDebugMode) print('✅ NotificationProvider created and initialized');
                     
-                    // ✅ THIS IS THE KEY - Setup handlers immediately with provider instance
                     WidgetsBinding.instance.addPostFrameCallback((__) {
                       _setupNotificationHandlersWhenReady(provider);
                     });
@@ -277,7 +328,6 @@ class _FoodKingAppState extends State<FoodKingApp> {
                     return provider;
                   },
                 ),
-                
                 ChangeNotifierProxyProvider<LanguageService, HomeProvider>(
                   create: (_) {
                     final homeProvider = HomeProvider();
@@ -291,7 +341,6 @@ class _FoodKingAppState extends State<FoodKingApp> {
                     return homeProvider ?? HomeProvider();
                   },
                 ),
-                
                 ChangeNotifierProxyProvider<LanguageService, MenuProvider>(
                   create: (_) => MenuProvider(),
                   update: (_, languageService, menuProvider) {
@@ -299,7 +348,6 @@ class _FoodKingAppState extends State<FoodKingApp> {
                     return menuProvider ?? MenuProvider();
                   },
                 ),
-                
                 ChangeNotifierProxyProvider<LanguageService, OffersProvider>(
                   create: (_) => OffersProvider(),
                   update: (_, languageService, offersProvider) {
@@ -307,7 +355,6 @@ class _FoodKingAppState extends State<FoodKingApp> {
                     return offersProvider ?? OffersProvider();
                   },
                 ),
-                
                 ChangeNotifierProvider(create: (_) => OrderProvider()),
                 ChangeNotifierProvider(create: (_) => LocationProvider()),
                 ChangeNotifierProvider(create: (_) => CheckoutProvider()),
@@ -441,7 +488,6 @@ class _FoodKingAppState extends State<FoodKingApp> {
     );
   }
 }
-
 
 class AppBackButtonHandler extends StatelessWidget {
   final Widget child;

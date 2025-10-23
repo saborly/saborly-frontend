@@ -26,7 +26,18 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final TextEditingController _specialInstructionsController = TextEditingController();
+@override
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final checkoutProvider = context.read<CheckoutProvider>();
+   
 
+    // ✅ CRITICAL: Check delivery availability FIRST before loading anything else
+    await checkoutProvider.checkDeliveryAvailability();
+
+  });
+}
   @override
   void dispose() {
     _specialInstructionsController.dispose();
@@ -82,13 +93,13 @@ class _CartScreenState extends State<CartScreen> {
       child: Scaffold(
         backgroundColor: isWeb ? const Color(0xFFF8F9FA) : (AppColors.background ?? Colors.white),
         appBar: _buildAppBar(context),
-        body: Consumer<CartProvider>(
-          builder: (context, cartProvider, child) {
+        body:  Consumer2<CheckoutProvider, CartProvider>(
+    builder: (context, checkoutProvider, cartProvider, child) {
             if (cartProvider.isEmpty) {
               return _buildEmptyCart(context);
             }
       
-            return isWeb ? _buildWebLayout(context, cartProvider) : _buildMobileLayout(context, cartProvider);
+            return isWeb ? _buildWebLayout(context, cartProvider,checkoutProvider) : _buildMobileLayout(context, cartProvider,checkoutProvider);
           },
         ),
       ),
@@ -190,7 +201,7 @@ onPressed: () {
     );
   }
 
-  Widget _buildWebLayout(BuildContext context, CartProvider cartProvider) {
+  Widget _buildWebLayout(BuildContext context, CartProvider cartProvider,CheckoutProvider checkoutProvider) {
     return SingleChildScrollView(
       child: Center(
         child: Container(
@@ -232,7 +243,7 @@ onPressed: () {
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context, CartProvider cartProvider) {
+  Widget _buildMobileLayout(BuildContext context, CartProvider cartProvider,CheckoutProvider checkoutProvider) {
     return Column(
       children: [
         _buildDeliveryToggle(false),
@@ -260,44 +271,107 @@ Widget _buildDeliveryToggle(bool isWeb) {
   return Consumer<CheckoutProvider>(
     builder: (context, checkoutProvider, child) {
       final isDelivery = checkoutProvider.deliveryType == DeliveryType.delivery;
-      
+      final isDeliveryDisabled = !checkoutProvider.isDeliveryEnabled;
+
       return Container(
-        padding: isWeb ? const EdgeInsets.all(6) : EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-        decoration: isWeb ? BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ) : null,
-        child: Row(
+        padding: isWeb
+            ? const EdgeInsets.all(6)
+            : EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        decoration: isWeb
+            ? BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              )
+            : null,
+        child: Column(
           children: [
-            Expanded(
-              child: _buildToggleButton(
-                AppStrings.delivery,
-                isDelivery,
-                isWeb,
-                onTap: () {
-                  checkoutProvider.setDeliveryType(DeliveryType.delivery);
-                },
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildToggleButton(
+                    AppStrings.get('takeaway') ?? 'Takeaway',
+                    !isDelivery,
+                    isWeb,
+                    onTap: () {
+                      checkoutProvider.setDeliveryType(DeliveryType.pickup);
+                    },
+                  ),
+                ),
+                SizedBox(width: isWeb ? 8 : 12.w),
+                Expanded(
+                  child: Tooltip(
+                    message: isDeliveryDisabled
+                        ? AppStrings.get('deliveryNotAvailableNow') ??
+                            'Delivery is temporarily unavailable'
+                        : '',
+                    waitDuration: const Duration(milliseconds: 100),
+                    preferBelow: true,
+                    textStyle: TextStyle(
+                      fontSize: isWeb ? 14 : 12.sp,
+                      color: Colors.white,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade800,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _buildToggleButton(
+                      AppStrings.get('delivery') ?? 'Delivery',
+                      isDelivery,
+                      isWeb,
+                      onTap: isDeliveryDisabled
+                          ? null
+                          : () {
+                              checkoutProvider.setDeliveryType(DeliveryType.delivery);
+                              checkoutProvider.updateDeliveryFee(
+                                  Provider.of<CartProvider>(context, listen: false).subtotal);
+                            },
+                      isDisabled: isDeliveryDisabled,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: isWeb ? 8 : 12.w),
-            Expanded(
-              child: _buildToggleButton(
-                AppStrings.takeaway,
-                !isDelivery,
-                isWeb,
-                onTap: () {
-                  checkoutProvider.setDeliveryType(DeliveryType.pickup);
-                },
+            if (isDeliveryDisabled) ...[
+              SizedBox(height: 12.h),
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange.shade700,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Text(
+                        checkoutProvider.deliveryDisabledMessage ??
+                            AppStrings.get('deliveryNotAvailableNow') ??
+                            'Delivery is temporarily unavailable',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
       );
@@ -310,140 +384,89 @@ Widget _buildToggleButton(
   bool isSelected,
   bool isWeb, {
   VoidCallback? onTap,
+  bool isDisabled = false,
 }) {
-  return GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: EdgeInsets.symmetric(vertical: isWeb ? 18 : 12.h),
-      decoration: BoxDecoration(
-        gradient: isSelected
-            ? LinearGradient(
-                colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-        color: isSelected ? null : (isWeb ? Colors.grey.shade50 : Colors.white),
-        borderRadius: BorderRadius.circular(isWeb ? 12 : 8.r),
-        border: Border.all(
-          color: isSelected ? AppColors.primary : Colors.grey.shade200,
-          width: isWeb ? 0 : 1,
-        ),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.25),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+  final color = isDisabled ? Colors.grey.shade400 : AppColors.primary;
+
+  return Semantics(
+    label: isDisabled
+        ? '$text (${AppStrings.get('deliveryNotAvailableNow') ?? 'Delivery is temporarily unavailable'})'
+        : text,
+    enabled: !isDisabled,
+    child: Opacity(
+      opacity: isDisabled ? 0.5 : 1.0,
+      child: MouseRegion(
+        cursor: isDisabled ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: isDisabled ? null : onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: EdgeInsets.symmetric(
+              vertical: isWeb ? 18 : 12.h,
+              horizontal: isWeb ? 16 : 12.w,
+            ),
+            decoration: BoxDecoration(
+              gradient: isSelected && !isDisabled
+                  ? LinearGradient(
+                      colors: [color, color.withOpacity(0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: isSelected && !isDisabled
+                  ? null
+                  : (isWeb ? Colors.grey.shade50 : Colors.white),
+              borderRadius: BorderRadius.circular(isWeb ? 12 : 8.r),
+              border: Border.all(
+                color: isSelected && !isDisabled ? color : Colors.grey.shade200,
+                width: isWeb ? 0 : 1,
+              ),
+              boxShadow: isSelected && !isDisabled
+                  ? [
+                      BoxShadow(
+                        color: color.withOpacity(0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  text == AppStrings.get('delivery') ? Icons.delivery_dining : Icons.shopping_bag,
+                  color: isSelected && !isDisabled ? Colors.white : color,
+                  size: isWeb ? 22 : 20.sp,
                 ),
-              ]
-            : null,
-      ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: isWeb ? 16 : 14.sp,
-          fontWeight: FontWeight.w600,
-          color: isSelected ? Colors.white : AppColors.textMedium,
-          letterSpacing: 0.3,
+                SizedBox(width: isWeb ? 10 : 8.w),
+                Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: isWeb ? 16 : 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected && !isDisabled ? Colors.white : color,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                if (isDisabled) ...[
+                  SizedBox(width: 6.w),
+                  Icon(
+                    Icons.lock_outline,
+                    size: 14.sp,
+                    color: Colors.grey.shade400,
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     ),
   );
 }
-  Widget _buildSpecialInstructions(bool isWeb) {
-    return Container(
-      padding: isWeb ? null : EdgeInsets.symmetric(horizontal: 16.w),
-      child: Container(
-        padding: EdgeInsets.all(isWeb ? 28 : 16.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(isWeb ? 20 : 12.r),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: isWeb ? 16 : 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(isWeb ? 10 : 8.w),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primary.withOpacity(0.15),
-                        AppColors.primary.withOpacity(0.05),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.edit_note_rounded,
-                    color: AppColors.primary,
-                    size: isWeb ? 24 : 20.sp,
-                  ),
-                ),
-                SizedBox(width: isWeb ? 14 : 8.w),
-                Text(
-  AppStrings.get('specialInstructions'),
-                  style: TextStyle(
-                    fontSize: isWeb ? 19 : 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: isWeb ? 20 : 12.h),
-            TextField(
-              controller: _specialInstructionsController,
-              maxLines: 4,
-              maxLength: 200,
-              decoration: InputDecoration(
-hintText: AppStrings.get('specialInstructionsHint'),
-
-                hintStyle: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontSize: isWeb ? 15 : 14.sp,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-                contentPadding: EdgeInsets.all(isWeb ? 18 : 12.w),
-              ),
-              style: TextStyle(
-                fontSize: isWeb ? 15 : 14.sp,
-                color: AppColors.textDark,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildCartItems(CartProvider cartProvider, bool isWeb) {
     return Container(
       padding: isWeb ? null : EdgeInsets.symmetric(horizontal: 16.w),

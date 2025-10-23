@@ -1,17 +1,12 @@
-// lib/core/services/notification_service.dart - COMPLETE FIXED VERSION
+// lib/core/services/notification_service.dart - Updated with delayed permission
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:Saborly/shared/models/notification_model.dart'; // ✅ ADD THIS IMPORT
+import 'package:Saborly/shared/models/notification_model.dart';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     if (dart.library.html) 'package:Saborly/core/services/web_notifications_stub.dart';
 import 'dart:io' if (dart.library.html) 'dart:html' show Platform;
-
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (kDebugMode) print('📬 Background message: ${message.messageId}');
-}
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -24,40 +19,33 @@ class NotificationService {
   String? _fcmToken;
   String? get fcmToken => _fcmToken;
 
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
   // Callbacks
   Function(Map<String, dynamic>)? onNotificationReceived;
   Function(Map<String, dynamic>)? onNotificationTapped;
-  Function(AppNotification)? notificationProviderCallback; // ✅ ADD THIS
+  Function(AppNotification)? notificationProviderCallback;
 
+  /// Initialize WITHOUT requesting permission
+  /// Permission will be requested later via requestPermissionWithDialog()
   Future<void> initialize() async {
     try {
-      if (kDebugMode) print('🔔 Initializing NotificationService...');
+      if (kDebugMode) print('🔔 Initializing NotificationService (no permission request)...');
 
-      final settings = await _requestPermission();
+      // Check current permission status WITHOUT requesting
+      final settings = await _messaging.getNotificationSettings();
       
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        if (kDebugMode) print('✅ Notification permission granted');
-        
-        if (!kIsWeb) {
-          await _initializeLocalNotifications();
-        } else {
-          if (kDebugMode) print('🌐 Running on web - skipping local notifications');
-        }
-        
-        await _getFCMToken();
-        _setupMessageHandlers();
-        
-        final initialMessage = await _messaging.getInitialMessage();
-        if (initialMessage != null) {
-          if (kDebugMode) print('📬 App opened from notification');
-          await _handleMessage(initialMessage);
-          await _saveNotificationToProvider(initialMessage);
-        }
-        
-        if (kDebugMode) print('✅ NotificationService initialized successfully');
+        if (kDebugMode) print('✅ Notification permission already granted');
+        await _completeInitialization();
       } else {
-        if (kDebugMode) print('❌ Notification permission denied');
+        if (kDebugMode) print('⏳ Notification permission not yet granted');
+        // Don't request permission here - wait for user-initiated request
       }
+      
+      _isInitialized = true;
+      if (kDebugMode) print('✅ NotificationService initialized (ready for permission request)');
     } catch (e, stackTrace) {
       if (kDebugMode) {
         print('❌ Notification initialization error: $e');
@@ -66,10 +54,20 @@ class NotificationService {
     }
   }
 
-  Future<NotificationSettings> _requestPermission() async {
-    if (kDebugMode) print('📋 Requesting notification permission...');
-    
+  /// Request permission and complete setup - call this from your dialog
+  Future<bool> requestPermissionWithDialog() async {
     try {
+      if (kDebugMode) print('📋 Requesting notification permission...');
+      
+      // Check if already granted
+      final currentSettings = await _messaging.getNotificationSettings();
+      if (currentSettings.authorizationStatus == AuthorizationStatus.authorized) {
+        if (kDebugMode) print('✅ Permission already granted');
+        await _completeInitialization();
+        return true;
+      }
+      
+      // Request permission
       final settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
@@ -84,23 +82,80 @@ class NotificationService {
         print('Permission status: ${settings.authorizationStatus}');
       }
       
-      return settings;
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        if (kDebugMode) print('✅ Permission granted! Completing setup...');
+        await _completeInitialization();
+        
+        // Save that user has been asked
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('notification_permission_asked', true);
+        await prefs.setBool('notification_permission_granted', true);
+        
+        return true;
+      } else {
+        if (kDebugMode) print('❌ Permission denied');
+        
+        // Save that user has been asked
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('notification_permission_asked', true);
+        await prefs.setBool('notification_permission_granted', false);
+        
+        return false;
+      }
     } catch (e) {
       if (kDebugMode) print('❌ Permission request error: $e');
-      return const NotificationSettings(
-        authorizationStatus: AuthorizationStatus.denied,
-        alert: AppleNotificationSetting.disabled,
-        announcement: AppleNotificationSetting.disabled,
-        badge: AppleNotificationSetting.disabled,
-        carPlay: AppleNotificationSetting.disabled,
-        lockScreen: AppleNotificationSetting.disabled,
-        notificationCenter: AppleNotificationSetting.disabled,
-        showPreviews: AppleShowPreviewSetting.never,
-        timeSensitive: AppleNotificationSetting.disabled,
-        criticalAlert: AppleNotificationSetting.disabled,
-        sound: AppleNotificationSetting.disabled,
-        providesAppNotificationSettings: AppleNotificationSetting.disabled,
-      );
+      return false;
+    }
+  }
+
+  /// Check if we should show the permission dialog
+  Future<bool> shouldShowPermissionDialog() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasAsked = prefs.getBool('notification_permission_asked') ?? false;
+      
+      if (hasAsked) {
+        if (kDebugMode) print('⏭️ Already asked for permission before');
+        return false;
+      }
+      
+      // Check current status
+      final settings = await _messaging.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        if (kDebugMode) print('✅ Already authorized');
+        return false;
+      }
+      
+      if (kDebugMode) print('✅ Should show permission dialog');
+      return true;
+    } catch (e) {
+      if (kDebugMode) print('❌ Error checking permission dialog status: $e');
+      return false;
+    }
+  }
+
+  /// Complete initialization after permission granted
+  Future<void> _completeInitialization() async {
+    try {
+      if (!kIsWeb) {
+        await _initializeLocalNotifications();
+      } else {
+        if (kDebugMode) print('🌐 Running on web - skipping local notifications');
+      }
+      
+      await _getFCMToken();
+      _setupMessageHandlers();
+      
+      final initialMessage = await _messaging.getInitialMessage();
+      if (initialMessage != null) {
+        if (kDebugMode) print('📬 App opened from notification');
+        await _handleMessage(initialMessage);
+        await _saveNotificationToProvider(initialMessage);
+      }
+      
+      if (kDebugMode) print('✅ Notification setup completed');
+    } catch (e) {
+      if (kDebugMode) print('❌ Complete initialization error: $e');
     }
   }
 
@@ -208,7 +263,6 @@ class NotificationService {
     if (kDebugMode) print('📨 Setting up message handlers...');
     
     try {
-      // Handle foreground messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
         if (kDebugMode) {
           print('📨 Foreground message received');
@@ -218,12 +272,11 @@ class NotificationService {
         }
         
         await _handleForegroundMessage(message);
-        await _saveNotificationToProvider(message); // ✅ SAVE TO PROVIDER
+        await _saveNotificationToProvider(message);
       }, onError: (error) {
         if (kDebugMode) print('❌ Foreground message error: $error');
       });
 
-      // Handle when user taps notification (app in background)
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
         if (kDebugMode) {
           print('👆 Notification tapped (app in background)');
@@ -231,7 +284,7 @@ class NotificationService {
         }
         
         await _handleMessage(message);
-        await _saveNotificationToProvider(message); // ✅ SAVE TO PROVIDER
+        await _saveNotificationToProvider(message);
       }, onError: (error) {
         if (kDebugMode) print('❌ Message opened error: $error');
       });
@@ -242,7 +295,6 @@ class NotificationService {
     }
   }
 
-  // ✅ NEW METHOD: Save notification to provider
   Future<void> _saveNotificationToProvider(RemoteMessage message) async {
     try {
       if (kDebugMode) print('💾 _saveNotificationToProvider called');
@@ -255,7 +307,6 @@ class NotificationService {
       
       if (notificationProviderCallback == null) {
         if (kDebugMode) print('❌ notificationProviderCallback is null!');
-        if (kDebugMode) print('   Make sure callback is set in main.dart _setupNotificationHandlers');
         return;
       }
       
@@ -268,14 +319,6 @@ class NotificationService {
         timestamp: DateTime.now(),
         imageUrl: notification.android?.imageUrl ?? notification.apple?.imageUrl,
       );
-      
-      if (kDebugMode) {
-        print('📝 Created AppNotification:');
-        print('   ID: ${appNotification.id}');
-        print('   Title: ${appNotification.title}');
-        print('   Type: ${appNotification.type}');
-        print('   Data: ${appNotification.data}');
-      }
       
       await notificationProviderCallback!(appNotification);
       if (kDebugMode) print('✅ Callback executed successfully');
@@ -306,7 +349,6 @@ class NotificationService {
       }
 
       if (onNotificationReceived != null) {
-        if (kDebugMode) print('🔔 Calling onNotificationReceived callback');
         onNotificationReceived!(data);
       }
     } catch (e) {
@@ -321,7 +363,6 @@ class NotificationService {
       if (kDebugMode) print('📬 Handling message data: $data');
       
       if (onNotificationTapped != null) {
-        if (kDebugMode) print('👆 Calling onNotificationTapped callback');
         onNotificationTapped!(data);
       }
     } catch (e) {
@@ -339,13 +380,10 @@ class NotificationService {
     Map<String, dynamic>? payload,
   }) async {
     if (kIsWeb || _localNotifications == null) {
-      if (kDebugMode) print('⚠️ Cannot show local notification (web or not initialized)');
       return;
     }
 
     try {
-      if (kDebugMode) print('📱 Showing local notification: $title');
-      
       const androidDetails = AndroidNotificationDetails(
         'order_updates',
         'Order Updates',
@@ -375,8 +413,6 @@ class NotificationService {
         details,
         payload: payload != null ? payload.toString() : null,
       );
-      
-      if (kDebugMode) print('✅ Local notification shown');
     } catch (e) {
       if (kDebugMode) print('❌ Show notification error: $e');
     }
@@ -406,7 +442,7 @@ class NotificationService {
       await _messaging.unsubscribeFromTopic(topic);
       if (kDebugMode) print('✅ Unsubscribed from topic: $topic');
     } catch (e) {
-      if (kDebugMode) print('❌ Unsubscribe from topic error: $e');
+      if (kDebugMode) print('❌ Unsubscribe to topic error: $e');
     }
   }
 

@@ -720,13 +720,13 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                 : Colors.grey[50],
             borderRadius: BorderRadius.circular(14.r),
             border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.grey[300]!,
+              color: isSelected ? AppColors.border : Colors.grey[300]!,
               width: 2,
             ),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.2),
+                      color: AppColors.border.withOpacity(0.2),
                       blurRadius: 6,
                       offset: const Offset(0, 3),
                     ),
@@ -739,7 +739,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                 value: size,
                 groupValue: _selectedMealSize,
                 onChanged: (value) => setState(() => _selectedMealSize = value),
-                activeColor: AppColors.primary,
+                activeColor: AppColors.success,
               ),
               SizedBox(width: 12.w),
               Expanded(

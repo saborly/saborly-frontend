@@ -234,7 +234,7 @@ class AppStrings {
       'noData': 'No data found',
       'noInternet': 'No internet connection',
       'shop': 'Shop',
-      
+      "deliveryNotAvailableNow": "Delivery not available now",
       // Navigation
       'home': 'Home',
       'menu': 'Menu',
@@ -1089,7 +1089,7 @@ class AppStrings {
       'contact_support': 'Nuestro equipo está aquí para ayudarte a entender cómo protegemos tus datos',
       'contact_email': 'support@saborly.es',
       'contact_phone': '+34 932 112 072',
-
+  "deliveryNotAvailableNow": "La entrega no está disponible ahora",
       // FAQScreen
       'faq': 'Preguntas Frecuentes',
       'faq_subtitle': 'Encuentra respuestas a preguntas comunes',
@@ -1156,7 +1156,7 @@ class AppStrings {
       'frequentlyBoughtTogether': 'Frecuentemente Comprados Juntos',
         "yourSubject": "Tu asunto",
       // Delivery & Location
-      'delivery': 'Entrega a Domicilio',
+      'delivery': 'Domicilio',
       'takeaway': 'Para Llevar',
       'selectBranch': 'Seleccionar Sucursal',
       'deliveryAddress': 'Dirección de Entrega',
@@ -2375,7 +2375,8 @@ class AppStrings {
       'contact_support': 'El nostre equip està aquí per ajudar-te a entendre com protegim les teves dades',
       'contact_email': 'support@saborly.es',
       'contact_phone': '+34 932 112 072',
-
+  "deliveryNotAvailableNow": "El lliurament no està disponible ara",
+  
       // FAQScreen
       'faq_subtitle': 'Troba respostes a preguntes comunes',
       'faq_category_all': 'Totes',
@@ -2430,7 +2431,7 @@ class AppStrings {
            "activityOverview": "نظرة عامة على النشاط",
   "yourSubject": "موضوعك",
     "readyIn": "جاهز خلال"
-,
+,  "deliveryNotAvailableNow": "التوصيل غير متاح الآن",
   "frequentlyAskedQuestions": "الأسئلة الشائعة",
   "orderProgress": "تقدم الطلب",
   "yourOrderWillBeReady": "سيكون طلبك جاهزًا",
