@@ -16,7 +16,6 @@ class ApiService {
   String? _authToken;
   String _currentLanguage = 'es'; // Default language
 
-
   void initialize() {
     _dio = Dio(BaseOptions(
       baseUrl: ApiConstants.baseUrl,
