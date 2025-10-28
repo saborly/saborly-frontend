@@ -1,3 +1,5 @@
+// lib/features/auth/screens/login_screen.dart - FIXED
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -40,13 +42,14 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-onPressed: () {
+          onPressed: () {
             if (GoRouter.of(context).canPop()) {
               context.pop();
             } else {
-              context.go(AppRoutes.home); // Fallback to home route
+              context.go(AppRoutes.home);
             }
-          },          icon: Icon(
+          },
+          icon: Icon(
             Icons.arrow_back_ios,
             color: AppColors.textDark,
             size: 20.sp,
@@ -129,9 +132,7 @@ onPressed: () {
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () {
-                                      context.go(AppRoutes.forgotPassword);
-
-                              // TODO: Implement forgot password
+                              context.go(AppRoutes.forgotPassword);
                             },
                             child: Text(
                               AppStrings.forgotPassword,
@@ -159,6 +160,25 @@ onPressed: () {
                     ),
                   ),
                   
+                  SizedBox(height: isLargeScreen ? 40.h : 30.h),
+                  
+                  // Divider with "OR"
+                  _buildDivider(),
+                  SizedBox(height: isLargeScreen ? 40.h : 30.h),
+                  
+                  // Social Login Buttons
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      return _buildSocialButton(
+                        onPressed: authProvider.isLoading 
+                          ? null 
+                          : () => _handleGoogleSignIn(context, authProvider),
+                        label: 'Continue with Google',
+                        isLoading: authProvider.isLoading && authProvider.isSocialLoading,
+                      );
+                    },
+                  ),
+                  
                   SizedBox(height: isLargeScreen ? 60.h : 40.h),
                   
                   // Sign Up Link
@@ -178,17 +198,7 @@ onPressed: () {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppStrings.loginToContinue,
-          style: TextStyle(
-            fontSize: isLargeScreen ? 32.sp : 28.sp,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-            height: 1.2,
-          ),
-        ),
-        SizedBox(height: isLargeScreen ? 12.h : 8.h),
-        Text(
-        AppStrings.get('welcomeBack'),
+          AppStrings.get('welcomeBack'),
           style: TextStyle(
             fontSize: isLargeScreen ? 18.sp : 16.sp,
             color: AppColors.textLight,
@@ -196,6 +206,106 @@ onPressed: () {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDivider() {
+    return Row(
+      children: [
+        Expanded(
+          child: Divider(
+            color: AppColors.textLight.withOpacity(0.3),
+            thickness: 1,
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Text(
+            'OR',
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: AppColors.textLight,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Divider(
+            color: AppColors.textLight.withOpacity(0.3),
+            thickness: 1,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSocialButton({
+    required VoidCallback? onPressed,
+    required String label,
+    bool isLoading = false,
+  }) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: Size(double.infinity, 56.h),
+        side: BorderSide(
+          color: AppColors.textLight.withOpacity(0.3),
+          width: 1.5,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        backgroundColor: Colors.white,
+      ),
+      child: isLoading
+          ? SizedBox(
+              height: 20.h,
+              width: 20.h,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Google logo using Container with colors instead of image
+                Container(
+                  width: 24.w,
+                  height: 24.h,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        spreadRadius: 1,
+                        blurRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      'G',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4285F4),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -208,7 +318,7 @@ onPressed: () {
             color: AppColors.textMedium,
           ),
           children: [
-             TextSpan(text: AppStrings.dontHaveAccount),
+            TextSpan(text: AppStrings.dontHaveAccount),
             const TextSpan(text: ' '),
             WidgetSpan(
               child: GestureDetector(
@@ -245,7 +355,31 @@ onPressed: () {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:  Text(AppStrings.failedToLogin),
+            content: Text(authProvider.error ?? AppStrings.failedToLogin),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            margin: EdgeInsets.all(16.w),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn(BuildContext context, AuthProvider authProvider) async {
+    final success = await authProvider.signInWithGoogle();
+
+    if (success) {
+      if (mounted) {
+        context.go(AppRoutes.home);
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.error ?? 'Google sign-in failed'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -258,3 +392,4 @@ onPressed: () {
     }
   }
 }
+ 

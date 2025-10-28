@@ -105,11 +105,11 @@ class CartProvider extends ChangeNotifier {
     double basePrice = foodItem.price;
     
     if (selectedMealSize != null && selectedMealSize.additionalPrice <= 0) {
-      basePrice += selectedMealSize.additionalPrice;
+      basePrice += selectedMealSize.additionalPrice-foodItem.discountAmount;
     } else if (selectedMealSize != null) {
-      basePrice = selectedMealSize.additionalPrice;
+      basePrice = selectedMealSize.additionalPrice-foodItem.discountAmount;
     } else {
-      basePrice = foodItem.price;
+      basePrice = foodItem.price-foodItem.discountAmount;
     }
     
     for (final extra in selectedExtras) {

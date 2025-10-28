@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<HomeProvider>().loadData();
+        context.read<HomeProvider>().loadHomeData();
         context.read<OffersProvider>().loadOffers();
       }
     });
@@ -93,9 +93,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     if (query.isEmpty) {
-      context.read<HomeProvider>().loadData();
+      context.read<HomeProvider>().loadHomeData();
     } else {
-      context.read<HomeProvider>().searchFoodItems(query);
+      context.read<HomeProvider>().performSearch(query);
       
       // ✅ Scroll to search results after a short delay
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -110,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _currentSearchQuery = '';
       _isSearching = false;
     });
-    context.read<HomeProvider>().loadData();
+    context.read<HomeProvider>().loadHomeData();
     
     // Scroll to top
     _scrollController.animateTo(
@@ -188,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onRefresh: () async {
                     _clearSearch();
                     await Future.wait([
-                      provider.loadData(),
+                      provider.loadHomeData(),
                       context.read<OffersProvider>().loadOffers(),
                     ]);
                   },

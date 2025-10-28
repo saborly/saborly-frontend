@@ -16,6 +16,7 @@ class ApiService {
   late final Dio _dio;
   String? _authToken;
   String _currentLanguage = 'es'; // Default language
+  Dio get dio => _dio;
 
   void initialize() {
     _dio = Dio(BaseOptions(
@@ -187,8 +188,85 @@ Future<ApiResponse<AppSettings>> getPublicSettings() async {
 }
 
 
+// Add this method to your ApiService class (api_service.dart)
 
+/// Google Sign-In
+Future<ApiResponse<User>> googleSignIn(String idToken) async {
+  try {
+    final response = await _dio.post(
+      ApiConstants.googleSignIn, // Add this to ApiConstants
+      data: {
+        'idToken': idToken,
+      },
+    );
 
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final userData = response.data['user'];
+      final token = response.data['token'];
+
+      final user = User(
+        id: userData['id'].toString(),
+        firstName: userData['firstName'],
+        lastName: userData['lastName'],
+        email: userData['email'],
+        phone: userData['phone'] ?? '',
+        token: token,
+      );
+
+      setAuthToken(token);
+
+      return ApiResponse.success(user, statusCode: response.statusCode);
+    }
+    return ApiResponse.error('Google sign-in failed', statusCode: response.statusCode);
+  } on DioException catch (e) {
+    return ApiResponse.error(_handleDioError(e), statusCode: e.response?.statusCode);
+  } catch (e) {
+    return ApiResponse.error('Unexpected error occurred: $e');
+  }
+}
+Future<ApiResponse<User>> googleSignInWeb({
+  required String email,
+  required String firstName,
+  required String lastName,
+  required String googleId,
+  required String accessToken,
+}) async {
+  try {
+    final response = await _dio.post(
+      ApiConstants.googleSignInWeb,
+      data: {
+        'email': email,
+        'firstName': firstName,
+        'lastName': lastName,
+        'googleId': googleId,
+        'accessToken': accessToken,
+      },
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final userData = response.data['user'];
+      final token = response.data['token'];
+
+      final user = User(
+        id: userData['id'].toString(),
+        firstName: userData['firstName'],
+        lastName: userData['lastName'],
+        email: userData['email'],
+        phone: userData['phone'] ?? '',
+        token: token,
+      );
+
+      setAuthToken(token);
+
+      return ApiResponse.success(user, statusCode: response.statusCode);
+    }
+    return ApiResponse.error('Google sign-in failed', statusCode: response.statusCode);
+  } on DioException catch (e) {
+    return ApiResponse.error(_handleDioError(e), statusCode: e.response?.statusCode);
+  } catch (e) {
+    return ApiResponse.error('Unexpected error occurred: $e');
+  }
+}
 Future<ApiResponse<List<FoodItem>>> getFoodItems({
   String? categoryId,
   bool? featured,

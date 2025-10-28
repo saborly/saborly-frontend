@@ -231,12 +231,12 @@ class SearchBarWidgetState extends State<SearchBarWidget> with SingleTickerProvi
       widget.onSearch!(value);
     }
     if (value.isEmpty) {
-      context.read<HomeProvider>().loadData();
+      context.read<HomeProvider>().loadHomeData();
     } else {
       widget.onSearchStarted?.call();
       Future.delayed(const Duration(milliseconds: 300), () {
         if (_controller.text == value && mounted) {
-          context.read<HomeProvider>().searchFoodItems(value);
+          context.read<HomeProvider>().performSearch(value);
           Future.delayed(const Duration(milliseconds: 500), () {
             widget.onSearchStarted?.call();
           });
@@ -250,7 +250,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> with SingleTickerProvi
       widget.onSearch!(value);
     }
     if (value.isNotEmpty) {
-      context.read<HomeProvider>().searchFoodItems(value);
+      context.read<HomeProvider>().performSearch(value);
       Future.delayed(const Duration(milliseconds: 300), () {
         widget.onSearchStarted?.call();
       });
@@ -263,7 +263,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> with SingleTickerProvi
     if (widget.onSearch != null) {
       widget.onSearch!('');
     } else {
-      context.read<HomeProvider>().loadData();
+      context.read<HomeProvider>().loadHomeData();
     }
     setState(() {});
     _focusNode.unfocus();

@@ -1,7 +1,6 @@
-// lib/features/providers/home_provider.dart - FIXED with search state reset
+// lib/features/providers/home_provider.dart - PROFESSIONAL IMPLEMENTATION
 
 import 'package:flutter/foundation.dart';
-import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/language_service.dart';
 import '../../shared/models/food_category.dart';
@@ -10,209 +9,232 @@ import '../../shared/models/food_item.dart';
 class HomeProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
+  // Main data
   List<FoodCategory> _categories = [];
   List<FoodItem> _featuredItems = [];
   List<FoodItem> _popularItems = [];
+  
+  // Home loading state
   bool _isLoading = false;
   String? _error;
+  
+  // Search state
+  bool _isInSearchMode = false;
+  bool _isSearchLoading = false;
+  String? _searchError;
+  List<FoodItem> _searchResults = [];
+  String _lastSearchQuery = '';
+  
+  // Language
   String _currentLanguage = LanguageService.english;
   bool _hasInitialized = false;
-  bool _isSearchMode = false; // ✅ Track if in search mode
-  String _lastSearchQuery = ''; // ✅ Track last search query
 
-  // Getters
+  // ==================== GETTERS ====================
+  
+  // Main data
   List<FoodCategory> get categories => _categories;
   List<FoodItem> get featuredItems => _featuredItems;
   List<FoodItem> get popularItems => _popularItems;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  
+  // Search
+  bool get isInSearchMode => _isInSearchMode;
+  bool get isSearchLoading => _isSearchLoading;
+  String? get searchError => _searchError;
+  List<FoodItem> get searchResults => _searchResults;
+  String get lastSearchQuery => _lastSearchQuery;
+  
+  // Language
   String get currentLanguage => _currentLanguage;
-  bool get isSearchMode => _isSearchMode; // ✅ Expose search mode
-  String get lastSearchQuery => _lastSearchQuery; // ✅ Expose last query
 
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
+  // ==================== INITIALIZATION ====================
 
-  void _setError(String? error) {
-    _error = error;
-    notifyListeners();
-  }
-
-  /// ✅ CRITICAL: Initialize with current language on first creation
   Future<void> initializeIfNeeded(String systemLanguage) async {
-    if (!_hasInitialized) {
-      _currentLanguage = systemLanguage;
-      _apiService.setLanguage(systemLanguage);
-      _hasInitialized = true;
-      await loadData();
-    }
+    if (_hasInitialized) return;
+    
+    _currentLanguage = systemLanguage;
+    _apiService.setLanguage(systemLanguage);
+    _hasInitialized = true;
+    
+    await loadHomeData();
   }
 
-  /// ✅ CRITICAL: Update language and reload data with proper parsing
   void setLanguage(String languageCode) {
-    if (_currentLanguage != languageCode) {
-      _currentLanguage = languageCode;
-      _apiService.setLanguage(languageCode);
-      
-      // If in search mode, re-run the search with new language
-      if (_isSearchMode && _lastSearchQuery.isNotEmpty) {
-        searchFoodItems(_lastSearchQuery);
-      } else {
-        loadData();
-      }
+    if (_currentLanguage == languageCode) return;
+    
+    _currentLanguage = languageCode;
+    _apiService.setLanguage(languageCode);
+    
+    // Reload appropriate data
+    if (_isInSearchMode && _lastSearchQuery.isNotEmpty) {
+      performSearch(_lastSearchQuery);
+    } else {
+      loadHomeData();
     }
   }
 
-  Future<ApiResponse<FoodItem>> getFoodItem(String id) async {
-    try {
-      final response = await _apiService.getFoodItem(id);
-      if (response.isSuccess && response.data != null) {
-        return response;
-      } else {
-        return ApiResponse.error('Failed to load food item: ${response.error}');
-      }
-    } catch (e) {
-      return ApiResponse.error('Error loading food item: $e');
-    }
-  }
+  // ==================== HOME DATA ====================
 
-  /// ✅ NEW: Reset search state and reload original data
-  Future<void> resetSearch() async {
-    _isSearchMode = false;
-    _lastSearchQuery = '';
-    await loadData();
-  }
+  Future<void> loadHomeData() async {
+    if (_isLoading) return;
 
-  Future<void> loadData() async {
-    _setLoading(true);
-    _setError(null);
-    _isSearchMode = false; // ✅ Clear search mode
-    _lastSearchQuery = ''; // ✅ Clear search query
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
 
     try {
-      // Load all data concurrently
       final results = await Future.wait([
-        _loadCategories(),
-        _loadFeaturedItems(),
-        _loadPopularItems(),
+        _fetchCategories(),
+        _fetchFeaturedItems(),
+        _fetchPopularItems(),
       ]);
 
-      final categoriesSuccess = results[0] as bool;
-      final featuredSuccess = results[1] as bool;
-      final popularSuccess = results[2] as bool;
-
-      if (!categoriesSuccess || !featuredSuccess || !popularSuccess) {
-        _setError('Some data could not be loaded');
+      final allSuccess = results.every((success) => success);
+      
+      if (!allSuccess) {
+        _error = 'Some content failed to load';
       }
-
-      notifyListeners();
     } catch (e) {
-      _setError('Failed to load data: ${e.toString()}');
+      _error = 'Failed to load content: ${e.toString()}';
     } finally {
-      _setLoading(false);
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  Future<bool> _loadCategories() async {
+  Future<bool> _fetchCategories() async {
     try {
       final response = await _apiService.getCategories();
       if (response.isSuccess && response.data != null) {
         _categories = response.data!;
         return true;
-      } else {
-        return false;
       }
+      return false;
     } catch (e) {
+      debugPrint('Error fetching categories: $e');
       return false;
     }
   }
 
-  Future<bool> _loadFeaturedItems() async {
+  Future<bool> _fetchFeaturedItems() async {
     try {
       final response = await _apiService.getFoodItems(featured: true, limit: 20);
       if (response.isSuccess && response.data != null) {
-        _featuredItems = (response.data as List)
-            .map((item) {
-              if (item is FoodItem) {
-                return item;
-              } else if (item is Map<String, dynamic>) {
-                return FoodItem.fromMap(item, currentLanguage: _currentLanguage);
-              }
-              return null;
-            })
-            .whereType<FoodItem>()
-            .toList();
+        _featuredItems = _parseFoodItems(response.data);
         return true;
-      } else {
-        return false;
       }
+      return false;
     } catch (e) {
+      debugPrint('Error fetching featured items: $e');
       return false;
     }
   }
 
-  Future<bool> _loadPopularItems() async {
+  Future<bool> _fetchPopularItems() async {
     try {
       final response = await _apiService.getFoodItems(popular: true, limit: 20);
       if (response.isSuccess && response.data != null) {
-        _popularItems = (response.data as List)
-            .map((item) {
-              if (item is FoodItem) {
-                return item;
-              } else if (item is Map<String, dynamic>) {
-                return FoodItem.fromMap(item, currentLanguage: _currentLanguage);
-              }
-              return null;
-            })
-            .whereType<FoodItem>()
-            .toList();
+        _popularItems = _parseFoodItems(response.data);
         return true;
-      } else {
-        return false;
       }
+      return false;
     } catch (e) {
+      debugPrint('Error fetching popular items: $e');
       return false;
     }
   }
 
-  Future<void> searchFoodItems(String query) async {
-    if (query.isEmpty) {
-      await resetSearch(); // ✅ Use resetSearch instead of loadData
+  // ==================== SEARCH ====================
+
+  Future<void> performSearch(String query) async {
+    final trimmedQuery = query.trim();
+    
+    // Prevent duplicate searches
+    if (_isInSearchMode && 
+        _lastSearchQuery == trimmedQuery && 
+        !_isSearchLoading) {
       return;
     }
 
-    _isSearchMode = true; // ✅ Set search mode
-    _lastSearchQuery = query; // ✅ Store search query
-    _setLoading(true);
-    _setError(null);
+    // Empty query exits search mode
+    if (trimmedQuery.isEmpty) {
+      exitSearchMode();
+      return;
+    }
+
+    // Prevent concurrent searches
+    if (_isSearchLoading) return;
+
+    _isInSearchMode = true;
+    _isSearchLoading = true;
+    _searchError = null;
+    _lastSearchQuery = trimmedQuery;
+    notifyListeners();
 
     try {
-      final response = await _apiService.getFoodItems(search: query);
+      final response = await _apiService.getFoodItems(search: trimmedQuery);
+      
       if (response.isSuccess && response.data != null) {
-        final parsedItems = (response.data as List)
-            .map((item) {
-              if (item is FoodItem) {
-                return item;
-              } else if (item is Map<String, dynamic>) {
-                return FoodItem.fromMap(item, currentLanguage: _currentLanguage);
-              }
-              return null;
-            })
-            .whereType<FoodItem>()
-            .toList();
-
-        _featuredItems = parsedItems;
-        _popularItems = parsedItems;
-        notifyListeners();
+        _searchResults = _parseFoodItems(response.data);
+        _searchError = null;
       } else {
-        _setError('Search failed: ${response.error}');
+        _searchResults = [];
+        _searchError = response.error ?? 'Search failed';
       }
     } catch (e) {
-      _setError('Search error: ${e.toString()}');
+      _searchResults = [];
+      _searchError = 'Search error: ${e.toString()}';
+      debugPrint('Search error: $e');
     } finally {
-      _setLoading(false);
+      _isSearchLoading = false;
+      notifyListeners();
     }
+  }
+
+  void exitSearchMode() {
+    if (!_isInSearchMode) return;
+
+    _isInSearchMode = false;
+    _isSearchLoading = false;
+    _searchError = null;
+    _searchResults = [];
+    _lastSearchQuery = '';
+    notifyListeners();
+  }
+
+  // ==================== FOOD ITEM DETAILS ====================
+
+  Future<ApiResponse<FoodItem>> getFoodItem(String id) async {
+    try {
+      final response = await _apiService.getFoodItem(id);
+      return response;
+    } catch (e) {
+      return ApiResponse.error('Error loading food item: $e');
+    }
+  }
+
+  // ==================== HELPERS ====================
+
+  List<FoodItem> _parseFoodItems(dynamic data) {
+    if (data == null) return [];
+    
+    final List items = data is List ? data : [data];
+    
+    return items
+        .map((item) {
+          try {
+            if (item is FoodItem) {
+              return item;
+            } else if (item is Map<String, dynamic>) {
+              return FoodItem.fromMap(item, currentLanguage: _currentLanguage);
+            }
+          } catch (e) {
+            debugPrint('Error parsing food item: $e');
+          }
+          return null;
+        })
+        .whereType<FoodItem>()
+        .toList();
   }
 }

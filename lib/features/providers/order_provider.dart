@@ -1,4 +1,3 @@
-// ==================== FIXED ORDER PROVIDER ====================
 import 'package:flutter/foundation.dart';
 import '../../../core/services/api_service.dart';
 import '../../../shared/models/order.dart';
@@ -59,7 +58,6 @@ class OrderProvider extends ChangeNotifier {
         _orders = response.data!;
         
         // Update pagination info if available from API
-        // Assuming API returns totalPages in rawData or calculate it
         _totalPages = 1; // Default, update if API provides this
         _hasMoreOrders = _orders.length >= limit;
       } else {
@@ -106,21 +104,54 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadOrder(String orderId) async {
-    _setLoading(true);
-    _setError(null);
+  /// Load single order with optional silent mode for background polling
+  Future<void> loadOrder(String orderId, {bool silent = false}) async {
+    if (!silent) {
+      _setLoading(true);
+      _setError(null);
+    }
 
     try {
       final response = await _apiService.getOrder(orderId);
       if (response.isSuccess && response.data != null) {
-        _currentOrder = response.data!;
+        final newOrder = response.data!;
+        
+        // Check if order actually changed before updating
+        final hasChanged = _currentOrder == null || 
+                          _currentOrder!.status != newOrder.status ||
+                          _currentOrder!.updatedAt != newOrder.updatedAt;
+        
+        if (hasChanged) {
+          _currentOrder = newOrder;
+          
+          // Also update in orders list if it exists
+          final index = _orders.indexWhere((o) => o.id == orderId);
+          if (index != -1) {
+            _orders[index] = newOrder;
+          }
+          
+          if (kDebugMode) {
+            print('✅ Order updated: ${newOrder.status.name}');
+          }
+          
+          notifyListeners();
+        }
       } else {
-        _setError(response.error ?? 'Order not found');
+        if (!silent) {
+          _setError(response.error ?? 'Order not found');
+        }
       }
     } catch (e) {
-      _setError('Error loading order: ${e.toString()}');
+      if (!silent) {
+        _setError('Error loading order: ${e.toString()}');
+      }
+      if (kDebugMode) {
+        print('❌ Error loading order: $e');
+      }
     } finally {
-      _setLoading(false);
+      if (!silent) {
+        _setLoading(false);
+      }
     }
   }
 
@@ -136,12 +167,10 @@ class OrderProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _setError(null);
-    
 
     try {
       // Calculate totals
       final subtotal = items.fold(0.0, (sum, item) => sum + item.totalPrice);
-
       final tax = 0.0;
       final discount = 0.0;
       final total = subtotal + deliveryFee + tax - discount;
@@ -170,7 +199,6 @@ class OrderProvider extends ChangeNotifier {
         if (paymentMethod == PaymentMethod.cashOnDelivery && codPaymentType != null)
           'codPaymentType': codPaymentType.name,
       };
-
 
       final response = await _apiService.createOrder(orderData);
 
@@ -204,5 +232,30 @@ class OrderProvider extends ChangeNotifier {
     _hasMoreOrders = false;
     _orders.clear();
     notifyListeners();
+  }
+
+  /// Manually update current order status (useful for FCM notifications)
+  void updateOrderStatus(String orderId, OrderStatus newStatus) {
+    if (_currentOrder != null && _currentOrder!.id == orderId) {
+      _currentOrder = _currentOrder!.copyWith(
+        status: newStatus,
+        updatedAt: DateTime.now(),
+      );
+      notifyListeners();
+      
+      if (kDebugMode) {
+        print('✅ Order status manually updated to: ${newStatus.name}');
+      }
+    }
+
+    // Also update in orders list
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index != -1) {
+      _orders[index] = _orders[index].copyWith(
+        status: newStatus,
+        updatedAt: DateTime.now(),
+      );
+      notifyListeners();
+    }
   }
 }

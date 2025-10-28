@@ -1,0 +1,87 @@
+import 'package:google_sign_in_web/google_sign_in_web.dart' as web;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+Widget _buildSocialButton({
+  required VoidCallback? onPressed,
+  required String icon,
+  required String label,
+  bool isLoading = false,
+}) {
+  if (kIsWeb) {
+    return web.GoogleSignInButton(
+      clientId: 'YOUR_WEB_CLIENT_ID', // Replace with your Google OAuth Web Client ID
+      onSignedIn: (web.GoogleUser user) async {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final idToken = await user.authentication.then((auth) => auth.idToken);
+        if (idToken != null) {
+          final success = await authProvider.signInWithGoogle(idToken: idToken);
+          if (success && mounted) {
+            context.go(AppRoutes.home);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(authProvider.error ?? 'Google sign-in failed'),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                margin: EdgeInsets.all(16.w),
+              ),
+            );
+          }
+        }
+      },
+    );
+  } else {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: Size(double.infinity, 56.h),
+        side: BorderSide(
+          color: AppColors.textLight.withOpacity(0.3),
+          width: 1.5,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        backgroundColor: Colors.white,
+      ),
+      child: isLoading
+          ? SizedBox(
+              height: 20.h,
+              width: 20.h,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  icon,
+                  width: 24.w,
+                  height: 24.h,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.login,
+                      size: 24.sp,
+                      color: AppColors.textDark,
+                    );
+                  },
+                ),
+                SizedBox(width: 12.w),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}

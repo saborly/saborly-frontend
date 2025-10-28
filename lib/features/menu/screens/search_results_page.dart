@@ -1,5 +1,6 @@
-// lib/features/search/search_results_page.dart - FIXED: Clear search when navigating away
+// lib/features/search/search_results_page.dart - PROFESSIONAL IMPLEMENTATION
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/core/routes/app_routes.dart';
-import 'package:Saborly/core/services/language_service.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
 import 'package:Saborly/shared/models/food_item.dart';
 import 'package:Saborly/shared/widgets/food_item_card.dart';
@@ -25,387 +25,364 @@ class SearchResultsPage extends StatefulWidget {
   State<SearchResultsPage> createState() => _SearchResultsPageState();
 }
 
-class _SearchResultsPageState extends State<SearchResultsPage>
-    with SingleTickerProviderStateMixin {
-  String _currentSearchQuery = '';
-  bool _isSearching = false;
-  final TextEditingController _searchController = TextEditingController();
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
+class _SearchResultsPageState extends State<SearchResultsPage> {
+  late final TextEditingController _searchController;
+  Timer? _debounceTimer;
+  String _activeQuery = '';
+  
+  static const _debounceDelay = Duration(milliseconds: 500);
 
   @override
   void initState() {
     super.initState();
-
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOut,
-    );
-
+    _searchController = TextEditingController(text: widget.initialQuery ?? '');
+    
+    // Perform initial search if query provided
     if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
-      _currentSearchQuery = widget.initialQuery!;
-      _searchController.text = widget.initialQuery!;
-      _isSearching = true;
-
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          context.read<HomeProvider>().searchFoodItems(widget.initialQuery!);
-          _fadeController.forward();
-        }
+        _performSearch(widget.initialQuery!);
       });
-    } else {
-      _fadeController.forward();
     }
   }
 
-  
- @override
-void dispose() {
-  // ✅ CRITICAL: Clear all search state before disposing
-  _searchController.clear();
-  _currentSearchQuery = '';
-  _isSearching = false;
-
-  // ✅ CRITICAL: Reset HomeProvider to load normal data
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (context.mounted) {
-      context.read<HomeProvider>().resetSearch(); // ✅ Use resetSearch instead of loadData
-    }
-  });
-
-  _searchController.dispose();
-  _fadeController.dispose();
-  super.dispose();
-}
-
-  void _handleSearch(String query) {
-    setState(() {
-      _currentSearchQuery = query;
-      _isSearching = query.isNotEmpty;
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _searchController.dispose();
+    
+    // Clean up provider state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeProvider>().exitSearchMode();
     });
+    
+    super.dispose();
+  }
 
+  void _onSearchChanged(String query) {
+    // Cancel previous timer
+    _debounceTimer?.cancel();
+    
+    // Immediate clear if empty
+    if (query.trim().isEmpty) {
+      _performSearch('');
+      return;
+    }
+    
+    // Debounce search
+    _debounceTimer = Timer(_debounceDelay, () {
+      _performSearch(query.trim());
+    });
+  }
+
+  void _performSearch(String query) {
+    if (_activeQuery == query) return;
+    
+    setState(() {
+      _activeQuery = query;
+    });
+    
+    final provider = context.read<HomeProvider>();
+    
     if (query.isEmpty) {
-      context.read<HomeProvider>().loadData();
+      provider.exitSearchMode();
     } else {
-      context.read<HomeProvider>().searchFoodItems(query);
+      provider.performSearch(query);
     }
   }
 
   void _clearSearch() {
-    setState(() {
-      _currentSearchQuery = '';
-      _isSearching = false;
-      _searchController.clear();
-    });
-    context.read<HomeProvider>().loadData();
-  }
-
-  List<FoodItem> _getAllResults(HomeProvider provider) {
-    return [...provider.featuredItems, ...provider.popularItems];
+    _searchController.clear();
+    _performSearch('');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<LanguageService>(
-      builder: (context, languageService, _) {
-        return Scaffold(
-          backgroundColor: const Color(0xFFF8F9FA),
-          // ✅ Add WillPopScope to handle back button
-          body: WillPopScope(
-            onWillPop: () async {
-              // Clear search when back button is pressed
-              _clearSearch();
-              return true;
-            },
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Consumer<HomeProvider>(
-                    builder: (context, provider, child) {
-                      return FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: _buildContent(provider),
-                      );
-                    },
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) {
+        if (didPop) {
+          context.read<HomeProvider>().exitSearchMode();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        body: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              // Header with search bar
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      _buildSearchBar(),
+                      SizedBox(height: 16.h),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              
+              // Content
+              Consumer<HomeProvider>(
+                builder: (context, provider, _) {
+                  return SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    sliver: _buildContent(provider),
+                  );
+                },
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  Widget _buildContent(HomeProvider provider) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= 1200;
-        final isTablet =
-            constraints.maxWidth >= 600 && constraints.maxWidth < 1200;
-        final isSmallScreen = constraints.maxWidth < 600;
-
-        return Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: isDesktop ? 1400 : double.infinity,
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal:
-                    _getHorizontalPadding(isSmallScreen, isTablet, isDesktop),
-                vertical: 24.h,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildEnhancedSearchBar(),
-                  SizedBox(height: 24.h),
-                  if (_isSearching) _buildSearchStatusBanner(provider),
-                  if (_isSearching) SizedBox(height: 32.h),
-                  if (provider.isLoading)
-                    _buildLoadingState()
-                  else if (!_isSearching)
-                    _buildEmptySearchState()
-                  else if (_getAllResults(provider).isEmpty)
-                    _buildNoResultsView()
-                  else
-                    _buildSearchResults(
-                      provider,
-                      isSmallScreen,
-                      isTablet,
-                      isDesktop,
-                    ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildEnhancedSearchBar() {
+  Widget _buildSearchBar() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 12.r,
-            offset: Offset(0, 2.h),
+            offset: Offset(0, 4.h),
           ),
         ],
       ),
       child: SearchBarWidget(
         controller: _searchController,
-        onSearch: _handleSearch,
+        onSearch: _onSearchChanged,
         hintText: AppStrings.get('search'),
       ),
     );
   }
 
-  Widget _buildSearchStatusBanner(HomeProvider provider) {
-    final totalResults = _getAllResults(provider).length;
-    final itemsLabel =
-        totalResults == 1 ? AppStrings.get('item') : AppStrings.get('items');
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOut,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.1),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 8.r,
-                  offset: Offset(0, 2.h),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(10.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Icon(
-                    Icons.search,
-                    color: AppColors.primary,
-                    size: 20.sp,
-                  ),
-                ),
-                SizedBox(width: 14.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${AppStrings.get("search")} ${AppStrings.get("for")} "$_currentSearchQuery"',
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textDark,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        '$totalResults $itemsLabel ${AppStrings.get("found")}',
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8.r),
-                    onTap: _clearSearch,
-                    child: Container(
-                      padding: EdgeInsets.all(8.w),
-                      child: Icon(
-                        Icons.close,
-                        color: AppColors.textMedium,
-                        size: 20.sp,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  Widget _buildContent(HomeProvider provider) {
+    // Loading state
+    if (provider.isSearchLoading) {
+      return SliverFillRemaining(
+        child: _buildLoadingState(),
+      );
+    }
+    
+    // Error state
+    if (provider.searchError != null) {
+      return SliverFillRemaining(
+        child: _buildErrorState(provider.searchError!),
+      );
+    }
+    
+    // Empty search (initial state)
+    if (_activeQuery.isEmpty) {
+      return SliverFillRemaining(
+        child: _buildEmptySearchState(),
+      );
+    }
+    
+    // Search results
+    final results = provider.searchResults;
+    
+    if (results.isEmpty) {
+      return SliverFillRemaining(
+        child: _buildNoResultsState(),
+      );
+    }
+    
+    return _buildResultsGrid(results);
   }
 
-  Widget _buildSearchResults(
-    HomeProvider provider,
-    bool isSmallScreen,
-    bool isTablet,
-    bool isDesktop,
-  ) {
-    final allResults = _getAllResults(provider);
-    int crossAxisCount = isSmallScreen ? 2 : (isTablet ? 3 : 5);
-    double childAspectRatio = isSmallScreen ? 0.75 : (isTablet ? 0.8 : 0.75);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              '${AppStrings.get('search')} ${AppStrings.get('viewDetails')}',
-              style: TextStyle(
-                fontSize: 22.sp,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-                letterSpacing: -0.3,
-              ),
-            ),
-            SizedBox(width: 12.w),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6.r),
-              ),
-              child: Text(
-                '${allResults.length}',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 20.h),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: isSmallScreen ? 12.w : (isTablet ? 16.w : 20.w),
-            mainAxisSpacing: isSmallScreen ? 12.h : (isTablet ? 16.h : 20.h),
-            childAspectRatio: childAspectRatio,
+  Widget _buildResultsGrid(List<FoodItem> results) {
+    return SliverMainAxisGroup(
+      slivers: [
+        // Results header
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(top: 8.h, bottom: 20.h),
+            child: _buildResultsHeader(results.length),
           ),
-          itemCount: allResults.length,
-          itemBuilder: (context, index) {
-            final item = allResults[index];
-            return TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: Duration(milliseconds: 300 + (index * 30)),
-              curve: Curves.easeOut,
-              builder: (context, value, child) {
-                return Transform.translate(
-                  offset: Offset(0, 15 * (1 - value)),
-                  child: Opacity(
-                    opacity: value,
-                    child: FoodItemCard(
-                      key: ValueKey('search_${item.id}'),
-                      foodItem: item,
-                      onTap: () =>
-                          context.push(AppRoutes.foodDetail, extra: item),
-                    ),
-                  ),
-                );
-              },
+        ),
+        
+        // Results grid
+        SliverLayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.crossAxisExtent;
+            final crossAxisCount = _getCrossAxisCount(width);
+            
+            return SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16.w,
+                mainAxisSpacing: 16.h,
+                childAspectRatio: 0.75,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = results[index];
+                  return FoodItemCard(
+                    key: ValueKey('search_${item.id}'),
+                    foodItem: item,
+                    onTap: () => context.push(AppRoutes.foodDetail, extra: item),
+                  );
+                },
+                childCount: results.length,
+              ),
             );
           },
+        ),
+        
+        // Bottom spacing
+        SliverToBoxAdapter(
+          child: SizedBox(height: 24.h),
         ),
       ],
     );
   }
 
+  Widget _buildResultsHeader(int count) {
+    final itemsLabel = count == 1 
+        ? AppStrings.get('item') 
+        : AppStrings.get('items');
+
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withOpacity(0.08),
+            AppColors.primary.withOpacity(0.03),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.15),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(
+              Icons.search,
+              color: Colors.white,
+              size: 18.sp,
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '"$_activeQuery"',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  '$count $itemsLabel ${AppStrings.get("found")}',
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: AppColors.textMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: _clearSearch,
+            icon: Icon(
+              Icons.close,
+              color: AppColors.textMedium,
+              size: 20.sp,
+            ),
+            padding: EdgeInsets.all(8.w),
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLoadingState() {
     return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 48.w,
+            height: 48.h,
+            child: CircularProgressIndicator(
+              strokeWidth: 3.5,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+            ),
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            '${AppStrings.get("search")}...',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(80.h),
+        padding: EdgeInsets.all(32.w),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
-              width: 40.w,
-              height: 40.h,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+            Icon(
+              Icons.error_outline,
+              size: 64.sp,
+              color: Colors.red[400],
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              AppStrings.get('error'),
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textDark,
               ),
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: 8.h),
             Text(
-              AppStrings.get('loading'),
+              error,
               style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
+                fontSize: 14.sp,
                 color: AppColors.textMedium,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 24.h),
+            ElevatedButton.icon(
+              onPressed: () => _performSearch(_activeQuery),
+              icon: Icon(Icons.refresh, size: 18.sp),
+              label: Text(AppStrings.get('retry')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
               ),
             ),
           ],
@@ -419,59 +396,169 @@ void dispose() {
       AppStrings.get('pizza'),
       AppStrings.get('burger'),
       AppStrings.get('pasta'),
-      AppStrings.get('salad')
+      AppStrings.get('salad'),
     ];
 
     return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 80.h),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(32.w),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: EdgeInsets.all(24.w),
+              padding: EdgeInsets.all(28.w),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(20.r),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withOpacity(0.15),
+                    AppColors.primary.withOpacity(0.05),
+                  ],
+                ),
+                shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.restaurant_menu,
-                size: 60.sp,
+                Icons.restaurant_menu_rounded,
+                size: 64.sp,
                 color: AppColors.primary,
               ),
             ),
-            SizedBox(height: 24.h),
+            SizedBox(height: 28.h),
             Text(
               AppStrings.get('startYourCulinaryJourney'),
               style: TextStyle(
                 fontSize: 22.sp,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textDark,
-                letterSpacing: -0.3,
+                letterSpacing: -0.5,
               ),
+              textAlign: TextAlign.center,
             ),
             SizedBox(height: 12.h),
-            Container(
-              constraints: BoxConstraints(maxWidth: 350.w),
-              child: Text(
-                AppStrings.get('searchFoodDescription'),
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  color: AppColors.textMedium,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
+            Text(
+              AppStrings.get('searchFoodDescription'),
+              style: TextStyle(
+                fontSize: 15.sp,
+                color: AppColors.textMedium,
+                height: 1.5,
               ),
+              textAlign: TextAlign.center,
             ),
             SizedBox(height: 32.h),
             Wrap(
-              spacing: 10.w,
-              runSpacing: 10.h,
+              spacing: 12.w,
+              runSpacing: 12.h,
               alignment: WrapAlignment.center,
-              children: suggestions
-                  .map((label) =>
-                      _buildSuggestionChip(label, _getIconForFood(label)))
-                  .toList(),
+              children: suggestions.map((label) {
+                return _buildSuggestionChip(label);
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionChip(String label) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20.r),
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: InkWell(
+        onTap: () {
+          _searchController.text = label;
+          _performSearch(label);
+        },
+        borderRadius: BorderRadius.circular(20.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.2),
+            ),
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _getIconForFood(label),
+                size: 18.sp,
+                color: AppColors.primary,
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoResultsState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(28.w),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.search_off_rounded,
+                size: 64.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: 28.h),
+            Text(
+              AppStrings.get('noData'),
+              style: TextStyle(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              '${AppStrings.get("search")} "$_activeQuery" ${AppStrings.get("noData")}',
+              style: TextStyle(
+                fontSize: 15.sp,
+                color: AppColors.textMedium,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 28.h),
+            OutlinedButton.icon(
+              onPressed: _clearSearch,
+              icon: Icon(Icons.clear_all, size: 18.sp),
+              label: Text(
+                '${AppStrings.get("clear")} ${AppStrings.get("search")}',
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: BorderSide(color: AppColors.primary, width: 2),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
             ),
           ],
         ),
@@ -480,137 +567,18 @@ void dispose() {
   }
 
   IconData _getIconForFood(String food) {
-    final sa = food.toLowerCase();
-
-    if (sa == AppStrings.get('pizza').toLowerCase()) {
-      return Icons.local_pizza;
-    } else if (sa == AppStrings.get('burger').toLowerCase()) {
-      return Icons.lunch_dining;
-    } else if (sa == AppStrings.get('pasta').toLowerCase()) {
-      return Icons.ramen_dining;
-    } else if (sa == AppStrings.get('salad').toLowerCase()) {
-      return Icons.eco;
-    } else {
-      return Icons.restaurant;
-    }
+    final lower = food.toLowerCase();
+    if (lower.contains('pizza')) return Icons.local_pizza_rounded;
+    if (lower.contains('burger')) return Icons.lunch_dining_rounded;
+    if (lower.contains('pasta') || lower.contains('noodle')) return Icons.ramen_dining_rounded;
+    if (lower.contains('salad')) return Icons.eco_rounded;
+    return Icons.restaurant_rounded;
   }
 
-  Widget _buildSuggestionChip(String label, IconData icon) {
-    return InkWell(
-      onTap: () => _handleSearch(label),
-      borderRadius: BorderRadius.circular(12.r),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: AppColors.primary.withOpacity(0.15),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 6.r,
-              offset: Offset(0, 2.h),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16.sp, color: AppColors.primary),
-            SizedBox(width: 6.w),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textDark,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNoResultsView() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 80.h),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(24.w),
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: Icon(
-                Icons.search_off,
-                size: 60.sp,
-                color: Colors.grey[600],
-              ),
-            ),
-            SizedBox(height: 24.h),
-            Text(
-              AppStrings.get('noData'),
-              style: TextStyle(
-                fontSize: 22.sp,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-                letterSpacing: -0.3,
-              ),
-            ),
-            SizedBox(height: 12.h),
-            Container(
-              constraints: BoxConstraints(maxWidth: 350.w),
-              child: Text(
-                '${AppStrings.get("search")} "$_currentSearchQuery" ${AppStrings.get("noData")}',
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  color: AppColors.textMedium,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            SizedBox(height: 28.h),
-            ElevatedButton.icon(
-              onPressed: _clearSearch,
-              icon: Icon(Icons.refresh, size: 18.sp),
-              label: Text(
-                AppStrings.get('retry'),
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(
-                  horizontal: 24.w,
-                  vertical: 12.h,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                elevation: 0,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  double _getHorizontalPadding(
-      bool isSmallScreen, bool isTablet, bool isDesktop) {
-    if (isSmallScreen) return 20.w;
-    if (isTablet) return 40.w;
-    return 60.w;
+  int _getCrossAxisCount(double width) {
+    if (width >= 1200) return 5;
+    if (width >= 900) return 4;
+    if (width >= 600) return 3;
+    return 2;
   }
 }

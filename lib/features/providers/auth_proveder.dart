@@ -1,9 +1,11 @@
-// lib/features/providers/auth_provider.dart - PRODUCTION READY
+// lib/features/providers/auth_provider.dart - WEB ACCESS TOKEN FIX
 
 import 'dart:async';
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 import 'package:Saborly/core/services/notification_service.dart';
 import '../../../shared/models/user.dart';
 import '../../../core/services/api_service.dart';
@@ -11,15 +13,28 @@ import '../../../core/services/api_service.dart';
 class AuthProvider extends ChangeNotifier {
   final SharedPreferences _prefs;
   final ApiService _apiService = ApiService();
+  
+  // Configure GoogleSignIn with better scopes
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: [
+      'email',
+      'https://www.googleapis.com/auth/userinfo.profile',
+    ],
+    clientId: kIsWeb 
+      ? '130218217091-ta95bq5pq3b38aqdlr158m6q6umug720.apps.googleusercontent.com' 
+      : null,
+  );
+
   String? _resetToken;
   Timer? _tokenExpiryTimer;
   Timer? _tokenValidationTimer;
+  bool _isSocialLoading = false;
 
-  // Token refresh 5 minutes before expiry
   static const Duration _tokenRefreshBuffer = Duration(minutes: 5);
   static const Duration _tokenValidationInterval = Duration(minutes: 5);
 
   String? get resetToken => _resetToken;
+  bool get isSocialLoading => _isSocialLoading;
 
   User? _user;
   bool _isLoading = false;
@@ -48,6 +63,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setSocialLoading(bool loading) {
+    _isSocialLoading = loading;
+    _isLoading = loading;
+    notifyListeners();
+  }
+
   void _setError(String? error) {
     _error = error;
     notifyListeners();
@@ -59,7 +80,183 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Setup timer to refresh token BEFORE expiry
+  String _getPlatform() {
+    if (kIsWeb) return 'web';
+    return defaultTargetPlatform.name.toLowerCase();
+  }
+
+  Future<bool> signInWithGoogle() async {
+    _setSocialLoading(true);
+    _setError(null);
+
+    try {
+      if (kDebugMode) {
+        print('🔵 Starting Google Sign-In...');
+        print('   Platform: ${kIsWeb ? "WEB" : "MOBILE"}');
+      }
+
+      // Sign out first to ensure clean state
+      try {
+        await _googleSignIn.signOut();
+        if (kDebugMode) print('   Signed out previous session');
+      } catch (e) {
+        if (kDebugMode) print('   No previous session to sign out');
+      }
+
+      // Trigger Google Sign-In flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        if (kDebugMode) print('⚠️ User cancelled Google Sign-In');
+        _setSocialLoading(false);
+        return false;
+      }
+
+      if (kDebugMode) {
+        print('✅ Got Google account:');
+        print('   Email: ${googleUser.email}');
+        print('   Display Name: ${googleUser.displayName}');
+        print('   ID: ${googleUser.id}');
+      }
+
+      // Get authentication details
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      if (kDebugMode) {
+        print('✅ Got authentication:');
+        print('   ID Token: ${googleAuth.idToken != null ? "Present (${googleAuth.idToken!.length} chars)" : "NULL"}');
+        print('   Access Token: ${googleAuth.accessToken != null ? "Present" : "NULL"}');
+      }
+
+      String? idToken = googleAuth.idToken;
+
+      // WEB FIX: If no ID token but we have access token, exchange it for ID token
+      if (idToken == null && googleAuth.accessToken != null && kIsWeb) {
+        if (kDebugMode) print('🔄 Web platform: Using access token to get user info...');
+        
+        try {
+          // Get user info from Google using access token
+          final userInfoResponse = await http.get(
+            Uri.parse('https://www.googleapis.com/oauth2/v2/userinfo'),
+            headers: {
+              'Authorization': 'Bearer ${googleAuth.accessToken}',
+            },
+          );
+
+          if (userInfoResponse.statusCode == 200) {
+            final userInfo = json.decode(userInfoResponse.body);
+            
+            if (kDebugMode) {
+              print('✅ Got user info from Google:');
+              print('   Email: ${userInfo['email']}');
+              print('   Name: ${userInfo['name']}');
+              print('   Verified: ${userInfo['verified_email']}');
+            }
+
+            // Send user info directly to backend for web
+            final response = await _apiService.googleSignInWeb(
+              email: userInfo['email'],
+              firstName: userInfo['given_name'] ?? userInfo['name']?.split(' ').first ?? 'User',
+              lastName: userInfo['family_name'] ?? userInfo['name']?.split(' ').last ?? '',
+              googleId: userInfo['id'],
+              accessToken: googleAuth.accessToken!,
+            );
+
+            if (response.isSuccess && response.data != null) {
+              _user = response.data!;
+              await _saveUserData();
+              _setupTokenExpiryTimer();
+              await _registerFCMToken();
+
+              if (kDebugMode) {
+                print('✅ Google Sign-In successful (Web mode)!');
+                print('   User: ${_user!.firstName} ${_user!.lastName}');
+                print('   Email: ${_user!.email}');
+              }
+              
+              _setSocialLoading(false);
+              return true;
+            } else {
+              if (kDebugMode) print('❌ Backend error: ${response.error}');
+              _setError(response.error ?? 'Google sign-in failed on server');
+              _setSocialLoading(false);
+              return false;
+            }
+          } else {
+            throw Exception('Failed to get user info: ${userInfoResponse.statusCode}');
+          }
+        } catch (e) {
+          if (kDebugMode) print('❌ Error getting user info: $e');
+          _setError('Failed to get user information from Google');
+          _setSocialLoading(false);
+          return false;
+        }
+      }
+
+      // Mobile flow: Use ID token
+      if (idToken == null) {
+        if (kDebugMode) print('❌ No ID token or access token available');
+        _setError('Failed to get Google credentials');
+        _setSocialLoading(false);
+        return false;
+      }
+
+      // Send ID token to backend (mobile flow)
+      if (kDebugMode) print('📤 Sending ID token to backend...');
+      
+      final response = await _apiService.googleSignIn(idToken);
+
+      if (response.isSuccess && response.data != null) {
+        _user = response.data!;
+        await _saveUserData();
+        _setupTokenExpiryTimer();
+        await _registerFCMToken();
+
+        if (kDebugMode) {
+          print('✅ Google Sign-In successful!');
+          print('   User: ${_user!.firstName} ${_user!.lastName}');
+          print('   Email: ${_user!.email}');
+        }
+        
+        _setSocialLoading(false);
+        return true;
+      } else {
+        if (kDebugMode) print('❌ Backend error: ${response.error}');
+        _setError(response.error ?? 'Google sign-in failed on server');
+        _setSocialLoading(false);
+        return false;
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('❌ Google Sign-In error: $e');
+        print('Stack trace: $stackTrace');
+      }
+      
+      String errorMessage = 'Google sign-in error occurred';
+      if (e.toString().contains('SIGN_IN_REQUIRED')) {
+        errorMessage = 'Please try signing in again';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your connection';
+      } else if (e.toString().contains('PERMISSION_DENIED')) {
+        errorMessage = 'Please enable People API in Google Cloud Console';
+      }
+      
+      _setError(errorMessage);
+      _setSocialLoading(false);
+      return false;
+    }
+  }
+
+  Future<void> _signOutFromGoogle() async {
+    try {
+      await _googleSignIn.signOut();
+      if (kDebugMode) print('✅ Signed out from Google');
+    } catch (e) {
+      if (kDebugMode) print('⚠️ Google sign-out error: $e');
+    }
+  }
+
+  // Token management methods
   void _setupTokenExpiryTimer() {
     _tokenExpiryTimer?.cancel();
     _tokenValidationTimer?.cancel();
@@ -78,7 +275,6 @@ class AuthProvider extends ChangeNotifier {
       print('⏰ Current time: $now');
     }
     
-    // Token already expired
     if (expiryTime.isBefore(now)) {
       if (kDebugMode) print('❌ Token expired - logging out');
       _handleTokenExpiry();
@@ -93,21 +289,18 @@ class AuthProvider extends ChangeNotifier {
       print('🔄 Will refresh in: ${refreshDuration.inMinutes} minutes');
     }
     
-    // Refresh immediately if expiring soon
     if (refreshDuration.isNegative) {
       _refreshToken();
     } else {
       _tokenExpiryTimer = Timer(refreshDuration, _refreshToken);
     }
     
-    // Safety net - validate every 5 minutes
     _tokenValidationTimer = Timer.periodic(
       _tokenValidationInterval,
       (_) => validateToken(),
     );
   }
 
-  /// Attempt to refresh token before expiry
   Future<void> _refreshToken() async {
     if (_user == null) return;
     
@@ -117,11 +310,8 @@ class AuthProvider extends ChangeNotifier {
       final response = await _apiService.refreshToken();
       
       if (response.isSuccess && response.data != null) {
-        // Update user token
         _user = _user!.copyWith(token: response.data);
         await _saveUserData();
-        
-        // Reset timer with new expiry
         _setupTokenExpiryTimer();
         
         if (kDebugMode) print('✅ Token refreshed successfully');
@@ -135,7 +325,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Handle token expiry - force logout
   Future<void> _handleTokenExpiry() async {
     if (kDebugMode) print('🚫 Token expired - forcing logout');
     
@@ -150,7 +339,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Validate token on app resume
   Future<void> validateToken() async {
     final tokenExpiry = _prefs.getInt('token_expiry');
     
@@ -168,14 +356,12 @@ class AuthProvider extends ChangeNotifier {
       print('   Now: $now');
     }
     
-    // If expiring soon, try refresh
     if (now.add(_tokenRefreshBuffer).isAfter(expiryTime)) {
       if (kDebugMode) print('⏰ Token expiring soon - attempting refresh');
       await _refreshToken();
       return;
     }
     
-    // If already expired
     if (expiryTime.isBefore(now)) {
       if (kDebugMode) print('❌ Token expired');
       await _handleTokenExpiry();
@@ -185,7 +371,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Check auth status on app start
   Future<void> checkAuthStatus() async {
     _setLoading(true);
     
@@ -196,7 +381,6 @@ class AuthProvider extends ChangeNotifier {
         if (tokenExpiry != null) {
           final expiryTime = DateTime.fromMillisecondsSinceEpoch(tokenExpiry);
           
-          // Try refresh if expired
           if (DateTime.now().isAfter(expiryTime)) {
             if (kDebugMode) print('⏰ Token expired on startup - refreshing');
             await _refreshToken();
@@ -339,6 +523,7 @@ class AuthProvider extends ChangeNotifier {
       
       await _apiService.removeFCMToken();
       await _apiService.logout();
+      await _signOutFromGoogle();
       await _clearUserData();
       _user = null;
       _setRequiresVerification(false);
@@ -356,6 +541,11 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _registerFCMToken() async {
     try {
+      if (kIsWeb) {
+        if (kDebugMode) print('⚠️ FCM not supported on web, skipping');
+        return;
+      }
+
       final notificationService = NotificationService();
       final fcmToken = notificationService.fcmToken;
       
@@ -363,7 +553,7 @@ class AuthProvider extends ChangeNotifier {
         await _apiService.updateFCMToken(
           fcmToken: fcmToken,
           deviceId: 'default',
-          platform: Platform.operatingSystem,
+          platform: _getPlatform(),
         );
       }
     } catch (e) {
@@ -447,7 +637,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Password reset methods remain the same...
   Future<bool> requestPasswordReset(String email) async {
     _setLoading(true);
     _setError(null);
@@ -539,7 +728,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Save user data with 24-hour token expiry
   Future<void> _saveUserData() async {
     if (_user != null) {
       await _prefs.setString('user_id', _user!.id);
@@ -579,6 +767,7 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
   }
+
   Future<bool> resendPasswordResetOTP(String email) async {
     _setLoading(true);
     _setError(null);

@@ -293,7 +293,7 @@ class LanguageSelector extends StatelessWidget {
         
         // Force immediate reload
         await Future.wait([
-          homeProvider.loadData(),
+          homeProvider.loadHomeData(),
           menuProvider.loadCategories(),
           menuProvider.loadFoodItems(),
         ]);

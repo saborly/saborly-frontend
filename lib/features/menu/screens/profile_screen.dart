@@ -152,7 +152,7 @@ class ProfileScreen extends StatelessWidget {
                         children: [
                           _buildProfileCard(context, authProvider),
                           SizedBox(height: 24.h),
-                          _buildStatsCard(authProvider),
+                          // _buildStatsCard(authProvider),
                           SizedBox(height: 24.h),
                           _buildQuickLinksCard(context),
                         ],
@@ -215,7 +215,7 @@ class ProfileScreen extends StatelessWidget {
           _buildQuickLink(AppStrings.get('privacy'), Icons.privacy_tip_outlined, () {
             context.go(AppRoutes.privacy); // Link to Privacy
           }),
-          _buildQuickLink(AppStrings.get('downloadData'), Icons.download, () {}),
+          // _buildQuickLink(AppStrings.get('downloadData'), Icons.download, () {}),
           Divider(height: 24.h, color: Colors.grey[200]),
           Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
@@ -748,7 +748,7 @@ class ProfileScreen extends StatelessWidget {
                 child: Icon(
                   icon,
                   color: AppColors.primary,
-                  size: 20.sp,
+                  size: 22.sp,
                 ),
               ),
               SizedBox(width: 12.w),
@@ -756,7 +756,7 @@ class ProfileScreen extends StatelessWidget {
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textDark,
                   ),

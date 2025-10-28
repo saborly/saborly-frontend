@@ -4,6 +4,8 @@ class ApiConstants {
   // For production: static const String baseUrl = 'https://your-api-domain.com/api/v1';
   
   // Auth endpoints
+static const String googleSignInWeb = '/auth/google-signin-web';
+
   static const String login = '/auth/login';
   static const String register = '/auth/register';
     static const String changePassword = '/auth/change-password';
@@ -19,7 +21,8 @@ class ApiConstants {
   static const String resetPassword = '/auth/reset-password';
    static const String verifyRegistration = '/auth/verify-registration';
   static const String resendRegistrationOTP = '/auth/resend-registration-otp';
-  
+  static const String googleSignIn = '/auth/google-signin';
+
   // User endpoints
   static const String profile = '/auth/profile';
   static const String updateProfile = '/user/profile';

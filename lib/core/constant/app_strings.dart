@@ -342,7 +342,8 @@ class AppStrings {
       'orderHistory': 'Order History',
       'reorder': 'Reorder',
       'trackOrder': 'Track Order',
-      
+      'orderCompleted':'Order Completed',
+            
       // Validation Messages
       'pleaseEnterEmail': 'Please enter your email',
       'pleaseEnterValidEmail': 'Please enter a valid email',
@@ -990,6 +991,10 @@ class AppStrings {
         "orderProgress": "Progreso del pedido",
       // General
       'search': 'Buscar',
+      'orderCompleted':'Pedido completado',
+            
+
+
       'viewAll': 'Ver Todo',
       'add': 'Añadir',
       'remove': 'Eliminar',
@@ -1745,7 +1750,8 @@ class AppStrings {
       // App Info
       'appName': 'Saborly',
       'appSlogan': 'Menjar Deliciós Entregat Ràpid',
-      
+     
+                        'orderCompleted':'Comanda completada',
       // General
       'search': 'Cercar',
       'viewAll': 'Veure Tot',
@@ -2490,7 +2496,7 @@ class AppStrings {
       'tryChicken': 'جرب الدجاج',
       'freeShake': 'مخفوق مجاني',
       'coolDown': 'انتعش',
-      
+       'orderCompleted':'تم إكمال الطلب',
       // Categories
       'friendsFamily': 'كومبو الأصدقاء\nوالعائلة',
       'highOnCoffee': 'كومبو القهوة\nالعالية',

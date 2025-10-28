@@ -1,3 +1,4 @@
+// lib/shared/widgets/food_item_card.dart - ENHANCED: Better offer display
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -47,7 +48,7 @@ class FoodItemCard extends StatelessWidget {
         final isWeb = screenWidth >= 600;
         
         return GestureDetector(
-          onTap: onTap ,
+          onTap: onTap,
           child: _buildVerticalCard(context, constraints, screenWidth, isWeb),
         );
       },
@@ -58,8 +59,6 @@ class FoodItemCard extends StatelessWidget {
     final cardSize = _getCardSize(constraints);
     final isExtraSmall = cardSize == CardSize.extraSmall;
     final isSmall = cardSize == CardSize.small || cardSize == CardSize.extraSmall;
-final isOutOfStock = AppStrings.get('outOfStock');
-
 
     return Container(
       margin: EdgeInsets.symmetric(
@@ -80,22 +79,17 @@ final isOutOfStock = AppStrings.get('outOfStock');
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(_getBorderRadius(cardSize, screenWidth)),
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: isExtraSmall ? 3 : (isSmall ? 3 : 4),
-                  child: _buildImageSection(cardSize, screenWidth),
-                ),
-                Expanded(
-                  flex: isExtraSmall ? 4 : (isSmall ? 3 : 3),
-                  child: _buildDetailsSection(cardSize, screenWidth, isWeb, context),
-                ),
-              ],
+            Expanded(
+              flex: isExtraSmall ? 3 : (isSmall ? 3 : 4),
+              child: _buildImageSection(cardSize, screenWidth),
             ),
-         
+            Expanded(
+              flex: isExtraSmall ? 4 : (isSmall ? 3 : 3),
+              child: _buildDetailsSection(cardSize, screenWidth, isWeb, context),
+            ),
           ],
         ),
       ),
@@ -105,18 +99,41 @@ final isOutOfStock = AppStrings.get('outOfStock');
   Widget _buildDetailsSection(CardSize cardSize, double screenWidth, bool isWeb, BuildContext context) {
     final isExtraSmall = cardSize == CardSize.extraSmall;
     final padding = _getPadding(cardSize, screenWidth);
-final isOutOfStock = AppStrings.get('outOfStock');
-
 
     return Padding(
       padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ✅ ENHANCED: Show offer title if available
+          if (foodItem.hasActiveOffer && foodItem.offer != null) ...[
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: 6.w,
+                vertical: 2.h,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B6B).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: Text(
+                foodItem.offer!.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: _getSmallFontSize(cardSize, screenWidth) * 0.9,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFFF6B6B),
+                ),
+              ),
+            ),
+            SizedBox(height: _getSpacing(cardSize, screenWidth) * 0.5),
+          ],
+          
           Flexible(
             child: Text(
               foodItem.name,
-    maxLines: cardSize == CardSize.extraSmall ? 2 : 2, // Allow 2 lines for extraSmall
+              maxLines: cardSize == CardSize.extraSmall ? 2 : 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: _getTitleFontSize(cardSize, screenWidth),
@@ -165,15 +182,33 @@ final isOutOfStock = AppStrings.get('outOfStock');
                       ),
                       SizedBox(height: 2.h),
                     ],
-                    Text(
-                      '${AppStrings.currency}${foodItem.effectivePrice.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: _getPriceFontSize(cardSize, screenWidth),
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Text(
+                          '${AppStrings.currency}${foodItem.effectivePrice.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: _getPriceFontSize(cardSize, screenWidth),
+                            fontWeight: FontWeight.w800,
+                            color: foodItem.hasActiveOffer 
+                              ? const Color(0xFF00C853) 
+                              : AppColors.primary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        // ✅ Show savings amount
+                        if (foodItem.hasActiveOffer && foodItem.discountAmount > 0) ...[
+                          SizedBox(width: 4.w),
+                          Text(
+                            'Save ${AppStrings.currency}${foodItem.discountAmount.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontSize: _getSmallFontSize(cardSize, screenWidth) * 0.85,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF00C853),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -190,6 +225,7 @@ final isOutOfStock = AppStrings.get('outOfStock');
   Widget _buildImageSection(CardSize cardSize, double screenWidth) {
     return Stack(
       children: [
+        // Main Image
         SizedBox.expand(
           child: kIsWeb
               ? Image.network(
@@ -230,6 +266,8 @@ final isOutOfStock = AppStrings.get('outOfStock');
                   errorWidget: (context, url, error) => _buildImageError(cardSize, screenWidth),
                 ),
         ),
+        
+        // TOP LEFT: Veg/Non-Veg Badge
         Positioned(
           top: _getPadding(cardSize, screenWidth),
           left: _getPadding(cardSize, screenWidth),
@@ -253,7 +291,9 @@ final isOutOfStock = AppStrings.get('outOfStock');
             ),
           ),
         ),
-        if (foodItem.hasActiveOffer)
+        
+        // ✅ TOP RIGHT: ENHANCED Discount Badge (ALWAYS show if has offer)
+        if (foodItem.hasActiveOffer && foodItem.discountPercentage > 0)
           Positioned(
             top: _getPadding(cardSize, screenWidth),
             right: _getPadding(cardSize, screenWidth),
@@ -263,12 +303,17 @@ final isOutOfStock = AppStrings.get('outOfStock');
                 vertical: _getSmallPadding(cardSize, screenWidth) * 1.5,
               ),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFFF6B6B),
+                    Color(0xFFFF8E53),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(12.r),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 4.r,
+                    color: const Color(0xFFFF6B6B).withOpacity(0.4),
+                    blurRadius: 8.r,
                     offset: Offset(0, 2.h),
                   ),
                 ],
@@ -283,7 +328,7 @@ final isOutOfStock = AppStrings.get('outOfStock');
                   ),
                   SizedBox(width: 4.w),
                   Text(
-                    foodItem.offer?.badge ?? '${foodItem.discountPercentage}% OFF',
+                    '${foodItem.discountPercentage}% OFF',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: _getSmallFontSize(cardSize, screenWidth),
@@ -294,7 +339,9 @@ final isOutOfStock = AppStrings.get('outOfStock');
               ),
             ),
           ),
-        if (foodItem.rating != null && foodItem.rating! > 0)
+        
+        // BOTTOM LEFT: Rating Badge
+        if (foodItem.rating > 0)
           Positioned(
             bottom: _getPadding(cardSize, screenWidth),
             left: _getPadding(cardSize, screenWidth),
@@ -317,10 +364,61 @@ final isOutOfStock = AppStrings.get('outOfStock');
                   ),
                   SizedBox(width: 4.w),
                   Text(
-                    foodItem.rating!.toStringAsFixed(1),
+                    foodItem.rating.toStringAsFixed(1),
                     style: TextStyle(
                       fontSize: _getSmallFontSize(cardSize, screenWidth),
                       fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        
+        // BOTTOM RIGHT: Featured/Popular Badge
+        if (foodItem.isFeatured || foodItem.isPopular)
+          Positioned(
+            bottom: _getPadding(cardSize, screenWidth),
+            right: _getPadding(cardSize, screenWidth),
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: _getPadding(cardSize, screenWidth) * 1.2,
+                vertical: _getSmallPadding(cardSize, screenWidth) * 1.5,
+              ),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: foodItem.isFeatured 
+                    ? [const Color(0xFFFFD700), const Color(0xFFFFA500)]
+                    : [const Color(0xFFFF6B6B), const Color(0xFFFF8E53)],
+                ),
+                borderRadius: BorderRadius.circular(8.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: (foodItem.isFeatured 
+                      ? const Color(0xFFFFD700) 
+                      : const Color(0xFFFF6B6B)).withOpacity(0.4),
+                    blurRadius: 6.r,
+                    offset: Offset(0, 2.h),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    foodItem.isFeatured ? Icons.star : Icons.local_fire_department,
+                    color: Colors.white,
+                    size: _getSmallIconSize(cardSize, screenWidth),
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    foodItem.isFeatured 
+                      ? AppStrings.get('featured')
+                      : AppStrings.get('popular'),
+                    style: TextStyle(
+                      fontSize: _getSmallFontSize(cardSize, screenWidth),
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
@@ -346,7 +444,7 @@ final isOutOfStock = AppStrings.get('outOfStock');
           if (cardSize != CardSize.extraSmall) ...[
             SizedBox(height: 8.h),
             Text(
-  AppStrings.get('imageNotAvailable'),
+              AppStrings.get('imageNotAvailable'),
               style: TextStyle(
                 fontSize: _getSmallFontSize(cardSize, screenWidth),
                 color: AppColors.textLight,
@@ -360,22 +458,20 @@ final isOutOfStock = AppStrings.get('outOfStock');
   }
 
   void _addToCart(BuildContext context, CartProvider cartProvider) {
-
-
     if (foodItem.mealSizes.isNotEmpty ||
         foodItem.extras.isNotEmpty ||
         foodItem.addons.isNotEmpty) {
       onTap();
     } else {
       final foodItemWithDiscount = foodItem.copyWith(
-        price: foodItem.effectivePrice,
       );
       cartProvider.addItem(foodItem: foodItemWithDiscount);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-content: Text(
-  AppStrings.get('addedToCart').replaceAll('{itemName}', foodItem.name),
-),          duration: const Duration(seconds: 2),
+          content: Text(
+            AppStrings.get('addedToCart').replaceAll('{itemName}', foodItem.name),
+          ),
+          duration: const Duration(seconds: 2),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -383,7 +479,7 @@ content: Text(
           ),
           margin: EdgeInsets.all(16.w),
           action: SnackBarAction(
-  label: AppStrings.get('undo'),
+            label: AppStrings.get('undo'),
             textColor: Colors.white,
             onPressed: () => cartProvider.removeItem(foodItem.id),
           ),
@@ -400,18 +496,17 @@ content: Text(
           child: InkWell(
             borderRadius: BorderRadius.circular(10.r),
             onTap: () => _addToCart(context, cartProvider),
-
             child: Container(
               padding: EdgeInsets.symmetric(
                 horizontal: _getPadding(cardSize, screenWidth) * 1.2,
                 vertical: _getSmallPadding(cardSize, screenWidth) * 2.2,
               ),
               decoration: BoxDecoration(
-                color:  AppColors.primary,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(10.r),
                 boxShadow: [
                   BoxShadow(
-                    color:  AppColors.primary.withOpacity(0.25),
+                    color: AppColors.primary.withOpacity(0.25),
                     blurRadius: 6.r,
                     offset: Offset(0, 2.h),
                   ),
@@ -457,19 +552,19 @@ content: Text(
     }
   }
 
- double _getPadding(CardSize cardSize, double screenWidth) {
-  final base = _getResponsiveValue(mobile: 8, tablet: 10, desktop: 12, screenWidth: screenWidth).w;
-  switch (cardSize) {
-    case CardSize.extraSmall:
-      return (base * 0.6).clamp(5.0, 7.0); // Reduced padding
-    case CardSize.small:
-      return (base * 0.75).clamp(8.0, 10.0);
-    case CardSize.medium:
-      return base.clamp(10.0, 12.0);
-    case CardSize.large:
-      return (base * 1.15).clamp(12.0, 14.0);
+  double _getPadding(CardSize cardSize, double screenWidth) {
+    final base = _getResponsiveValue(mobile: 8, tablet: 10, desktop: 12, screenWidth: screenWidth).w;
+    switch (cardSize) {
+      case CardSize.extraSmall:
+        return (base * 0.6).clamp(5.0, 7.0);
+      case CardSize.small:
+        return (base * 0.75).clamp(8.0, 10.0);
+      case CardSize.medium:
+        return base.clamp(10.0, 12.0);
+      case CardSize.large:
+        return (base * 1.15).clamp(12.0, 14.0);
+    }
   }
-}
 
   double _getSmallPadding(CardSize cardSize, double screenWidth) {
     return _getPadding(cardSize, screenWidth) * 0.4;
@@ -489,33 +584,34 @@ content: Text(
     }
   }
 
-double _getTitleFontSize(CardSize cardSize, double screenWidth) {
-  final base = _getResponsiveValue(mobile: 14, tablet: 17, desktop: 18, screenWidth: screenWidth).sp;
-  switch (cardSize) {
-    case CardSize.extraSmall:
-      return (base * 0.75).clamp(12.0, 13.0); // Reduced font size
-    case CardSize.small:
-      return (base * 0.9).clamp(14.0, 15.0);
-    case CardSize.medium:
-      return base.clamp(15.0, 17.0);
-    case CardSize.large:
-      return (base * 1.05).clamp(16.0, 18.0);
+  double _getTitleFontSize(CardSize cardSize, double screenWidth) {
+    final base = _getResponsiveValue(mobile: 14, tablet: 17, desktop: 18, screenWidth: screenWidth).sp;
+    switch (cardSize) {
+      case CardSize.extraSmall:
+        return (base * 0.75).clamp(12.0, 13.0);
+      case CardSize.small:
+        return (base * 0.9).clamp(14.0, 15.0);
+      case CardSize.medium:
+        return base.clamp(15.0, 17.0);
+      case CardSize.large:
+        return (base * 1.05).clamp(16.0, 18.0);
+    }
   }
-}
 
-double _getDescriptionFontSize(CardSize cardSize, double screenWidth) {
-  final base = _getResponsiveValue(mobile: 12, tablet: 14, desktop: 15, screenWidth: screenWidth).sp;
-  switch (cardSize) {
-    case CardSize.extraSmall:
-      return (base * 0.8).clamp(10.0, 11.0); // Reduced font size
-    case CardSize.small:
-      return (base * 0.9).clamp(11.0, 12.0);
-    case CardSize.medium:
-      return base.clamp(12.0, 14.0);
-    case CardSize.large:
-      return (base * 1.1).clamp(13.0, 15.0);
+  double _getDescriptionFontSize(CardSize cardSize, double screenWidth) {
+    final base = _getResponsiveValue(mobile: 12, tablet: 14, desktop: 15, screenWidth: screenWidth).sp;
+    switch (cardSize) {
+      case CardSize.extraSmall:
+        return (base * 0.8).clamp(10.0, 11.0);
+      case CardSize.small:
+        return (base * 0.9).clamp(11.0, 12.0);
+      case CardSize.medium:
+        return base.clamp(12.0, 14.0);
+      case CardSize.large:
+        return (base * 1.1).clamp(13.0, 15.0);
+    }
   }
-}
+
   double _getPriceFontSize(CardSize cardSize, double screenWidth) {
     final base = _getResponsiveValue(mobile: 14, tablet: 16, desktop: 17, screenWidth: screenWidth).sp;
     return base.clamp(14.0, 17.0);

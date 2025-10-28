@@ -643,13 +643,21 @@ _buildEnhancedTab(AppStrings.get('allCategories'), Icons.apps_rounded),
   }
 
 Widget _buildFoodGridSliver(MenuProvider provider, double screenWidth) {
-  // Show loading indicator if provider is loading or if categories are loaded but food items are not yet available
-  if (provider.isLoading || (provider.categories.isNotEmpty && provider.foodItems.isEmpty)) {
+  // Show loading indicator only when actually loading
+  if (provider.isLoading || provider.isSearching) {
     return SliverFillRemaining(
       child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
     );
   }
 
+  // ✅ Check if we have any items at all (before filtering)
+  if (!provider.hasItems) {
+    return SliverFillRemaining(
+      child: _buildEmptyState(AppStrings.get('noFoodItemsAvailable')),
+    );
+  }
+
+  // ✅ If filtered items are empty, show "no results" instead of loading
   if (provider.foodItems.isEmpty) {
     return SliverFillRemaining(
       child: _buildEmptyState(AppStrings.get('noFoodItemsAvailable')),
@@ -686,8 +694,7 @@ Widget _buildFoodGridSliver(MenuProvider provider, double screenWidth) {
       ),
     ),
   );
-}
-  Widget _buildFooterSliver(bool isDesktop) {
+} Widget _buildFooterSliver(bool isDesktop) {
     return SliverToBoxAdapter(
       child: FoodKingFooter(),
     );

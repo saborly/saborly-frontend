@@ -1139,26 +1139,26 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
     );
   }
 double _calculateTotalPrice() {
-    double total = widget.foodItem.effectivePrice; // Use effectivePrice instead of price
+    double total = widget.foodItem.price; // Use effectivePrice instead of price
     
     if (_selectedMealSize != null && _selectedMealSize!.additionalPrice<=0) {
-      total += _selectedMealSize!.additionalPrice;
+      total += _selectedMealSize!.additionalPrice-widget.foodItem.discountAmount;
     }
     else if(_selectedMealSize != null){
-            total = _selectedMealSize!.additionalPrice;
+            total = _selectedMealSize!.additionalPrice- widget.foodItem.discountAmount;
 
     }
     else{
-      total=total;
+      total=total-widget.foodItem.discountAmount;
     }
     
     
     for (var extra in _selectedExtras) {
-      total += extra.price;
+      total += extra.price-widget.foodItem.discountAmount;
     }
     
     for (var addon in _selectedAddons) {
-      total += addon.price;
+      total += addon.price- widget.foodItem.discountAmount;
     }
     
     return total * _quantity;
@@ -1196,31 +1196,51 @@ Widget _buildDesktopBottomBar() {
                   ),
                 ),
                 SizedBox(height: 4.h),
-                Row(
-                  children: [
-                    if (widget.foodItem.hasActiveOffer) ...[
-                      Text(
-                        '${AppStrings.currency}${(_quantity * widget.foodItem.price).toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          color: AppColors.textLight,
-                          decoration: TextDecoration.lineThrough,
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                    ],
-                    Text(
-                      '${AppStrings.currency}${_calculateTotalPrice().toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 28.sp,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+             Row(
+  children: [
+    // Case 1: Offer active AND selected size has no extra cost (or size is null or price <= 0)
+    if (widget.foodItem.hasActiveOffer &&
+        (_selectedMealSize == null || (_selectedMealSize?.additionalPrice ?? 0) <= 0))
+      ...[
+        Text(
+          '${AppStrings.currency}${(_quantity * widget.foodItem.price).toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: 18.sp,
+            color: AppColors.textLight,
+            decoration: TextDecoration.lineThrough,
+          ),
+        ),
+        SizedBox(width: 8.w),
+      ],
+
+    // Case 2: Offer active AND selected size has extra cost > 0
+    if (widget.foodItem.hasActiveOffer &&
+        _selectedMealSize != null &&
+        _selectedMealSize!.additionalPrice > 0)
+      ...[
+        Text(
+          '${AppStrings.currency}${(_quantity * _selectedMealSize!.additionalPrice).toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: 18.sp,
+            color: AppColors.textLight,
+            decoration: TextDecoration.lineThrough,
+          ),
+        ),
+        SizedBox(width: 8.w),
+      ],
+
+    // Final Price
+    Text(
+      '${AppStrings.currency}${_calculateTotalPrice().toStringAsFixed(2)}',
+      style: TextStyle(
+        fontSize: 28.sp,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textDark,
+        letterSpacing: -0.5,
+      ),
+    ),
+  ],
+), ],
             ),
             SizedBox(width: 24.w),
             Expanded(
@@ -1314,7 +1334,6 @@ Widget _buildDesktopBottomBar() {
     
     // Create a copy of the foodItem with the effective price
     final foodItemWithDiscount = widget.foodItem.copyWith(
-      price: widget.foodItem.effectivePrice, // Use effectivePrice for cart
     );
     
     cartProvider.addItem(
