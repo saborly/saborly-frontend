@@ -43,77 +43,80 @@ class _ContactScreenState extends State<ContactScreen> {
     super.dispose();
   }
 
-  Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isSubmitting = true);
-      
-      try {
-        final result = await ContactService.submitContactForm(
-          name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
-          subject: _subjectController.text.trim(),
-          message: _messageController.text.trim(),
-          phone: _phoneController.text.trim().isNotEmpty 
-              ? _phoneController.text.trim() 
-              : null,
-        );
-
-        setState(() => _isSubmitting = false);
-
-        if (mounted) {
-          if (result['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(AppStrings.get('formSubmissionSuccess')),
-                backgroundColor: AppColors.success,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                duration: const Duration(seconds: 4),
-              ),
-            );
-            
-            // Clear form
-            _formKey.currentState!.reset();
-            _nameController.clear();
-            _emailController.clear();
-            _subjectController.clear();
-            _messageController.clear();
-            _phoneController.clear();
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(AppStrings.get('formSubmissionError')),
-                backgroundColor: AppColors.error,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                duration: const Duration(seconds: 4),
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        setState(() => _isSubmitting = false);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppStrings.get('unexpectedError')),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-            ),
-          );
-        }
-      }
-    }
+Future<void> _submitForm() async {
+  // Validate first
+  if (!_formKey.currentState!.validate()) {
+    // Stop here – do NOT submit
+    return;
   }
 
+  setState(() => _isSubmitting = true);
+
+  try {
+    final result = await ContactService.submitContactForm(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      subject: _subjectController.text.trim(),
+      message: _messageController.text.trim(),
+      phone: _phoneController.text.trim().isNotEmpty 
+          ? _phoneController.text.trim() 
+          : null,
+    );
+
+    setState(() => _isSubmitting = false);
+
+    if (mounted) {
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppStrings.get('formSubmissionSuccess')),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+
+        // Clear form
+        _formKey.currentState!.reset();
+        _nameController.clear();
+        _emailController.clear();
+        _subjectController.clear();
+        _messageController.clear();
+        _phoneController.clear();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppStrings.get('formSubmissionError')),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  } catch (e) {
+    setState(() => _isSubmitting = false);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.get('unexpectedError')),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+        ),
+      );
+    }
+  }
+}
   @override
   Widget build(BuildContext context) {
     final isWeb = ResponsiveUtils.isWeb(context);

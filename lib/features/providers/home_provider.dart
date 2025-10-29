@@ -1,10 +1,11 @@
-// lib/features/providers/home_provider.dart - PROFESSIONAL IMPLEMENTATION
+// lib/features/providers/home_provider.dart - FIXED: Safe search with no validation errors
 
 import 'package:flutter/foundation.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/language_service.dart';
 import '../../shared/models/food_category.dart';
 import '../../shared/models/food_item.dart';
+import '../../shared/models/offer.dart';
 
 class HomeProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -13,6 +14,9 @@ class HomeProvider extends ChangeNotifier {
   List<FoodCategory> _categories = [];
   List<FoodItem> _featuredItems = [];
   List<FoodItem> _popularItems = [];
+  
+  // Store items with offers for merging
+  List<FoodItemWithOffer> _itemsWithOffers = [];
   
   // Home loading state
   bool _isLoading = false;
@@ -25,27 +29,27 @@ class HomeProvider extends ChangeNotifier {
   List<FoodItem> _searchResults = [];
   String _lastSearchQuery = '';
   
+  // ✅ Search debouncing
+  int _searchRequestId = 0;
+  
   // Language
   String _currentLanguage = LanguageService.english;
   bool _hasInitialized = false;
 
   // ==================== GETTERS ====================
   
-  // Main data
   List<FoodCategory> get categories => _categories;
   List<FoodItem> get featuredItems => _featuredItems;
   List<FoodItem> get popularItems => _popularItems;
   bool get isLoading => _isLoading;
   String? get error => _error;
   
-  // Search
   bool get isInSearchMode => _isInSearchMode;
   bool get isSearchLoading => _isSearchLoading;
   String? get searchError => _searchError;
   List<FoodItem> get searchResults => _searchResults;
   String get lastSearchQuery => _lastSearchQuery;
   
-  // Language
   String get currentLanguage => _currentLanguage;
 
   // ==================== INITIALIZATION ====================
@@ -66,12 +70,141 @@ class HomeProvider extends ChangeNotifier {
     _currentLanguage = languageCode;
     _apiService.setLanguage(languageCode);
     
-    // Reload appropriate data
     if (_isInSearchMode && _lastSearchQuery.isNotEmpty) {
       performSearch(_lastSearchQuery);
     } else {
       loadHomeData();
     }
+  }
+
+  // ==================== LOAD ITEMS WITH OFFERS ====================
+  
+  Future<void> loadItemsWithOffers() async {
+    try {
+      if (kDebugMode) {
+        print('🎁 Loading items with offers...');
+      }
+      
+      final response = await _apiService.dio.get(
+        '/offer/items-with-offers',
+        queryParameters: {
+          'lang': _currentLanguage,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final List<dynamic> itemsJson = response.data['items'] ?? [];
+        _itemsWithOffers = itemsJson
+            .map((json) {
+              try {
+                return FoodItemWithOffer.fromJson(
+                  json,
+                  currentLanguage: _currentLanguage,
+                );
+              } catch (e) {
+                if (kDebugMode) {
+                  print('⚠️ Error parsing offer item: $e');
+                }
+                return null;
+              }
+            })
+            .whereType<FoodItemWithOffer>()
+            .toList();
+        
+        if (kDebugMode) {
+          print('✅ Loaded ${_itemsWithOffers.length} items with offers');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('⚠️ Error loading items with offers: $e');
+      }
+      // Don't throw - continue without offers
+      _itemsWithOffers = [];
+    }
+  }
+
+  // ==================== ✅ FIXED: SAFE MERGE WITH MAP LOOKUP ====================
+  
+  List<FoodItem> _mergeOffersIntoItems(List<FoodItem> items) {
+    // ✅ Return early if no items
+    if (items.isEmpty) {
+      return items;
+    }
+
+    // ✅ Return early if no offers available
+    if (_itemsWithOffers.isEmpty) {
+      if (kDebugMode) {
+        print('⚠️ No offers available for merging');
+      }
+      return items;
+    }
+
+    if (kDebugMode) {
+      print('🔄 Merging offers into ${items.length} items...');
+    }
+
+    // ✅ Build lookup maps for O(1) access - NO firstWhere!
+    final offerMapById = <String, FoodItemWithOffer>{};
+    final offerMapByName = <String, FoodItemWithOffer>{};
+    
+    for (final offerItem in _itemsWithOffers) {
+      try {
+        // Map by ID
+        if (offerItem.id.isNotEmpty) {
+          offerMapById[offerItem.id] = offerItem;
+        }
+        
+        // Map by normalized name
+        final normalizedName = offerItem.name.toLowerCase().trim();
+        if (normalizedName.isNotEmpty) {
+          offerMapByName[normalizedName] = offerItem;
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('⚠️ Error mapping offer item: $e');
+        }
+      }
+    }
+
+    int mergedCount = 0;
+    
+    // ✅ Safe merge with try-catch for each item
+    final mergedItems = items.map((item) {
+      try {
+        // Try to find offer by ID first
+        FoodItemWithOffer? offerItem = offerMapById[item.id];
+        
+        // If not found by ID, try by name
+        if (offerItem == null && item.name.isNotEmpty) {
+          final normalizedName = item.name.toLowerCase().trim();
+          offerItem = offerMapByName[normalizedName];
+        }
+
+        // If we found a matching offer, merge it
+        if (offerItem != null && offerItem.offer != null) {
+          mergedCount++;
+          if (kDebugMode) {
+            print('✅ Merged offer for: ${item.name}');
+          }
+          return item.copyWith(offer: offerItem.offer);
+        }
+
+        return item;
+      } catch (e) {
+        if (kDebugMode) {
+          print('⚠️ Error merging offer for ${item.name}: $e');
+        }
+        // Return original item if merge fails
+        return item;
+      }
+    }).toList();
+
+    if (kDebugMode) {
+      print('✅ Merged $mergedCount offers into ${items.length} items');
+    }
+
+    return mergedItems;
   }
 
   // ==================== HOME DATA ====================
@@ -84,6 +217,9 @@ class HomeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Load offers first
+      await loadItemsWithOffers();
+      
       final results = await Future.wait([
         _fetchCategories(),
         _fetchFeaturedItems(),
@@ -97,6 +233,9 @@ class HomeProvider extends ChangeNotifier {
       }
     } catch (e) {
       _error = 'Failed to load content: ${e.toString()}';
+      if (kDebugMode) {
+        print('❌ Error loading home data: $e');
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -112,59 +251,108 @@ class HomeProvider extends ChangeNotifier {
       }
       return false;
     } catch (e) {
-      debugPrint('Error fetching categories: $e');
+      if (kDebugMode) {
+        print('❌ Error fetching categories: $e');
+      }
       return false;
     }
   }
 
   Future<bool> _fetchFeaturedItems() async {
     try {
+      if (kDebugMode) {
+        print('🌟 Fetching featured items...');
+      }
+      
       final response = await _apiService.getFoodItems(featured: true, limit: 20);
+      
       if (response.isSuccess && response.data != null) {
-        _featuredItems = _parseFoodItems(response.data);
+        final parsedItems = _parseFoodItems(response.data);
+        
+        if (kDebugMode) {
+          print('📦 Parsed ${parsedItems.length} featured items');
+        }
+        
+        // ✅ Safe merge
+        _featuredItems = _mergeOffersIntoItems(parsedItems);
+        
+        if (kDebugMode) {
+          final withOffers = _featuredItems.where((item) => item.hasActiveOffer).length;
+          print('✅ Featured items loaded: ${_featuredItems.length} ($withOffers with offers)');
+        }
+        
         return true;
       }
+      
       return false;
     } catch (e) {
-      debugPrint('Error fetching featured items: $e');
+      if (kDebugMode) {
+        print('❌ Error fetching featured items: $e');
+      }
       return false;
     }
   }
 
   Future<bool> _fetchPopularItems() async {
     try {
+      if (kDebugMode) {
+        print('🔥 Fetching popular items...');
+      }
+      
       final response = await _apiService.getFoodItems(popular: true, limit: 20);
+      
       if (response.isSuccess && response.data != null) {
-        _popularItems = _parseFoodItems(response.data);
+        final parsedItems = _parseFoodItems(response.data);
+        
+        if (kDebugMode) {
+          print('📦 Parsed ${parsedItems.length} popular items');
+        }
+        
+        // ✅ Safe merge
+        _popularItems = _mergeOffersIntoItems(parsedItems);
+        
+        if (kDebugMode) {
+          final withOffers = _popularItems.where((item) => item.hasActiveOffer).length;
+          print('✅ Popular items loaded: ${_popularItems.length} ($withOffers with offers)');
+        }
+        
         return true;
       }
+      
       return false;
     } catch (e) {
-      debugPrint('Error fetching popular items: $e');
+      if (kDebugMode) {
+        print('❌ Error fetching popular items: $e');
+      }
       return false;
     }
   }
 
-  // ==================== SEARCH ====================
+  // ==================== ✅ FIXED: SAFE SEARCH WITH DEDUPLICATION ====================
 
   Future<void> performSearch(String query) async {
     final trimmedQuery = query.trim();
     
-    // Prevent duplicate searches
-    if (_isInSearchMode && 
-        _lastSearchQuery == trimmedQuery && 
-        !_isSearchLoading) {
-      return;
-    }
-
     // Empty query exits search mode
     if (trimmedQuery.isEmpty) {
       exitSearchMode();
       return;
     }
 
-    // Prevent concurrent searches
-    if (_isSearchLoading) return;
+    // ✅ Prevent duplicate searches for same query
+    if (_isInSearchMode && 
+        _lastSearchQuery == trimmedQuery && 
+        !_isSearchLoading &&
+        _searchResults.isNotEmpty) {
+      if (kDebugMode) {
+        print('⏭️ Skipping duplicate search for: $trimmedQuery');
+      }
+      return;
+    }
+
+    // ✅ Increment request ID to handle race conditions
+    _searchRequestId++;
+    final currentRequestId = _searchRequestId;
 
     _isInSearchMode = true;
     _isSearchLoading = true;
@@ -173,33 +361,85 @@ class HomeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (kDebugMode) {
+        print('🔍 Starting search #$currentRequestId for: "$trimmedQuery"');
+      }
+
+      // Load offers first
+      await loadItemsWithOffers();
+      
+      // ✅ Check if this request is still valid
+      if (currentRequestId != _searchRequestId) {
+        if (kDebugMode) {
+          print('⏭️ Search #$currentRequestId cancelled (newer search started)');
+        }
+        return;
+      }
+      
       final response = await _apiService.getFoodItems(search: trimmedQuery);
       
+      // ✅ Check again after async call
+      if (currentRequestId != _searchRequestId) {
+        if (kDebugMode) {
+          print('⏭️ Search #$currentRequestId results discarded (newer search started)');
+        }
+        return;
+      }
+      
       if (response.isSuccess && response.data != null) {
-        _searchResults = _parseFoodItems(response.data);
+        final parsedItems = _parseFoodItems(response.data);
+        
+        // ✅ Safe merge
+        _searchResults = _mergeOffersIntoItems(parsedItems);
         _searchError = null;
+        
+        if (kDebugMode) {
+          final withOffers = _searchResults.where((item) => item.hasActiveOffer).length;
+          print('✅ Search #$currentRequestId complete: ${_searchResults.length} results ($withOffers with offers)');
+        }
       } else {
         _searchResults = [];
         _searchError = response.error ?? 'Search failed';
+        
+        if (kDebugMode) {
+          print('⚠️ Search #$currentRequestId failed: $_searchError');
+        }
       }
     } catch (e) {
-      _searchResults = [];
-      _searchError = 'Search error: ${e.toString()}';
-      debugPrint('Search error: $e');
+      // ✅ Only update error if this is still the current search
+      if (currentRequestId == _searchRequestId) {
+        _searchResults = [];
+        _searchError = 'Search error: ${e.toString()}';
+        
+        if (kDebugMode) {
+          print('❌ Search #$currentRequestId error: $e');
+        }
+      }
     } finally {
-      _isSearchLoading = false;
-      notifyListeners();
+      // ✅ Only update loading state if this is still the current search
+      if (currentRequestId == _searchRequestId) {
+        _isSearchLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   void exitSearchMode() {
     if (!_isInSearchMode) return;
 
+    // ✅ Increment to cancel any pending searches
+    _searchRequestId++;
+    
     _isInSearchMode = false;
     _isSearchLoading = false;
     _searchError = null;
     _searchResults = [];
     _lastSearchQuery = '';
+    
+    if (kDebugMode) {
+      print('🚪 Exited search mode');
+    }
+    
     notifyListeners();
   }
 
@@ -221,20 +461,26 @@ class HomeProvider extends ChangeNotifier {
     
     final List items = data is List ? data : [data];
     
-    return items
-        .map((item) {
-          try {
-            if (item is FoodItem) {
-              return item;
-            } else if (item is Map<String, dynamic>) {
-              return FoodItem.fromMap(item, currentLanguage: _currentLanguage);
-            }
-          } catch (e) {
-            debugPrint('Error parsing food item: $e');
-          }
-          return null;
-        })
-        .whereType<FoodItem>()
-        .toList();
+    final parsedItems = <FoodItem>[];
+    
+    for (final item in items) {
+      try {
+        if (item is FoodItem) {
+          parsedItems.add(item);
+        } else if (item is Map<String, dynamic>) {
+          final foodItem = FoodItem.fromMap(
+            item, 
+            currentLanguage: _currentLanguage,
+          );
+          parsedItems.add(foodItem);
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('⚠️ Error parsing food item: $e');
+        }
+      }
+    }
+    
+    return parsedItems;
   }
 }

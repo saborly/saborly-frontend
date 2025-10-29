@@ -97,7 +97,6 @@ class FoodItemCard extends StatelessWidget {
   }
 
   Widget _buildDetailsSection(CardSize cardSize, double screenWidth, bool isWeb, BuildContext context) {
-    final isExtraSmall = cardSize == CardSize.extraSmall;
     final padding = _getPadding(cardSize, screenWidth);
 
     return Padding(
@@ -106,43 +105,30 @@ class FoodItemCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ✅ ENHANCED: Show offer title if available
-          if (foodItem.hasActiveOffer && foodItem.offer != null) ...[
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 6.w,
-                vertical: 2.h,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF6B6B).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              child: Text(
-                foodItem.offer!.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: _getSmallFontSize(cardSize, screenWidth) * 0.9,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFFFF6B6B),
-                ),
-              ),
-            ),
-            SizedBox(height: _getSpacing(cardSize, screenWidth) * 0.5),
-          ],
+  
           
-          Flexible(
-            child: Text(
-              foodItem.name,
-              maxLines: cardSize == CardSize.extraSmall ? 2 : 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: _getTitleFontSize(cardSize, screenWidth),
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-                height: 1.2,
-              ),
-            ),
-          ),
+        Flexible(
+  child: Builder(
+    builder: (context) {
+      final isMobile = MediaQuery.of(context).size.width < 600;
+      final displayName = isMobile && foodItem.name.length > 16
+          ? '${foodItem.name.substring(0, 15)}…'
+          : foodItem.name;
+
+      return Text(
+        displayName,
+        maxLines: cardSize == CardSize.extraSmall ? 2 : 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: _getTitleFontSize(cardSize, screenWidth),
+          fontWeight: FontWeight.w700,
+          color: AppColors.textDark,
+          height: 1.2,
+        ),
+      );
+    },
+  ),
+),
           if (cardSize != CardSize.extraSmall) ...[
             SizedBox(height: _getSpacing(cardSize, screenWidth)),
             Flexible(
@@ -197,17 +183,17 @@ class FoodItemCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         // ✅ Show savings amount
-                        if (foodItem.hasActiveOffer && foodItem.discountAmount > 0) ...[
-                          SizedBox(width: 4.w),
-                          Text(
-                            'Save ${AppStrings.currency}${foodItem.discountAmount.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              fontSize: _getSmallFontSize(cardSize, screenWidth) * 0.85,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF00C853),
-                            ),
-                          ),
-                        ],
+                        // if (foodItem.hasActiveOffer && foodItem.discountAmount > 0) ...[
+                        //   SizedBox(width: 4.w),
+                        //   Text(
+                        //     'Save ${AppStrings.currency}${foodItem.discountAmount.toStringAsFixed(0)}',
+                        //     style: TextStyle(
+                        //       fontSize: _getSmallFontSize(cardSize, screenWidth) * 0.85,
+                        //       fontWeight: FontWeight.w600,
+                        //       color: const Color(0xFF00C853),
+                        //     ),
+                        //   ),
+                        // ],
                       ],
                     ),
                   ],

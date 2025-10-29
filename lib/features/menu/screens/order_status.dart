@@ -27,7 +27,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   Timer? _pollingTimer;
   Timer? _clockTimer;
   DateTime _currentTime = DateTime.now();
-  
+
   // Responsive breakpoints
   static const double mobileBreakpoint = 600;
   static const double tabletBreakpoint = 900;
@@ -83,7 +83,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   }
 
   String _calculateTimeRemaining(Order order) {
-    if (order.status == OrderStatus.delivered || 
+    if (order.status == OrderStatus.delivered ||
         order.status == OrderStatus.cancelled) {
       return '0';
     }
@@ -93,7 +93,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
     }
 
     final difference = order.estimatedDeliveryTime!.difference(_currentTime);
-    
+
     if (difference.isNegative) {
       return '0';
     }
@@ -113,7 +113,8 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   // Responsive getters
   double get screenWidth => MediaQuery.of(context).size.width;
   bool get isMobile => screenWidth < mobileBreakpoint;
-  bool get isTablet => screenWidth >= mobileBreakpoint && screenWidth < desktopBreakpoint;
+  bool get isTablet =>
+      screenWidth >= mobileBreakpoint && screenWidth < desktopBreakpoint;
   bool get isDesktop => screenWidth >= desktopBreakpoint;
 
   double get contentMaxWidth {
@@ -138,12 +139,12 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   @override
   Widget build(BuildContext context) {
     DateTime? _lastPressedAt;
-    
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) async {
         if (didPop) return;
-        
+
         final now = DateTime.now();
         final maxDuration = const Duration(seconds: 2);
         final isWarning = _lastPressedAt == null ||
@@ -151,7 +152,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
 
         if (isWarning) {
           _lastPressedAt = now;
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -172,7 +173,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
           );
           return;
         }
-        
+
         SystemNavigator.pop();
       },
       child: Scaffold(
@@ -187,11 +188,12 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
             }
 
             if (provider.error != null || provider.currentOrder == null) {
-              return _buildErrorState(provider.error ?? AppStrings.get('orderNotFound'));
+              return _buildErrorState(
+                  provider.error ?? AppStrings.get('orderNotFound'));
             }
 
             final order = provider.currentOrder!;
-            
+
             return RefreshIndicator(
               onRefresh: () async {
                 await provider.loadOrder(widget.orderId);
@@ -205,8 +207,8 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
                       horizontal: horizontalPadding,
                       vertical: verticalPadding,
                     ),
-                    child: isDesktop 
-                        ? _buildDesktopLayout(order) 
+                    child: isDesktop
+                        ? _buildDesktopLayout(order)
                         : _buildMobileTabletLayout(order),
                   ),
                 ),
@@ -224,7 +226,6 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
       children: [
         _buildOrderHeader(order),
         const SizedBox(height: 40),
-        
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -238,9 +239,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
                 ],
               ),
             ),
-            
             const SizedBox(width: 40),
-            
             Expanded(
               flex: 2,
               child: Column(
@@ -383,229 +382,313 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
       ),
     );
   }
+Widget _buildDeliveryTime(Order order) {
+  final bool isPickupOrder = order.deliveryType == DeliveryType.pickup;
+  final timeRemaining = _calculateTimeRemaining(order);
+  final isDelivered = order.status == OrderStatus.delivered;
+  final isPickedUp = order.status == OrderStatus.pickup || order.status == OrderStatus.shop;
+  final isCancelled = order.status == OrderStatus.cancelled;
 
-  Widget _buildDeliveryTime(Order order) {
-    final bool isPickupOrder = order.deliveryType == DeliveryType.pickup;
-    final timeRemaining = _calculateTimeRemaining(order);
-    final isDelivered = order.status == OrderStatus.delivered;
-    final isPickedUp = order.status == OrderStatus.pickup || order.status == OrderStatus.shop;
-    
-    return Container(
-      padding: EdgeInsets.all(isDesktop ? 48 : (isTablet ? 40 : 32)),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDelivered 
-              ? [Colors.green, Colors.green.shade700]
-              : isPickedUp && isPickupOrder
-                  ? [const Color(0xFF388E3C), const Color(0xFF2E7D32)]
-                  : [AppColors.primary, AppColors.primaryDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  return Container(
+    padding: EdgeInsets.all(isDesktop ? 48 : (isTablet ? 40 : 32)),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: isDelivered
+            ? [Colors.green, Colors.green.shade700]
+            : isCancelled
+                ? [const Color(0xFFC62828), const Color(0xFFB71C1C)]
+                : isPickedUp && isPickupOrder
+                    ? [const Color(0xFF388E3C), const Color(0xFF2E7D32)]
+                    : [AppColors.primary, AppColors.primaryDark],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: (isDelivered
+                  ? Colors.green
+                  : isCancelled
+                      ? const Color(0xFFC62828)
+                      : AppColors.primary)
+              .withOpacity(0.4),
+          blurRadius: 24,
+          offset: const Offset(0, 8),
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: (isDelivered ? Colors.green : AppColors.primary).withOpacity(0.4),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+      ],
+    ),
+    child: Column(
+      children: [
+        Text(
+          isDelivered
+              ? AppStrings.get('delivered')
+              : isCancelled
+                  ? AppStrings.get('cancelled')
+                  : (isPickedUp && isPickupOrder)
+                      ? AppStrings.get('pickedUp')
+                      : (isPickupOrder
+                          ? AppStrings.get("readyIn")
+                          : AppStrings.estimatedDelivery),
+          style: TextStyle(
+            fontSize: isDesktop ? 18 : 16,
+            color: Colors.white.withOpacity(0.95),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            isDelivered 
-                ? AppStrings.get('delivered')
-                : (isPickedUp && isPickupOrder)
-                    ? AppStrings.get('pickedUp')
-                    : (isPickupOrder ? AppStrings.get("readyIn") : AppStrings.estimatedDelivery),
-            style: TextStyle(
-              fontSize: isDesktop ? 18 : 16,
-              color: Colors.white.withOpacity(0.95),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          (isDelivered || (isPickedUp && isPickupOrder))
+              ? '✓'
+              : isCancelled
+                  ? '✗'
+                  : '$timeRemaining min',
+          style: TextStyle(
+            fontSize: isDesktop ? 64 : (isTablet ? 56 : 48),
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: -2,
+            height: 1,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 12,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 1,
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            (isDelivered || (isPickedUp && isPickupOrder)) ? '✓' : '$timeRemaining min',
-            style: TextStyle(
-              fontSize: isDesktop ? 64 : (isTablet ? 56 : 48),
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -2,
-              height: 1,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 12,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  (isDelivered || (isPickedUp && isPickupOrder))
-                      ? Icons.check_circle_rounded
-                      : (isPickupOrder ? Icons.shopping_bag_rounded : Icons.schedule_rounded),
-                  color: Colors.white,
-                  size: isDesktop ? 20 : 18,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  (isDelivered )
-                      ? AppStrings.get('orderCompleted')
-                      : (isPickupOrder ? AppStrings.get("readyIn") : AppStrings.getYourOrder),
-                  style: TextStyle(
-                    fontSize: isDesktop ? 15 : 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrderProgress(Order order) {
-    final bool isPickupOrder = order.deliveryType == DeliveryType.pickup;
-    
-    return Container(
-      padding: EdgeInsets.all(isDesktop ? 36 : (isTablet ? 32 : 28)),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 24,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  isPickupOrder ? Icons.shopping_bag_rounded : Icons.local_shipping_rounded,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
+              Icon(
+                (isDelivered || (isPickedUp && isPickupOrder))
+                    ? Icons.check_circle_rounded
+                    : isCancelled
+                        ? Icons.cancel_rounded
+                        : (isPickupOrder
+                            ? Icons.shopping_bag_rounded
+                            : Icons.schedule_rounded),
+                color: Colors.white,
+                size: isDesktop ? 20 : 18,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Text(
-                AppStrings.get('orderProgress'),
+                (isDelivered)
+                    ? AppStrings.get('orderCompleted')
+                    : isCancelled
+                        ? AppStrings.get('orderCancelled')
+                        : (isPickupOrder
+                            ? AppStrings.get("readyIn")
+                            : AppStrings.getYourOrder),
                 style: TextStyle(
-                  fontSize: isDesktop ? 22 : (isTablet ? 20 : 18),
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                  letterSpacing: -0.5,
+                  fontSize: isDesktop ? 15 : 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: 0.3,
                 ),
               ),
             ],
           ),
-          SizedBox(height: isDesktop ? 36 : 32),
-          
-          if (isPickupOrder) ...[
-            // Pickup order flow
-            _buildProgressStep(
-              AppStrings.orderPlaced,
-              const Color(0xFFFF6F00),
-              order.status.index >= OrderStatus.pending.index,
-              isFirst: true,
+        ),
+      ],
+    ),
+  );
+}
+Widget _buildCancelledProgress(Order order) {
+  return Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: const Color(0xFFC62828).withOpacity(0.1),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: const Color(0xFFC62828).withOpacity(0.3),
+        width: 1.5,
+      ),
+    ),
+    child: Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFC62828),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.cancel_rounded,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppStrings.get('orderCancelled'),
+                style: TextStyle(
+                  fontSize: isDesktop ? 18 : 16,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFC62828),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                AppStrings.get('orderCancelledMessage'),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textLight,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+ Widget _buildOrderProgress(Order order) {
+  final bool isPickupOrder = order.deliveryType == DeliveryType.pickup;
+  final bool isCancelled = order.status == OrderStatus.cancelled;
+
+  return Container(
+    padding: EdgeInsets.all(isDesktop ? 36 : (isTablet ? 32 : 28)),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.06),
+          blurRadius: 24,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isCancelled
+                    ? const Color(0xFFC62828).withOpacity(0.1)
+                    : AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isCancelled
+                    ? Icons.cancel_rounded
+                    : (isPickupOrder
+                        ? Icons.shopping_bag_rounded
+                        : Icons.local_shipping_rounded),
+                color: isCancelled ? const Color(0xFFC62828) : AppColors.primary,
+                size: 20,
+              ),
             ),
-            _buildProgressStep(
-              AppStrings.get('orderConfirmed'),
-              const Color(0xFF1976D2),
-              order.status.index >= OrderStatus.confirmed.index,
-            ),
-            _buildProgressStep(
-              AppStrings.get('preparing'),
-              const Color(0xFF7B1FA2),
-              order.status.index >= OrderStatus.preparing.index,
-            ),
-            _buildProgressStep(
-              AppStrings.ready,
-              const Color(0xFF0097A7),
-              order.status.index >= OrderStatus.ready.index,
-            ),
-            _buildProgressStep(
-              AppStrings.get('delivered'),
-              const Color(0xFF388E3C),
-              order.status == OrderStatus.delivered || order.status == OrderStatus.shop,
-              isLast: true,
-            ),
-          ] else ...[
-            // Delivery order flow
-            _buildProgressStep(
-              AppStrings.orderPlaced,
-              const Color(0xFFFF6F00),
-              order.status.index >= OrderStatus.pending.index,
-              isFirst: true,
-            ),
-            _buildProgressStep(
-              AppStrings.get('orderConfirmed'),
-              const Color(0xFF1976D2),
-              order.status.index >= OrderStatus.confirmed.index,
-            ),
-            _buildProgressStep(
-              AppStrings.preparing,
-              const Color(0xFF7B1FA2),
-              order.status.index >= OrderStatus.preparing.index,
-            ),
-            _buildProgressStep(
-              AppStrings.ready,
-              const Color(0xFF0097A7),
-              order.status.index >= OrderStatus.ready.index,
-            ),
-            _buildProgressStep(
-              AppStrings.get('outForDelivery'),
-              const Color(0xFF303F9F),
-              order.status.index >= OrderStatus.outForDelivery.index,
-            ),
-            _buildProgressStep(
-              AppStrings.get('delivered'),
-              const Color(0xFF2E7D32),
-              order.status == OrderStatus.delivered,
-              isLast: true,
+            const SizedBox(width: 12),
+            Text(
+              AppStrings.get('orderProgress'),
+              style: TextStyle(
+                fontSize: isDesktop ? 22 : (isTablet ? 20 : 18),
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+                letterSpacing: -0.5,
+              ),
             ),
           ],
+        ),
+        SizedBox(height: isDesktop ? 36 : 32),
+        
+        if (isCancelled) ...[
+          // Show cancelled status
+          _buildCancelledProgress(order),
+        ] else if (isPickupOrder) ...[
+          // Pickup order flow
+          _buildProgressStep(
+            AppStrings.orderPlaced,
+            const Color(0xFFFF6F00),
+            order.status.index >= OrderStatus.pending.index,
+            isFirst: true,
+          ),
+          _buildProgressStep(
+            AppStrings.get('orderConfirmed'),
+            const Color(0xFF1976D2),
+            order.status.index >= OrderStatus.confirmed.index,
+          ),
+          _buildProgressStep(
+            AppStrings.get('preparing'),
+            const Color(0xFF7B1FA2),
+            order.status.index >= OrderStatus.preparing.index,
+          ),
+          _buildProgressStep(
+            AppStrings.ready,
+            const Color(0xFF0097A7),
+            order.status.index >= OrderStatus.ready.index,
+          ),
+          _buildProgressStep(
+            AppStrings.get('delivered'),
+            const Color(0xFF388E3C),
+            order.status == OrderStatus.delivered ||
+                order.status == OrderStatus.shop,
+            isLast: true,
+          ),
+        ] else ...[
+          // Delivery order flow
+          _buildProgressStep(
+            AppStrings.orderPlaced,
+            const Color(0xFFFF6F00),
+            order.status.index >= OrderStatus.pending.index,
+            isFirst: true,
+          ),
+          _buildProgressStep(
+            AppStrings.get('orderConfirmed'),
+            const Color(0xFF1976D2),
+            order.status.index >= OrderStatus.confirmed.index,
+          ),
+          _buildProgressStep(
+            AppStrings.preparing,
+            const Color(0xFF7B1FA2),
+            order.status.index >= OrderStatus.preparing.index,
+          ),
+          _buildProgressStep(
+            AppStrings.ready,
+            const Color(0xFF0097A7),
+            order.status.index >= OrderStatus.ready.index,
+          ),
+          _buildProgressStep(
+            AppStrings.get('outForDelivery'),
+            const Color(0xFF303F9F),
+            order.status.index >= OrderStatus.outForDelivery.index,
+          ),
+          _buildProgressStep(
+            AppStrings.get('delivered'),
+            const Color(0xFF2E7D32),
+            order.status == OrderStatus.delivered,
+            isLast: true,
+          ),
         ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
-  Widget _buildProgressStep(
-    String title, 
-    Color statusColor,
-    bool isCompleted, 
-    {bool isFirst = false, bool isLast = false}
-  ) {
+  Widget _buildProgressStep(String title, Color statusColor, bool isCompleted,
+      {bool isFirst = false, bool isLast = false}) {
     const double iconSize = 32;
     const double lineHeight = 40;
-    
+
     return Row(
       children: [
         Column(
@@ -640,13 +723,15 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
                   width: 2.5,
                 ),
                 shape: BoxShape.circle,
-                boxShadow: isCompleted ? [
-                  BoxShadow(
-                    color: statusColor.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ] : null,
+                boxShadow: isCompleted
+                    ? [
+                        BoxShadow(
+                          color: statusColor.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
               child: isCompleted
                   ? Icon(
@@ -701,7 +786,8 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(AppStrings.get('callError').replaceAll('{phoneNumber}', phoneNumber)),
+                content: Text(AppStrings.get('callError')
+                    .replaceAll('{phoneNumber}', phoneNumber)),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -711,14 +797,15 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppStrings.get('callErrorGeneric').replaceAll('{error}', e.toString())),
+              content: Text(AppStrings.get('callErrorGeneric')
+                  .replaceAll('{error}', e.toString())),
               backgroundColor: AppColors.error,
             ),
           );
         }
       }
     }
-    
+
     return Container(
       padding: EdgeInsets.all(isDesktop ? 24 : (isTablet ? 22 : 20)),
       decoration: BoxDecoration(
@@ -814,65 +901,104 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
     );
   }
 
-  Widget _buildPaymentInfo(Order order) {
-    return Container(
-      padding: EdgeInsets.all(isDesktop ? 24 : (isTablet ? 22 : 20)),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 24,
-            offset: const Offset(0, 4),
+ Widget _buildPaymentInfo(Order order) {
+  final bool isCancelled = order.status == OrderStatus.cancelled;
+  
+  return Container(
+    padding: EdgeInsets.all(isDesktop ? 24 : (isTablet ? 22 : 20)),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.06),
+          blurRadius: 24,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.payment_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              AppStrings.get('paymentInfo'),
+              style: TextStyle(
+                fontSize: isDesktop ? 18 : 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildInfoRow(
+          AppStrings.get('paymentMethod'),
+          _getPaymentMethodText(order.paymentMethod),
+        ),
+        const SizedBox(height: 12),
+        _buildInfoRow(
+          AppStrings.get('paymentStatus'),
+          _getPaymentStatusText(
+            order.status == OrderStatus.delivered
+                ? PaymentStatus.paid
+                : isCancelled
+                    ? PaymentStatus.refunded
+                    : order.paymentStatus,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.payment_rounded,
-                  color: AppColors.primary,
+        ),
+        if (isCancelled) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color(0xFFFF6F00).withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: const Color(0xFFFF6F00),
                   size: 20,
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                AppStrings.get('paymentInfo'),
-                style: TextStyle(
-                  fontSize: isDesktop ? 18 : 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                  letterSpacing: -0.3,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    AppStrings.get('refundProcessing'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: const Color(0xFFE65100),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
-          _buildInfoRow(AppStrings.get('paymentMethod'), _getPaymentMethodText(order.paymentMethod)),
-          const SizedBox(height: 12),
-_buildInfoRow(
-  AppStrings.get('paymentStatus'),
-  _getPaymentStatusText(
-    order.status == OrderStatus.delivered
-        ? PaymentStatus.paid
-        : order.paymentStatus,
-  ),
-),
         ],
-      ),
-    );
-  }
-
+      ],
+    ),
+  );
+ }
   Widget _buildOrderDetails(Order order) {
     return Container(
       padding: EdgeInsets.all(isDesktop ? 24 : (isTablet ? 22 : 20)),
@@ -917,57 +1043,64 @@ _buildInfoRow(
             ],
           ),
           const SizedBox(height: 20),
-          
-          ...order.items.map((cartItem) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: cartItem.foodItem.isVeg ? Colors.green : Colors.red,
-                      width: 1.5,
+          ...order.items
+              .map((cartItem) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: cartItem.foodItem.isVeg
+                                  ? Colors.green
+                                  : Colors.red,
+                              width: 1.5,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            Icons.circle,
+                            color: cartItem.foodItem.isVeg
+                                ? Colors.green
+                                : Colors.red,
+                            size: 8,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '${cartItem.quantity}x ${cartItem.foodItem.name}',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: AppColors.textDark,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${AppStrings.currency}${cartItem.totalPrice.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Icon(
-                    Icons.circle,
-                    color: cartItem.foodItem.isVeg ? Colors.green : Colors.red,
-                    size: 8,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    '${cartItem.quantity}x ${cartItem.foodItem.name}',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: AppColors.textDark,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${AppStrings.currency}${cartItem.totalPrice.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ],
-            ),
-          )).toList(),
-          
+                  ))
+              .toList(),
           const SizedBox(height: 20),
           Divider(color: AppColors.divider, thickness: 1, height: 1),
           const SizedBox(height: 16),
-          _buildInfoRow(AppStrings.get('subtotal'), '${AppStrings.get('currency')}${order.subtotal.toStringAsFixed(2)}'),
+          _buildInfoRow(AppStrings.get('subtotal'),
+              '${AppStrings.get('currency')}${order.subtotal.toStringAsFixed(2)}'),
           if (order.deliveryFee > 0)
-            _buildInfoRow(AppStrings.get('deliveryFee'), '${AppStrings.get('currency')}${order.deliveryFee.toStringAsFixed(2)}'),
+            _buildInfoRow(AppStrings.get('deliveryFee'),
+                '${AppStrings.get('currency')}${order.deliveryFee.toStringAsFixed(2)}'),
           if (order.tax > 0)
-            _buildInfoRow(AppStrings.get('tax'), '${AppStrings.get('currency')}${order.tax.toStringAsFixed(2)}'),
+            _buildInfoRow(AppStrings.get('tax'),
+                '${AppStrings.get('currency')}${order.tax.toStringAsFixed(2)}'),
           const SizedBox(height: 16),
           Divider(color: AppColors.divider, thickness: 2, height: 2),
           const SizedBox(height: 16),
@@ -1046,7 +1179,8 @@ _buildInfoRow(
       AppStrings.get('dec'),
     ];
     final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
-    final period = date.hour >= 12 ? AppStrings.get('pm') : AppStrings.get('am');
+    final period =
+        date.hour >= 12 ? AppStrings.get('pm') : AppStrings.get('am');
     return '${months[date.month - 1]} ${date.day}, ${date.year} at $hour:${date.minute.toString().padLeft(2, '0')} $period';
   }
 

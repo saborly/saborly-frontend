@@ -1,4 +1,4 @@
-// lib/core/services/language_service.dart - Enhanced 4 Language Support
+// lib/core/services/language_service.dart - Fixed Asset Paths
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,7 +18,7 @@ class LanguageService extends ChangeNotifier {
       name: 'English',
       nativeName: 'English',
       flag: '🇬🇧',
-      flagAsset: 'assets/images/flags/uk_flag.png',
+      flagAsset: 'images/uk_flag.png', // ✅ Without 'assets/' prefix
       countryCode: 'GB',
       isRTL: false,
     ),
@@ -27,7 +27,7 @@ class LanguageService extends ChangeNotifier {
       name: 'Spanish',
       nativeName: 'Español',
       flag: '🇪🇸',
-      flagAsset: 'assets/images/flags/spain_flag.png',
+      flagAsset: 'images/spain_flag.png', // ✅ Without 'assets/' prefix
       countryCode: 'ES',
       isRTL: false,
     ),
@@ -36,7 +36,7 @@ class LanguageService extends ChangeNotifier {
       name: 'Catalan',
       nativeName: 'Català',
       flag: '🏴',
-      flagAsset: 'assets/images/flags/catalan_flag.png',
+      flagAsset: 'images/catalan_flag.png', // ✅ Without 'assets/' prefix
       countryCode: 'CT',
       isRTL: false,
     ),
@@ -45,7 +45,7 @@ class LanguageService extends ChangeNotifier {
       name: 'Arabic',
       nativeName: 'العربية',
       flag: '🇸🇦',
-      flagAsset: 'assets/images/flags/arabic_flag.png',
+      flagAsset: 'images/arabic_flag.png', // ✅ Without 'assets/' prefix
       countryCode: 'SA',
       isRTL: true,
     ),

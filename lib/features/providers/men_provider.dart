@@ -1,4 +1,4 @@
-// lib/features/providers/menu_provider.dart - ENHANCED: Merge offers into food items
+// lib/features/providers/menu_provider.dart - FIXED: Minimum search length validation
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
@@ -10,6 +10,9 @@ import '../../../shared/models/offer.dart';
 class MenuProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
+  // ✅ Minimum search length (backend requires at least 2 characters)
+  static const int minSearchLength = 2;
+
   // Categories
   List<FoodCategory> _categories = [];
   
@@ -17,7 +20,7 @@ class MenuProvider extends ChangeNotifier {
   List<FoodItem> _allFoodItems = [];
   List<FoodItem> _foodItems = [];
   
-  // ✅ NEW: Store items with offers for merging
+  // Store items with offers for merging
   List<FoodItemWithOffer> _itemsWithOffers = [];
   
   // Loading states
@@ -35,6 +38,7 @@ class MenuProvider extends ChangeNotifier {
   // Search
   String _searchQuery = '';
   Timer? _debounceTimer;
+  int _searchRequestId = 0;
   
   // Sort
   String _sortBy = 'name';
@@ -97,7 +101,7 @@ class MenuProvider extends ChangeNotifier {
     }
   }
 
-  // ==================== ✅ NEW: LOAD ITEMS WITH OFFERS ====================
+  // ==================== LOAD ITEMS WITH OFFERS ====================
   
   Future<void> loadItemsWithOffers() async {
     try {
@@ -118,7 +122,7 @@ class MenuProvider extends ChangeNotifier {
                   currentLanguage: _currentLanguage,
                 );
               } catch (e) {
-                debugPrint('Error parsing offer item: $e');
+                debugPrint('⚠️ Error parsing offer item: $e');
                 return null;
               }
             })
@@ -128,46 +132,62 @@ class MenuProvider extends ChangeNotifier {
         debugPrint('✅ Loaded ${_itemsWithOffers.length} items with offers');
       }
     } catch (e) {
-      debugPrint('Error loading items with offers: $e');
+      debugPrint('⚠️ Error loading items with offers: $e');
+      _itemsWithOffers = [];
     }
   }
 
-  // ==================== ✅ ENHANCED: MERGE OFFERS INTO FOOD ITEMS ====================
+  // ==================== SAFE MERGE WITH MAP LOOKUP ====================
   
   List<FoodItem> _mergeOffersIntoItems(List<FoodItem> items) {
+    if (items.isEmpty) return items;
     if (_itemsWithOffers.isEmpty) {
+      debugPrint('⚠️ No offers available for merging');
       return items;
     }
 
-    return items.map((item) {
-      // Find matching offer item by ID or name
-      final offerItem = _itemsWithOffers.firstWhere(
-        (offerItem) => 
-          offerItem.id == item.id || 
-          offerItem.name.toLowerCase().trim() == item.name.toLowerCase().trim(),
-        orElse: () => FoodItemWithOffer(
-          id: '',
-          name: '',
-          description: '',
-          price: 0,
-          imageUrl: '',
-          category: const CategoryInfo(id: '', name: ''),
-          isActive: false,
-          discountedPrice: 0,
-          savings: 0,
-          discountPercentage: 0,
-        ),
-      );
+    debugPrint('🔄 Merging offers into ${items.length} items...');
 
-      // If we found a matching offer, merge it
-      if (offerItem.id.isNotEmpty && offerItem.offer != null) {
-        debugPrint('✅ Merging offer for: ${item.name}');
-        return item.copyWith(
-          offer: offerItem.offer,
-        );
+    final offerMapById = <String, FoodItemWithOffer>{};
+    final offerMapByName = <String, FoodItemWithOffer>{};
+    
+    for (final offerItem in _itemsWithOffers) {
+      try {
+        if (offerItem.id.isNotEmpty) {
+          offerMapById[offerItem.id] = offerItem;
+        }
+        
+        final normalizedName = offerItem.name.toLowerCase().trim();
+        if (normalizedName.isNotEmpty) {
+          offerMapByName[normalizedName] = offerItem;
+        }
+      } catch (e) {
+        debugPrint('⚠️ Error mapping offer item: $e');
       }
+    }
 
-      return item;
+    int mergedCount = 0;
+
+    return items.map((item) {
+      try {
+        FoodItemWithOffer? offerItem = offerMapById[item.id];
+        
+        if (offerItem == null && item.name.isNotEmpty) {
+          final normalizedName = item.name.toLowerCase().trim();
+          offerItem = offerMapByName[normalizedName];
+        }
+
+        if (offerItem != null && offerItem.offer != null) {
+          mergedCount++;
+          debugPrint('✅ Merged offer for: ${item.name}');
+          return item.copyWith(offer: offerItem.offer);
+        }
+
+        return item;
+      } catch (e) {
+        debugPrint('⚠️ Error merging offer for ${item.name}: $e');
+        return item;
+      }
     }).toList();
   }
 
@@ -183,10 +203,8 @@ class MenuProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // ✅ Load offers first
       await loadItemsWithOffers();
       
-      // Then load food items
       final response = await _apiService.getFoodItems(
         categoryId: categoryId,
         featured: _showPopularOnly ? true : null,
@@ -195,8 +213,6 @@ class MenuProvider extends ChangeNotifier {
 
       if (response.isSuccess && response.data != null) {
         final parsedItems = _parseFoodItems(response.data);
-        
-        // ✅ Merge offers into items
         _allFoodItems = _mergeOffersIntoItems(parsedItems);
         _applyLocalFilters();
         
@@ -211,33 +227,53 @@ class MenuProvider extends ChangeNotifier {
       _error = 'Error loading food items: ${e.toString()}';
       _allFoodItems = [];
       _foodItems = [];
-      debugPrint('Error loading food items: $e');
+      debugPrint('❌ Error loading food items: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // ==================== SEARCH ====================
+  // ==================== ✅ FIXED: SEARCH WITH MINIMUM LENGTH ====================
   
   void searchFoodItems(String query) {
     _debounceTimer?.cancel();
     
     final trimmedQuery = query.trim();
     
+    // ✅ Empty query - reload all items
     if (trimmedQuery.isEmpty) {
       _searchQuery = '';
       loadFoodItems(categoryId: _currentCategoryId);
       return;
     }
     
+    // ✅ Too short - wait for more characters
+    if (trimmedQuery.length < minSearchLength) {
+      debugPrint('⏸️ Search query too short: "$trimmedQuery" (min: $minSearchLength chars)');
+      _searchQuery = trimmedQuery;
+      // Don't trigger search yet, just update the query
+      notifyListeners();
+      return;
+    }
+    
+    // ✅ Valid length - debounce and search
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
       _performSearch(trimmedQuery);
     });
   }
   
   Future<void> _performSearch(String query) async {
+    // ✅ Double-check length before API call
+    if (query.length < minSearchLength) {
+      debugPrint('⏸️ Skipping search - query too short: "$query"');
+      return;
+    }
+    
     if (_isSearching || _isLoading) return;
+    
+    _searchRequestId++;
+    final currentRequestId = _searchRequestId;
     
     _searchQuery = query;
     _isSearching = true;
@@ -245,8 +281,14 @@ class MenuProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load offers first
+      debugPrint('🔍 Starting search #$currentRequestId for: "$query"');
+      
       await loadItemsWithOffers();
+      
+      if (currentRequestId != _searchRequestId) {
+        debugPrint('⏭️ Search #$currentRequestId cancelled');
+        return;
+      }
       
       final response = await _apiService.getFoodItems(
         search: query,
@@ -254,25 +296,34 @@ class MenuProvider extends ChangeNotifier {
         limit: 100,
       );
 
+      if (currentRequestId != _searchRequestId) {
+        debugPrint('⏭️ Search #$currentRequestId results discarded');
+        return;
+      }
+
       if (response.isSuccess && response.data != null) {
         final parsedItems = _parseFoodItems(response.data);
-        
-        // ✅ Merge offers into items
         _allFoodItems = _mergeOffersIntoItems(parsedItems);
         _applyLocalFilters();
+        
+        debugPrint('✅ Search #$currentRequestId complete: ${_allFoodItems.length} results');
       } else {
         _error = response.error ?? 'Search failed';
         _allFoodItems = [];
         _foodItems = [];
       }
     } catch (e) {
-      _error = 'Search error: ${e.toString()}';
-      _allFoodItems = [];
-      _foodItems = [];
-      debugPrint('Search error: $e');
+      if (currentRequestId == _searchRequestId) {
+        _error = 'Search error: ${e.toString()}';
+        _allFoodItems = [];
+        _foodItems = [];
+        debugPrint('❌ Search #$currentRequestId error: $e');
+      }
     } finally {
-      _isSearching = false;
-      notifyListeners();
+      if (currentRequestId == _searchRequestId) {
+        _isSearching = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -353,21 +404,24 @@ class MenuProvider extends ChangeNotifier {
     if (data == null) return [];
     
     final List items = data is List ? data : [data];
+    final parsedItems = <FoodItem>[];
     
-    return items
-        .map((item) {
-          try {
-            if (item is FoodItem) {
-              return item;
-            } else if (item is Map<String, dynamic>) {
-              return FoodItem.fromMap(item, currentLanguage: _currentLanguage);
-            }
-          } catch (e) {
-            debugPrint('Error parsing food item: $e');
-          }
-          return null;
-        })
-        .whereType<FoodItem>()
-        .toList();
+    for (final item in items) {
+      try {
+        if (item is FoodItem) {
+          parsedItems.add(item);
+        } else if (item is Map<String, dynamic>) {
+          final foodItem = FoodItem.fromMap(
+            item,
+            currentLanguage: _currentLanguage,
+          );
+          parsedItems.add(foodItem);
+        }
+      } catch (e) {
+        debugPrint('⚠️ Error parsing food item: $e');
+      }
+    }
+    
+    return parsedItems;
   }
 }

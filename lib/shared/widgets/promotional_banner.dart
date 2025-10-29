@@ -145,7 +145,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
         return Container(
           height: bannerHeight,
           margin: EdgeInsets.symmetric(
-            horizontal: isLargeDesktop ? 40 : (isDesktop ? 30 : (isTablet ? 20 : 16)),
+            horizontal: isLargeDesktop ? 40 : (isDesktop ? 30 : (isTablet ? 20 : 4)),
             vertical: isDesktop ? 16 : 12,
           ),
           child: Stack(

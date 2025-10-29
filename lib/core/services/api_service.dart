@@ -280,6 +280,7 @@ Future<ApiResponse<List<FoodItem>>> getFoodItems({
       'page': page,
       'limit': limit,
       'lang': _currentLanguage,
+      'includeOffers': true, // ✅ CRITICAL: Request offers to be included
     };
 
     if (categoryId != null) queryParams['category'] = categoryId;
@@ -287,61 +288,94 @@ Future<ApiResponse<List<FoodItem>>> getFoodItems({
     if (popular != null) queryParams['popular'] = popular;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
-    
+    if (kDebugMode) {
+      print('🔍 Fetching food items with params: $queryParams');
+    }
 
     final response = await _dio.get(
       ApiConstants.foodItems,
       queryParameters: queryParams,
     );
 
+    if (kDebugMode) {
+      print('📦 Response status: ${response.statusCode}');
+      print('📦 Response data keys: ${response.data?.keys}');
+    }
 
     if (response.statusCode == 200) {
       final List<dynamic> data = response.data['items'] ?? [];
       
-    
+      if (kDebugMode) {
+        print('📦 Total items received: ${data.length}');
+        
+        // Check if items have offers
+        final itemsWithOffers = data.where((item) => item['offer'] != null).length;
+        print('💰 Items with offers: $itemsWithOffers');
+        
+        // Sample first item to verify offer structure
+        if (data.isNotEmpty && data[0]['offer'] != null) {
+          print('💰 Sample offer data: ${data[0]['offer']}');
+        }
+      }
       
       final items = data
           .map((json) => FoodItem.fromMap(json, currentLanguage: _currentLanguage))
           .toList();
-      
-    
+  
       
       return ApiResponse.success(items, statusCode: response.statusCode);
     }
     return ApiResponse.error('Failed to fetch food items', statusCode: response.statusCode);
   } on DioException catch (e) {
-  
+    if (kDebugMode) {
+      print('❌ DioException: ${e.message}');
+      print('❌ Response: ${e.response?.data}');
+    }
     return ApiResponse.error(_handleDioError(e), statusCode: e.response?.statusCode);
-  } catch (e) {
-   
+  } catch (e, stackTrace) {
+    if (kDebugMode) {
+      print('❌ Unexpected error: $e');
+      print('❌ Stack trace: $stackTrace');
+    }
     return ApiResponse.error('Unexpected error occurred: $e');
   }
 }
-  /// ✅ FIXED: Get single food item with current language
-  Future<ApiResponse<FoodItem>> getFoodItem(String id) async {
-    try {
-      final response = await _dio.get(
-        '${ApiConstants.foodItems}/$id',
-        queryParameters: {
-          'lang': _currentLanguage,
-        },
-      );
 
-      if (response.statusCode == 200) {
-        final item = FoodItem.fromMap(
-          response.data['item'],
-          currentLanguage: _currentLanguage,
-        );
-        return ApiResponse.success(item, statusCode: response.statusCode);
+ Future<ApiResponse<FoodItem>> getFoodItem(String id) async {
+  try {
+    final response = await _dio.get(
+      '${ApiConstants.foodItems}/$id',
+      queryParameters: {
+        'lang': _currentLanguage,
+        'includeOffers': true, // ✅ Include offers for single item too
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final itemData = response.data['item'];
+      
+      if (kDebugMode) {
+        print('📦 Single item data: ${itemData['name']}');
+        print('📦 Has offer: ${itemData['offer'] != null}');
+        if (itemData['offer'] != null) {
+          print('📦 Offer details: ${itemData['offer']}');
+        }
       }
-      return ApiResponse.error('Failed to fetch food item', statusCode: response.statusCode);
-    } on DioException catch (e) {
-      return ApiResponse.error(_handleDioError(e), statusCode: e.response?.statusCode);
-    } catch (e) {
-      return ApiResponse.error('Unexpected error occurred');
+      
+      final item = FoodItem.fromMap(
+        itemData,
+        currentLanguage: _currentLanguage,
+      );
+      
+      return ApiResponse.success(item, statusCode: response.statusCode);
     }
+    return ApiResponse.error('Failed to fetch food item', statusCode: response.statusCode);
+  } on DioException catch (e) {
+    return ApiResponse.error(_handleDioError(e), statusCode: e.response?.statusCode);
+  } catch (e) {
+    return ApiResponse.error('Unexpected error occurred');
   }
-
+}
 
   // Auth endpoints
     Future<ApiResponse<User>> login(String email, String password) async {

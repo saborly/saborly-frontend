@@ -1,5 +1,3 @@
-// lib/features/home/home_screen.dart - FIXED Language Listener
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,23 +33,26 @@ enum ItemType {
   popular,
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   DateTime? _lastPressedAt;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _searchResultsKey = GlobalKey();
-  String _currentSearchQuery = '';
-  bool _isSearching = false;
-  String _lastProcessedLanguage = ''; // ✅ Track processed language
+  final TextEditingController _searchController = TextEditingController();
+  String _lastProcessedLanguage = '';
+  
+  // ✅ Route observer for detecting navigation
+  static final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
   @override
   void initState() {
     super.initState();
-    // ✅ Initialize with current language
     final initialLanguage = context.read<LanguageService>().currentLanguage;
     _lastProcessedLanguage = initialLanguage;
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        // ✅ Clear search on init
+        _clearSearchSilently();
         context.read<HomeProvider>().loadHomeData();
         context.read<OffersProvider>().loadOffers();
       }
@@ -62,14 +63,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     
-    // ✅ FIXED: Get current language and check if it changed
+    // ✅ Subscribe to route changes
+    final modalRoute = ModalRoute.of(context);
+    if (modalRoute is PageRoute) {
+      routeObserver.subscribe(this, modalRoute);
+    }
+    
     final currentLanguage = context.read<LanguageService>().currentLanguage;
     
     if (_lastProcessedLanguage != currentLanguage) {
       _lastProcessedLanguage = currentLanguage;
       
-      
-      // ✅ Update providers with new language
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           context.read<HomeProvider>().setLanguage(currentLanguage);
@@ -79,45 +83,75 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // ✅ RouteAware callbacks
+  @override
+  void didPopNext() {
+    // Called when returning to this page from another page
+    if (mounted) {
+      _clearSearchSilently();
+    }
+  }
+
+  @override
+  void didPush() {
+    // Called when this page is first pushed
+    if (mounted) {
+      _clearSearchSilently();
+    }
+  }
+
+  @override
+  void didPushNext() {
+    // Called when navigating away from this page
+    // Clear search when leaving
+    if (mounted) {
+      _clearSearchSilently();
+    }
+  }
+
   @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  /// ✅ Handle search with visual feedback and auto-scroll
-  void _handleSearch(String query) {
-    setState(() {
-      _currentSearchQuery = query;
-      _isSearching = query.isNotEmpty;
-    });
+  /// ✅ Clear search silently (without animation)
+  void _clearSearchSilently() {
+    _searchController.clear();
+    context.read<HomeProvider>().exitSearchMode();
+  }
 
-    if (query.isEmpty) {
-      context.read<HomeProvider>().loadHomeData();
+  /// ✅ Simplified search handler
+  void _handleSearch(String query) {
+    final provider = context.read<HomeProvider>();
+    
+    if (query.trim().isEmpty) {
+      provider.exitSearchMode();
     } else {
-      context.read<HomeProvider>().performSearch(query);
+      provider.performSearch(query.trim());
       
-      // ✅ Scroll to search results after a short delay
+      // Auto-scroll to results after a delay
       Future.delayed(const Duration(milliseconds: 500), () {
-        _scrollToSearchResults();
+        if (mounted) _scrollToSearchResults();
       });
     }
   }
 
-  /// ✅ Clear search and reset view
+  /// ✅ Clear search and reset view (with animation)
   void _clearSearch() {
-    setState(() {
-      _currentSearchQuery = '';
-      _isSearching = false;
-    });
-    context.read<HomeProvider>().loadHomeData();
+    _searchController.clear();
+    context.read<HomeProvider>().exitSearchMode();
     
     // Scroll to top
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   /// ✅ Scroll to search results section
@@ -141,6 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isWeb = ResponsiveUtils.isWeb(context);
+    final isTalet = ResponsiveUtils.isTablet(context);
 
     return Consumer<LanguageService>(
       builder: (context, languageService, _) {
@@ -177,10 +212,10 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           child: Scaffold(
             backgroundColor: isWeb ? const Color(0xFFFAFAFA) : Colors.white,
-            appBar: isWeb ? null : _buildMobileAppBar(),
+            appBar: isWeb || isTalet  ? null : _buildMobileAppBar(),
             body: Consumer<HomeProvider>(
               builder: (context, provider, child) {
-                if (provider.isLoading && provider.categories.isEmpty) {
+                if (provider.isLoading && !provider.isInSearchMode && provider.categories.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
           
@@ -219,20 +254,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                     children: [
                                       if (isWeb) SizedBox(height: 32.h) else SizedBox(height: 16.h),
           
-                                      // ✅ Search bar with enhanced feedback
+                                      // ✅ Search bar with controller
                                       if (!isWeb) ...[
                                         SizedBox(height: 16.h),
                                         SearchBarWidget(
+                                          controller: _searchController,
                                           onSearch: _handleSearch,
                                         ),
                                         SizedBox(height: 16.h),
                                         
                                         // ✅ Show search status banner
-                                        if (_isSearching) _buildSearchStatusBanner(provider),
+                                        if (provider.isInSearchMode) 
+                                          _buildSearchStatusBanner(provider),
                                       ],
 
-                                      // ✅ Conditional content based on search state
-                                      if (_isSearching) ...[
+                                      // ✅ Use provider's isInSearchMode
+                                      if (provider.isInSearchMode) ...[
                                         // Show ONLY search results
                                         SizedBox(height: 24.h),
                                         _buildSearchResults(
@@ -249,7 +286,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                         _buildSectionHeader(
                                           AppStrings.get('ourMenu'),
                                           isWeb: isWeb,
-                                          onViewAll: () => context.go(AppRoutes.menu),
+                                          onViewAll: () {
+                                            _clearSearchSilently(); // Clear before navigation
+                                            context.go(AppRoutes.menu);
+                                          },
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
                                         _buildCategoriesSlider(provider, context, isWeb),
@@ -283,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
           
-                            if (isWeb && !_isSearching)
+                            if (isWeb && !provider.isInSearchMode)
                               Container(
                                 width: double.infinity,
                                 child: FoodKingFooter(),
@@ -302,9 +342,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// ✅ NEW: Search status banner
+  /// ✅ Use provider's data for status banner
   Widget _buildSearchStatusBanner(HomeProvider provider) {
-    final totalResults = provider.featuredItems.length + provider.popularItems.length;
+    final totalResults = provider.searchResults.length;
     
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -329,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Searching for "${_currentSearchQuery}"',
+                  'Searching for "${provider.lastSearchQuery}"',
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
@@ -340,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  provider.isLoading 
+                  provider.isSearchLoading 
                       ? 'Loading...'
                       : '$totalResults ${totalResults == 1 ? 'result' : 'results'} found',
                   style: TextStyle(
@@ -366,16 +406,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// ✅ NEW: Dedicated search results view
+  /// ✅ Use provider's searchResults
   Widget _buildSearchResults(
     HomeProvider provider,
     bool isSmallScreen,
     bool isTablet,
     bool isDesktop,
   ) {
-    final allResults = [...provider.featuredItems, ...provider.popularItems];
-    
-    if (provider.isLoading) {
+    if (provider.isSearchLoading) {
       return Center(
         child: Padding(
           padding: EdgeInsets.all(40.h),
@@ -386,7 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    if (allResults.isEmpty) {
+    if (provider.searchResults.isEmpty) {
       return _buildNoResultsView();
     }
 
@@ -416,13 +454,16 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSpacing: isSmallScreen ? 8.h : (isTablet ? 16.h : 20.h),
             childAspectRatio: childAspectRatio,
           ),
-          itemCount: allResults.length,
+          itemCount: provider.searchResults.length,
           itemBuilder: (context, index) {
-            final item = allResults[index];
+            final item = provider.searchResults[index];
             return FoodItemCard(
               key: ValueKey('search_${item.id}'),
               foodItem: item,
-              onTap: () => context.push(AppRoutes.foodDetail, extra: item),
+              onTap: () {
+                _clearSearchSilently(); // ✅ Clear before navigation
+                context.push(AppRoutes.foodDetail, extra: item);
+              },
             );
           },
         ),
@@ -430,7 +471,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// ✅ NEW: No results view
   Widget _buildNoResultsView() {
     return Center(
       child: Padding(
@@ -483,6 +523,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToFeaturedPage(BuildContext context, HomeProvider provider) {
+    _clearSearchSilently(); // ✅ Clear before navigation
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -497,6 +538,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToPopularPage(BuildContext context, HomeProvider provider) {
+    _clearSearchSilently(); // ✅ Clear before navigation
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -517,71 +559,73 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   PreferredSizeWidget _buildMobileAppBar() {
-  return AppBar(
-    backgroundColor: Colors.white,
-    elevation: 0,
-    automaticallyImplyLeading: false,
-    title: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [_buildLogo(context)],
-    ),
-    actions: [
-      Padding(
-        padding: EdgeInsets.only(right: 4.w),
-        child: LanguageSelector(
-          showLabel: false,
-          isCompact: true,
-        ),
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      automaticallyImplyLeading: false,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [_buildLogo(context)],
       ),
-      // ✅ REPLACE notification icon with this:
-      Consumer<NotificationProvider>(
-        builder: (context, notificationProvider, _) {
-          final unreadCount = notificationProvider.unreadCount;
-          
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                onPressed: () => context.push(AppRoutes.notifications),
-                icon: Icon(
-                  Icons.notifications_outlined,
-                  color: AppColors.textDark,
-                  size: 24.sp,
-                ),
-              ),
-              if (unreadCount > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: EdgeInsets.all(4.w),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    constraints: BoxConstraints(
-                      minWidth: 16.w,
-                      minHeight: 16.h,
-                    ),
-                    child: Text(
-                      unreadCount > 99 ? '99+' : '$unreadCount',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 8.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+      actions: [
+        Padding(
+          padding: EdgeInsets.only(right: 4.w),
+          child: LanguageSelector(
+            showLabel: false,
+            isCompact: true,
+          ),
+        ),
+        Consumer<NotificationProvider>(
+          builder: (context, notificationProvider, _) {
+            final unreadCount = notificationProvider.unreadCount;
+            
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  onPressed: () {
+                    _clearSearchSilently(); // ✅ Clear before navigation
+                    context.push(AppRoutes.notifications);
+                  },
+                  icon: Icon(
+                    Icons.notifications_outlined,
+                    color: AppColors.textDark,
+                    size: 24.sp,
                   ),
                 ),
-            ],
-          );
-        },
-      ),
-    ],
-  );
-}
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: EdgeInsets.all(4.w),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 16.w,
+                        minHeight: 16.h,
+                      ),
+                      child: Text(
+                        unreadCount > 99 ? '99+' : '$unreadCount',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 8.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _buildLogo(BuildContext context) {
     return GestureDetector(
@@ -715,7 +759,10 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.only(right: isWeb ? 16.w : 12.w),
             child: FoodCategoryCard(
               category: category,
-              onTap: () => context.push(AppRoutes.menu, extra: {'category': category.id}),
+              onTap: () {
+                _clearSearchSilently(); // ✅ Clear before navigation
+                context.push(AppRoutes.menu, extra: {'category': category.id});
+              },
             ),
           );
         },
@@ -753,7 +800,10 @@ class _HomeScreenState extends State<HomeScreen> {
         return FoodItemCard(
           key: ValueKey('featured_${item.id}'),
           foodItem: item,
-          onTap: () => context.push(AppRoutes.foodDetail, extra: item),
+          onTap: () {
+            _clearSearchSilently(); // ✅ Clear before navigation
+            context.push(AppRoutes.foodDetail, extra: item);
+          },
         );
       },
     );
@@ -789,12 +839,16 @@ class _HomeScreenState extends State<HomeScreen> {
         return FoodItemCard(
           key: ValueKey('popular_${item.id}'),
           foodItem: item,
-          onTap: () => context.push(AppRoutes.foodDetail, extra: item),
+          onTap: () {
+            _clearSearchSilently(); // ✅ Clear before navigation
+            context.push(AppRoutes.foodDetail, extra: item);
+          },
         );
       },
     );
   }
 }
+
 
 // ItemsGridPage remains unchanged
 class ItemsGridPage extends StatelessWidget {
@@ -859,7 +913,6 @@ class ItemsGridPage extends StatelessWidget {
                         );
                       },
                     ),
-
         );
       },
     );

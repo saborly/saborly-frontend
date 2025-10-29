@@ -1,4 +1,5 @@
 // lib/core/services/notification_service.dart - Updated with delayed permission
+import 'package:Saborly/features/providers/notification_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,10 +10,22 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart'
 import 'dart:io' if (dart.library.html) 'dart:html' show Platform;
 
 class NotificationService {
-  static final NotificationService _instance = NotificationService._internal();
+   static final NotificationService _instance = NotificationService._internal();
+  static NotificationService get instance => _instance;
   factory NotificationService() => _instance;
   NotificationService._internal();
 
+  // -------------------------------------------------
+  // 2. Callback (will be set from main.dart)
+  // -------------------------------------------------
+  Function(AppNotification)? notificationProviderCallback;
+
+  // -------------------------------------------------
+  // 3. Attach the provider (call once from main.dart)
+  // -------------------------------------------------
+  void attachProvider(NotificationProvider provider) {
+    notificationProviderCallback = provider.addNotification;
+  }
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   FlutterLocalNotificationsPlugin? _localNotifications;
 
@@ -25,7 +38,6 @@ class NotificationService {
   // Callbacks
   Function(Map<String, dynamic>)? onNotificationReceived;
   Function(Map<String, dynamic>)? onNotificationTapped;
-  Function(AppNotification)? notificationProviderCallback;
 
   /// Initialize WITHOUT requesting permission
   /// Permission will be requested later via requestPermissionWithDialog()

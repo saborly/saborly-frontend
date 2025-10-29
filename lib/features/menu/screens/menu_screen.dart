@@ -40,7 +40,11 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   }
 Future<void> _initializeScreen() async {
   final provider = context.read<MenuProvider>();
-  await provider.loadCategories();
+
+  // Only load categories if not already loaded
+  if (provider.categories.isEmpty) {
+    await provider.loadCategories();
+  }
 
   if (mounted && provider.categories.isNotEmpty) {
     setState(() {
@@ -59,9 +63,15 @@ Future<void> _initializeScreen() async {
         _tabController!.index = index + 1;
       }
     }
-    await provider.loadFoodItems(categoryId: _selectedCategoryId);
+
+    // Only load food items if not already loaded for this category
+    if (provider.foodItems.isEmpty || provider.categories != _selectedCategoryId) {
+      await provider.loadFoodItems(categoryId: _selectedCategoryId);
+    }
   }
-}void _onTabChanged() {
+}
+
+void _onTabChanged() {
     if (_tabController == null) return;
     
     final provider = context.read<MenuProvider>();
@@ -252,55 +262,66 @@ Future<void> _initializeScreen() async {
       ),
     );
   }
-
-  Widget _buildEmptyState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: EdgeInsets.all(24.r),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.restaurant_menu_rounded,
-              size: 64.sp,
-              color: AppColors.primary,
+Widget _buildEmptyState(String message) {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      return SingleChildScrollView(
+        padding: EdgeInsets.symmetric(vertical: 32.h, horizontal: 24.w),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: constraints.maxHeight - 64.h, // Leave padding
+          ),
+          child: IntrinsicHeight(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(24.r),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.restaurant_menu_rounded,
+                    size: 64.sp,
+                    color: AppColors.primary,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18.sp,
+                    color: AppColors.textMedium,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                ElevatedButton(
+                  onPressed: () => context.read<MenuProvider>().loadFoodItems(categoryId: _selectedCategoryId),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                  ),
+                  child: Text(
+                    AppStrings.get('retry'),
+                    style: GoogleFonts.poppins(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 24.h),
-          Text(
-            message,
-            style: GoogleFonts.poppins(
-              fontSize: 18.sp,
-              color: AppColors.textMedium,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: () => context.read<MenuProvider>().loadFoodItems(categoryId: _selectedCategoryId),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-            ),
-            child: Text(
-  AppStrings.get('retry'),
-              style: GoogleFonts.poppins(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+        ),
+      );
+    },
+  );
+}
   Widget _buildErrorState(String error) {
     return Center(
       child: Column(
@@ -556,7 +577,7 @@ _buildEnhancedTab(AppStrings.get('allCategories'), Icons.apps_rounded),
                   ),
                   SizedBox(width: 12.w),
                   _buildModernFilterChip(
-  AppStrings.get('popularItems'),
+  AppStrings.get('featuredItems'),
                     Icons.local_fire_department_rounded,
                     provider.showPopularOnly,
                     () => provider.setPopularFilter(!provider.showPopularOnly),

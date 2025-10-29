@@ -326,7 +326,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
       height: double.infinity,
       child: Hero(
         tag: 'food_${_currentFoodItem.id}',
-        child: kIsWeb
+        child: kIsWeb 
             ? Image.network(
                 _currentFoodItem.imageUrl,
                 fit: BoxFit.cover,
@@ -1198,7 +1198,6 @@ Widget _buildDesktopBottomBar() {
                 SizedBox(height: 4.h),
              Row(
   children: [
-    // Case 1: Offer active AND selected size has no extra cost (or size is null or price <= 0)
     if (widget.foodItem.hasActiveOffer &&
         (_selectedMealSize == null || (_selectedMealSize?.additionalPrice ?? 0) <= 0))
       ...[
@@ -1291,17 +1290,36 @@ Widget _buildDesktopBottomBar() {
                     SizedBox(height: 4.h),
                     Row(
                       children: [
-                        if (widget.foodItem.hasActiveOffer) ...[
-                          Text(
-                            '${AppStrings.currency}${(_quantity * widget.foodItem.price).toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: AppColors.textLight,
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                        ],
+                       
+                         if (widget.foodItem.hasActiveOffer &&
+        (_selectedMealSize == null || (_selectedMealSize?.additionalPrice ?? 0) <= 0))
+      ...[
+        Text(
+          '${AppStrings.currency}${(_quantity * widget.foodItem.price).toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: 16.sp,
+            color: AppColors.textLight,
+            decoration: TextDecoration.lineThrough,
+          ),
+        ),
+        SizedBox(width: 8.w),
+      ],
+
+    // Case 2: Offer active AND selected size has extra cost > 0
+    if (widget.foodItem.hasActiveOffer &&
+        _selectedMealSize != null &&
+        _selectedMealSize!.additionalPrice > 0)
+      ...[
+        Text(
+          '${AppStrings.currency}${(_quantity * _selectedMealSize!.additionalPrice).toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: 16.sp,
+            color: AppColors.textLight,
+            decoration: TextDecoration.lineThrough,
+          ),
+        ),
+        SizedBox(width: 8.w),
+      ],
                         Text(
                           '${AppStrings.currency}${_calculateTotalPrice().toStringAsFixed(2)}',
                           style: TextStyle(

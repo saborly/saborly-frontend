@@ -175,7 +175,32 @@ factory FoodItem.fromMap(Map<String, dynamic> map, {String? currentLanguage}) {
     } else if (map['description'] != null) {
       parsedDescription = getLocalizedText(map['description'], 'description', fallback: '');
     }
-
+ SimpleOffer? offerData;
+    if (map['offer'] != null) {
+      try {
+        if (kDebugMode) {
+          print('🎁 Parsing offer for item: ${map['name']}');
+          print('🎁 Offer data: ${map['offer']}');
+        }
+        
+        if (map['offer'] is Map) {
+          offerData = SimpleOffer.fromJson(map['offer'] as Map<String, dynamic>);
+          
+          if (kDebugMode) {
+            print('✅ Offer parsed successfully:');
+            print('   - Title: ${offerData.title}');
+            print('   - Type: ${offerData.type}');
+            print('   - Value: ${offerData.value}');
+            print('   - Badge: ${offerData.badge}');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('❌ Error parsing offer: $e');
+        }
+        offerData = null;
+      }
+    }
     // Parse category ID
     String categoryId = '';
     if (map['category'] != null) {
@@ -201,7 +226,6 @@ factory FoodItem.fromMap(Map<String, dynamic> map, {String? currentLanguage}) {
     }
 
     // Parse offer
-    SimpleOffer? offerData;
     if (map['offer'] != null && map['offer'] is Map) {
       offerData = SimpleOffer.fromJson(map['offer']);
     }
@@ -264,7 +288,8 @@ factory FoodItem.fromMap(Map<String, dynamic> map, {String? currentLanguage}) {
       isPopular: map['isPopular'] ?? false,
       rating: ratingValue,
       reviewCount: reviewCountValue,
-      offer: offerData,
+            offer: offerData, // ✅ CRITICAL: Include the parsed offer
+
       tags: parsedTags,
       mealSizes: parsedMealSizes,
       extras: parsedExtras,

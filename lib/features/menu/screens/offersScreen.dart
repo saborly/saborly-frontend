@@ -12,7 +12,7 @@ import 'package:Saborly/core/utils/responsive_utils.dart';
 import 'package:Saborly/features/providers/offer_provider.dart';
 import 'package:Saborly/shared/models/food_item.dart';
 import 'package:Saborly/shared/models/offer.dart';
-import 'package:Saborly/shared/widgets/food_item_card4.dart';
+import 'package:Saborly/shared/widgets/food_item_card.dart';
 import 'package:Saborly/shared/widgets/ooter.dart';
 
 class OffersScreen extends StatefulWidget {

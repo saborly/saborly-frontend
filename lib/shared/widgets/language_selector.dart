@@ -1,5 +1,6 @@
 // lib/shared/widgets/language_selector.dart - FIXED with Live Updates
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +14,7 @@ import '../../core/services/language_service.dart';
 class LanguageSelector extends StatelessWidget {
   final bool showLabel;
   final bool isCompact;
-  
+
   const LanguageSelector({
     super.key,
     this.showLabel = true,
@@ -25,11 +26,11 @@ class LanguageSelector extends StatelessWidget {
     return Consumer<LanguageService>(
       builder: (context, languageService, _) {
         final currentLang = languageService.currentLanguageOption;
-        
+
         if (isCompact) {
           return _buildCompactSelector(context, languageService, currentLang);
         }
-        
+
         return _buildFullSelector(context, languageService, currentLang);
       },
     );
@@ -51,25 +52,24 @@ class LanguageSelector extends StatelessWidget {
       child: DropdownButton<String>(
         value: currentLang.code,
         underline: const SizedBox(),
-        icon: Icon(Icons.arrow_drop_down, color: AppColors.textLight, size: 18.sp),
+        icon: Icon(Icons.arrow_drop_down,
+            color: AppColors.textLight, size: 18.sp),
         items: LanguageService.supportedLanguages.map((lang) {
           return DropdownMenuItem<String>(
             value: lang.code,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(lang.flag, style: TextStyle(fontSize: 18.sp)),
-                if (showLabel) ...[
-                  SizedBox(width: 6.w),
-                  Text(
-                    lang.nativeName,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textDark,
+                Row(
+                  children: [
+                    _buildFlag(lang),
+                    SizedBox(width: 8.w),
+                    Text(
+                      lang.code.toUpperCase(),
+                      style: TextStyle(fontSize: 14.sp),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ],
             ),
           );
@@ -81,6 +81,33 @@ class LanguageSelector extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Widget _buildFlag(LanguageOption lang) {
+    if (lang.flagAsset != null && lang.flagAsset!.isNotEmpty && kIsWeb) {
+      // Use Image.asset for both web and mobile - Flutter handles it automatically
+      return Image.asset(
+        lang.flagAsset!,
+        width: 20.w,
+        height: 20.w,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to emoji if image fails to load
+          return Text(lang.flag, style: TextStyle(fontSize: 20.sp));
+        },
+      );
+    } else if (lang.flagAsset != null && lang.flagAsset!.isNotEmpty && !kIsWeb) {
+  return Image.asset(
+        'assets/'+lang.flagAsset!,
+        width: 20.w,
+        height: 20.w,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to emoji if image fails to load
+          return Text(lang.flag, style: TextStyle(fontSize: 20.sp));
+        },
+      );    }
+    else  {
+      return Text(lang.flag, style: TextStyle(fontSize: 20.sp));
+    }
   }
 
   Widget _buildFullSelector(
@@ -112,19 +139,22 @@ class LanguageSelector extends StatelessWidget {
               ),
             ),
             SizedBox(width: 4.w),
-            Icon(Icons.arrow_drop_down, color: AppColors.textLight, size: 20.sp),
+            Icon(Icons.arrow_drop_down,
+                color: AppColors.textLight, size: 20.sp),
           ],
         ),
       ),
     );
   }
 
-  void _showLanguageDialog(BuildContext context, LanguageService languageService) {
+  void _showLanguageDialog(
+      BuildContext context, LanguageService languageService) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
           child: Container(
             constraints: BoxConstraints(maxWidth: 400.w),
             padding: EdgeInsets.all(20.w),
@@ -153,7 +183,8 @@ class LanguageSelector extends StatelessWidget {
                 ),
                 SizedBox(height: 20.h),
                 ...LanguageService.supportedLanguages.map((lang) {
-                  final isSelected = lang.code == languageService.currentLanguage;
+                  final isSelected =
+                      lang.code == languageService.currentLanguage;
                   return _buildLanguageOption(
                     dialogContext,
                     languageService,
@@ -200,7 +231,9 @@ class LanguageSelector extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         margin: EdgeInsets.only(bottom: 8.h),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+          color: isSelected
+              ? AppColors.primary.withOpacity(0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
             color: isSelected ? AppColors.primary : Colors.grey[200]!,
@@ -220,7 +253,8 @@ class LanguageSelector extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? AppColors.primary : AppColors.textDark,
+                      color:
+                          isSelected ? AppColors.primary : AppColors.textDark,
                     ),
                   ),
                   Text(
@@ -253,7 +287,7 @@ class LanguageSelector extends StatelessWidget {
   ) async {
     final selectedLang = LanguageService.supportedLanguages
         .firstWhere((lang) => lang.code == languageCode);
-    
+
     // Show loading indicator
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -278,19 +312,19 @@ class LanguageSelector extends StatelessWidget {
     try {
       // ✅ STEP 1: Change language in LanguageService
       await languageService.changeLanguage(languageCode);
-      
+
       // ✅ STEP 2: Sync AppStrings IMMEDIATELY
       AppStrings.setLanguage(languageCode);
-      
+
       // ✅ STEP 3: Update API service language
       ApiService().setLanguage(languageCode);
-      
+
       // ✅ STEP 4: Force UI rebuild by calling setState on providers
       if (context.mounted) {
         // Reload data with new language
         final homeProvider = context.read<HomeProvider>();
         final menuProvider = context.read<MenuProvider>();
-        
+
         // Force immediate reload
         await Future.wait([
           homeProvider.loadHomeData(),
@@ -298,7 +332,7 @@ class LanguageSelector extends StatelessWidget {
           menuProvider.loadFoodItems(),
         ]);
       }
-      
+
       // ✅ STEP 5: Show success message
       if (context.mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
@@ -340,7 +374,8 @@ class LanguageSelector extends StatelessWidget {
     }
   }
 
-  String _getSuccessMessage(LanguageService languageService, LanguageOption selectedLang) {
+  String _getSuccessMessage(
+      LanguageService languageService, LanguageOption selectedLang) {
     switch (languageService.currentLanguage) {
       case LanguageService.english:
         return 'Language changed to ${selectedLang.nativeName}';

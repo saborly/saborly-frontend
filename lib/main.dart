@@ -64,32 +64,36 @@ void main() async {
   
   final cartProvider = CartProvider();
   await cartProvider.initialize();
-  
-  // ✅ Initialize notification service WITHOUT requesting permission
+
+  // 5. Notification Provider (create **once**)
+  final notificationProvider = NotificationProvider()..initialize();
+
+  // 6. Notification Service (singleton) – bind the provider **now**
   final notificationService = NotificationService();
-  await notificationService.initialize();
-  
+  await notificationService.initialize();               // no permission request
+  NotificationService.instance.attachProvider(notificationProvider);
+
+  // 7. UI orientation (mobile only)
   if (!kIsWeb) {
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: Colors.white,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ));
   }
-  
+
+  // 8. Run the app
   runApp(FoodKingApp(
     prefs: prefs,
     cartProvider: cartProvider,
     notificationService: notificationService,
     languageService: languageService,
+    notificationProvider: notificationProvider,   // <-- pass it
   ));
 }
 
@@ -98,13 +102,14 @@ class FoodKingApp extends StatefulWidget {
   final CartProvider cartProvider;
   final NotificationService notificationService;
   final LanguageService languageService;
-  
-  const FoodKingApp({
+  final NotificationProvider notificationProvider;   
+   const FoodKingApp({
     super.key,
     required this.prefs,
     required this.cartProvider,
     required this.notificationService,
     required this.languageService,
+    required this.notificationProvider,
   });
 
   @override
@@ -315,19 +320,11 @@ class _FoodKingAppState extends State<FoodKingApp> {
                 ChangeNotifierProvider<LanguageService>.value(
                   value: widget.languageService,
                 ),
-                ChangeNotifierProvider(
-                  create: (_) {
-                    final provider = NotificationProvider();
-                    provider.initialize();
-                    if (kDebugMode) print('✅ NotificationProvider created and initialized');
-                    
-                    WidgetsBinding.instance.addPostFrameCallback((__) {
-                      _setupNotificationHandlersWhenReady(provider);
-                    });
-                    
-                    return provider;
-                  },
-                ),
+            // Inside FoodKingApp.build() – replace the whole NotificationProvider entry:
+
+ChangeNotifierProvider<NotificationProvider>.value(
+  value: widget.notificationProvider,   // <-- use the one from main()
+),
                 ChangeNotifierProxyProvider<LanguageService, HomeProvider>(
                   create: (_) {
                     final homeProvider = HomeProvider();
