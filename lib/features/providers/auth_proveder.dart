@@ -1,7 +1,6 @@
-// lib/features/providers/auth_provider.dart - WEB ACCESS TOKEN FIX
-
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -14,16 +13,13 @@ class AuthProvider extends ChangeNotifier {
   final SharedPreferences _prefs;
   final ApiService _apiService = ApiService();
   
-  // Configure GoogleSignIn with better scopes
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: [
-      'email',
-      'https://www.googleapis.com/auth/userinfo.profile',
-    ],
-    clientId: kIsWeb 
-      ? '130218217091-ta95bq5pq3b38aqdlr158m6q6umug720.apps.googleusercontent.com' 
-      : null,
-  );
+  // ✅ FIXED: Configure Google Sign-In with proper client IDs
+  late final GoogleSignIn _googleSignIn;
+  
+  // Add your mobile client IDs here
+  static const String _androidClientId = '130218217091-1fl1m5mplj0rqmv4mjl3f5blncbi66u8.apps.googleusercontent.com';
+  static const String _iosClientId = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com'; // Add if you have iOS
+  static const String _webClientId = '130218217091-ta95bq5pq3b38aqdlr158m6q6umug720.apps.googleusercontent.com';
 
   String? _resetToken;
   Timer? _tokenExpiryTimer;
@@ -42,7 +38,37 @@ class AuthProvider extends ChangeNotifier {
   bool _requiresVerification = false;
   String? _pendingVerificationEmail;
 
-  AuthProvider(this._prefs);
+  AuthProvider(this._prefs) {
+    _initializeGoogleSignIn();
+  }
+
+  void _initializeGoogleSignIn() {
+    String? clientId;
+    
+    if (kIsWeb) {
+      clientId = _webClientId;
+    } else if (Platform.isAndroid) {
+      clientId = _androidClientId;
+    } else if (Platform.isIOS) {
+      clientId = _iosClientId;
+    }
+
+    if (kDebugMode) {
+      print('🔧 Initializing Google Sign-In');
+      print('   Platform: ${kIsWeb ? "WEB" : Platform.operatingSystem}');
+      print('   Client ID: ${clientId != null ? "${clientId.substring(0, 20)}..." : "Platform default"}');
+    }
+
+    _googleSignIn = GoogleSignIn(
+      scopes: [
+        'email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+      ],
+      clientId: clientId,
+      // ✅ CRITICAL: For Android, also add this
+      serverClientId: kIsWeb ? null : _webClientId,
+    );
+  }
 
   User? get user => _user;
   bool get isAuthenticated => _user != null;
@@ -85,168 +111,176 @@ class AuthProvider extends ChangeNotifier {
     return defaultTargetPlatform.name.toLowerCase();
   }
 
-  Future<bool> signInWithGoogle() async {
-    _setSocialLoading(true);
-    _setError(null);
+  // CRITICAL FIX: Updated signInWithGoogle method in AuthProvider
 
+Future<bool> signInWithGoogle() async {
+  _setSocialLoading(true);
+  _setError(null);
+
+  try {
+    if (kDebugMode) {
+      print('🔵 Starting Google Sign-In...');
+      print('   Platform: ${kIsWeb ? "WEB" : Platform.operatingSystem}');
+    }
+
+    // Sign out first to ensure clean state
     try {
-      if (kDebugMode) {
-        print('🔵 Starting Google Sign-In...');
-        print('   Platform: ${kIsWeb ? "WEB" : "MOBILE"}');
-      }
+      await _googleSignIn.signOut();
+      if (kDebugMode) print('   Signed out previous session');
+    } catch (e) {
+      if (kDebugMode) print('   No previous session to sign out');
+    }
 
-      // Sign out first to ensure clean state
-      try {
-        await _googleSignIn.signOut();
-        if (kDebugMode) print('   Signed out previous session');
-      } catch (e) {
-        if (kDebugMode) print('   No previous session to sign out');
-      }
+    // Trigger Google Sign-In flow
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
-      // Trigger Google Sign-In flow
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
-      if (googleUser == null) {
-        if (kDebugMode) print('⚠️ User cancelled Google Sign-In');
-        _setSocialLoading(false);
-        return false;
-      }
-
-      if (kDebugMode) {
-        print('✅ Got Google account:');
-        print('   Email: ${googleUser.email}');
-        print('   Display Name: ${googleUser.displayName}');
-        print('   ID: ${googleUser.id}');
-      }
-
-      // Get authentication details
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      if (kDebugMode) {
-        print('✅ Got authentication:');
-        print('   ID Token: ${googleAuth.idToken != null ? "Present (${googleAuth.idToken!.length} chars)" : "NULL"}');
-        print('   Access Token: ${googleAuth.accessToken != null ? "Present" : "NULL"}');
-      }
-
-      String? idToken = googleAuth.idToken;
-
-      // WEB FIX: If no ID token but we have access token, exchange it for ID token
-      if (idToken == null && googleAuth.accessToken != null && kIsWeb) {
-        if (kDebugMode) print('🔄 Web platform: Using access token to get user info...');
-        
-        try {
-          // Get user info from Google using access token
-          final userInfoResponse = await http.get(
-            Uri.parse('https://www.googleapis.com/oauth2/v2/userinfo'),
-            headers: {
-              'Authorization': 'Bearer ${googleAuth.accessToken}',
-            },
-          );
-
-          if (userInfoResponse.statusCode == 200) {
-            final userInfo = json.decode(userInfoResponse.body);
-            
-            if (kDebugMode) {
-              print('✅ Got user info from Google:');
-              print('   Email: ${userInfo['email']}');
-              print('   Name: ${userInfo['name']}');
-              print('   Verified: ${userInfo['verified_email']}');
-            }
-
-            // Send user info directly to backend for web
-            final response = await _apiService.googleSignInWeb(
-              email: userInfo['email'],
-              firstName: userInfo['given_name'] ?? userInfo['name']?.split(' ').first ?? 'User',
-              lastName: userInfo['family_name'] ?? userInfo['name']?.split(' ').last ?? '',
-              googleId: userInfo['id'],
-              accessToken: googleAuth.accessToken!,
-            );
-
-            if (response.isSuccess && response.data != null) {
-              _user = response.data!;
-              await _saveUserData();
-              _setupTokenExpiryTimer();
-              await _registerFCMToken();
-
-              if (kDebugMode) {
-                print('✅ Google Sign-In successful (Web mode)!');
-                print('   User: ${_user!.firstName} ${_user!.lastName}');
-                print('   Email: ${_user!.email}');
-              }
-              
-              _setSocialLoading(false);
-              return true;
-            } else {
-              if (kDebugMode) print('❌ Backend error: ${response.error}');
-              _setError(response.error ?? 'Google sign-in failed on server');
-              _setSocialLoading(false);
-              return false;
-            }
-          } else {
-            throw Exception('Failed to get user info: ${userInfoResponse.statusCode}');
-          }
-        } catch (e) {
-          if (kDebugMode) print('❌ Error getting user info: $e');
-          _setError('Failed to get user information from Google');
-          _setSocialLoading(false);
-          return false;
-        }
-      }
-
-      // Mobile flow: Use ID token
-      if (idToken == null) {
-        if (kDebugMode) print('❌ No ID token or access token available');
-        _setError('Failed to get Google credentials');
-        _setSocialLoading(false);
-        return false;
-      }
-
-      // Send ID token to backend (mobile flow)
-      if (kDebugMode) print('📤 Sending ID token to backend...');
-      
-      final response = await _apiService.googleSignIn(idToken);
-
-      if (response.isSuccess && response.data != null) {
-        _user = response.data!;
-        await _saveUserData();
-        _setupTokenExpiryTimer();
-        await _registerFCMToken();
-
-        if (kDebugMode) {
-          print('✅ Google Sign-In successful!');
-          print('   User: ${_user!.firstName} ${_user!.lastName}');
-          print('   Email: ${_user!.email}');
-        }
-        
-        _setSocialLoading(false);
-        return true;
-      } else {
-        if (kDebugMode) print('❌ Backend error: ${response.error}');
-        _setError(response.error ?? 'Google sign-in failed on server');
-        _setSocialLoading(false);
-        return false;
-      }
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('❌ Google Sign-In error: $e');
-        print('Stack trace: $stackTrace');
-      }
-      
-      String errorMessage = 'Google sign-in error occurred';
-      if (e.toString().contains('SIGN_IN_REQUIRED')) {
-        errorMessage = 'Please try signing in again';
-      } else if (e.toString().contains('network')) {
-        errorMessage = 'Network error. Please check your connection';
-      } else if (e.toString().contains('PERMISSION_DENIED')) {
-        errorMessage = 'Please enable People API in Google Cloud Console';
-      }
-      
-      _setError(errorMessage);
+    if (googleUser == null) {
+      if (kDebugMode) print('⚠️ User cancelled Google Sign-In');
       _setSocialLoading(false);
       return false;
     }
-  }
 
+    if (kDebugMode) {
+      print('✅ Got Google account:');
+      print('   Email: ${googleUser.email}');
+      print('   Display Name: ${googleUser.displayName}');
+      print('   ID: ${googleUser.id}');
+    }
+
+    // Get authentication details
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    if (kDebugMode) {
+      print('✅ Got authentication:');
+      print('   ID Token: ${googleAuth.idToken != null ? "Present (${googleAuth.idToken!.length} chars)" : "NULL"}');
+      print('   Access Token: ${googleAuth.accessToken != null ? "Present" : "NULL"}');
+    }
+
+    // ✅ CRITICAL FIX: Handle both web and mobile flows properly
+    String? idToken = googleAuth.idToken;
+    String? accessToken = googleAuth.accessToken;
+
+    // Check if we have either token
+    if (idToken == null && accessToken == null) {
+      if (kDebugMode) print('❌ No tokens available');
+      _setError('Failed to get Google credentials');
+      _setSocialLoading(false);
+      return false;
+    }
+
+    // ✅ FIX: Use web flow for both web AND when ID token is missing
+    if (kIsWeb || (idToken == null && accessToken != null)) {
+      if (kDebugMode) {
+        print('🔄 Using web/userInfo flow...');
+        print('   Reason: ${kIsWeb ? "Web platform" : "No ID token available"}');
+      }
+      
+      try {
+        // Get user info from Google using access token
+        final userInfoResponse = await http.get(
+          Uri.parse('https://www.googleapis.com/oauth2/v2/userinfo'),
+          headers: {
+            'Authorization': 'Bearer ${accessToken!}',
+          },
+        );
+
+        if (userInfoResponse.statusCode == 200) {
+          final userInfo = json.decode(userInfoResponse.body);
+          
+          if (kDebugMode) {
+            print('✅ Got user info from Google:');
+            print('   Email: ${userInfo['email']}');
+            print('   Name: ${userInfo['name']}');
+            print('   Verified: ${userInfo['verified_email']}');
+          }
+
+          // Send user info directly to backend
+          final response = await _apiService.googleSignInWeb(
+            email: userInfo['email'],
+            firstName: userInfo['given_name'] ?? userInfo['name']?.split(' ').first ?? 'User',
+            lastName: userInfo['family_name'] ?? userInfo['name']?.split(' ').last ?? '',
+            googleId: userInfo['id'],
+            accessToken: accessToken,
+          );
+
+          if (response.isSuccess && response.data != null) {
+            _user = response.data!;
+            await _saveUserData();
+            _setupTokenExpiryTimer();
+            await _registerFCMToken();
+
+            if (kDebugMode) {
+              print('✅ Google Sign-In successful (Web flow)!');
+              print('   User: ${_user!.firstName} ${_user!.lastName}');
+              print('   Email: ${_user!.email}');
+            }
+            
+            _setSocialLoading(false);
+            return true;
+          } else {
+            if (kDebugMode) print('❌ Backend error: ${response.error}');
+            _setError(response.error ?? 'Google sign-in failed on server');
+            _setSocialLoading(false);
+            return false;
+          }
+        } else {
+          throw Exception('Failed to get user info: ${userInfoResponse.statusCode}');
+        }
+      } catch (e) {
+        if (kDebugMode) print('❌ Error getting user info: $e');
+        _setError('Failed to get user information from Google');
+        _setSocialLoading(false);
+        return false;
+      }
+    }
+
+    // Mobile flow with ID token (only if we have ID token)
+    if (kDebugMode) print('📤 Using mobile flow with ID token...');
+    
+    final response = await _apiService.googleSignIn(idToken!);
+
+    if (response.isSuccess && response.data != null) {
+      _user = response.data!;
+      await _saveUserData();
+      _setupTokenExpiryTimer();
+      await _registerFCMToken();
+
+      if (kDebugMode) {
+        print('✅ Google Sign-In successful (Mobile flow)!');
+        print('   User: ${_user!.firstName} ${_user!.lastName}');
+        print('   Email: ${_user!.email}');
+      }
+      
+      _setSocialLoading(false);
+      return true;
+    } else {
+      if (kDebugMode) print('❌ Backend error: ${response.error}');
+      _setError(response.error ?? 'Google sign-in failed on server');
+      _setSocialLoading(false);
+      return false;
+    }
+  } catch (e, stackTrace) {
+    if (kDebugMode) {
+      print('❌ Google Sign-In error: $e');
+      print('Stack trace: $stackTrace');
+    }
+    
+    String errorMessage = 'Google sign-in error occurred';
+    if (e.toString().contains('SIGN_IN_REQUIRED')) {
+      errorMessage = 'Please try signing in again';
+    } else if (e.toString().contains('network')) {
+      errorMessage = 'Network error. Please check your connection';
+    } else if (e.toString().contains('PERMISSION_DENIED')) {
+      errorMessage = 'Please enable People API in Google Cloud Console';
+    } else if (e.toString().contains('PlatformException')) {
+      errorMessage = 'Google Sign-In not properly configured. Check your Google Cloud Console setup.';
+    }
+    
+    _setError(errorMessage);
+    _setSocialLoading(false);
+    return false;
+  }
+}
   Future<void> _signOutFromGoogle() async {
     try {
       await _googleSignIn.signOut();

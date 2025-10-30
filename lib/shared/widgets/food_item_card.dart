@@ -82,14 +82,14 @@ class FoodItemCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              flex: isExtraSmall ? 3 : (isSmall ? 3 : 4),
-              child: _buildImageSection(cardSize, screenWidth),
-            ),
-            Expanded(
-              flex: isExtraSmall ? 4 : (isSmall ? 3 : 3),
-              child: _buildDetailsSection(cardSize, screenWidth, isWeb, context),
-            ),
+        Expanded(
+            flex: isExtraSmall ? 5 : (isSmall ? 5 : 5),
+            child: _buildImageSection(cardSize, screenWidth),
+          ),
+          Expanded(
+            flex: isExtraSmall ? 6 : (isSmall ? 5 : 5),
+            child: _buildDetailsSection(cardSize, screenWidth, isWeb, context),
+          ),
           ],
         ),
       ),
@@ -542,7 +542,7 @@ class FoodItemCard extends StatelessWidget {
     final base = _getResponsiveValue(mobile: 8, tablet: 10, desktop: 12, screenWidth: screenWidth).w;
     switch (cardSize) {
       case CardSize.extraSmall:
-        return (base * 0.6).clamp(5.0, 7.0);
+        return (base * 0.8).clamp(6.0, 8.0);
       case CardSize.small:
         return (base * 0.75).clamp(8.0, 10.0);
       case CardSize.medium:
@@ -574,7 +574,7 @@ class FoodItemCard extends StatelessWidget {
     final base = _getResponsiveValue(mobile: 14, tablet: 17, desktop: 18, screenWidth: screenWidth).sp;
     switch (cardSize) {
       case CardSize.extraSmall:
-        return (base * 0.75).clamp(12.0, 13.0);
+        return (base * 0.82).clamp(12.5, 13.5);
       case CardSize.small:
         return (base * 0.9).clamp(14.0, 15.0);
       case CardSize.medium:
@@ -588,7 +588,7 @@ class FoodItemCard extends StatelessWidget {
     final base = _getResponsiveValue(mobile: 12, tablet: 14, desktop: 15, screenWidth: screenWidth).sp;
     switch (cardSize) {
       case CardSize.extraSmall:
-        return (base * 0.8).clamp(10.0, 11.0);
+        return (base * 0.85).clamp(10.5, 11.5);
       case CardSize.small:
         return (base * 0.9).clamp(11.0, 12.0);
       case CardSize.medium:

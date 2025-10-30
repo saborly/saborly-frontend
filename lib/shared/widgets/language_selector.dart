@@ -84,10 +84,9 @@ class LanguageSelector extends StatelessWidget {
   }
 
   Widget _buildFlag(LanguageOption lang) {
-    if (lang.flagAsset != null && lang.flagAsset!.isNotEmpty && kIsWeb) {
-      // Use Image.asset for both web and mobile - Flutter handles it automatically
+    if ( kIsWeb) {
       return Image.asset(
-        lang.flagAsset!,
+        'assets/'+lang.flagAsset!,
         width: 20.w,
         height: 20.w,
         errorBuilder: (context, error, stackTrace) {

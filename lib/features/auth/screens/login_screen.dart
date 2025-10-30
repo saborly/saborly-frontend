@@ -239,76 +239,79 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildSocialButton({
-    required VoidCallback? onPressed,
-    required String label,
-    bool isLoading = false,
-  }) {
-    return OutlinedButton(
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        minimumSize: Size(double.infinity, 56.h),
-        side: BorderSide(
-          color: AppColors.textLight.withOpacity(0.3),
-          width: 1.5,
+
+// Alternative simpler version if the CustomPaint is too complex:
+Widget _buildSocialButton({
+  required VoidCallback? onPressed,
+  required String label,
+  bool isLoading = false,
+}) {
+  return Container(
+    height: 56.h,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12.r),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          offset: Offset(0, 2),
+          blurRadius: 8,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        backgroundColor: Colors.white,
-      ),
-      child: isLoading
-          ? SizedBox(
-              height: 20.h,
-              width: 20.h,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Google logo using Container with colors instead of image
-                Container(
-                  width: 24.w,
-                  height: 24.h,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        spreadRadius: 1,
-                        blurRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      'G',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4285F4),
+      ],
+    ),
+    child: Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12.r),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12.r),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: AppColors.textLight.withOpacity(0.15),
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: isLoading
+              ? Center(
+                  child: SizedBox(
+                    height: 24.h,
+                    width: 24.h,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF4285F4),
                       ),
                     ),
                   ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Google Logo Image
+                    Image.network(
+                      'https://www.pngfind.com/pngs/m/84-847501_contact-us-google-app-logo-transparent-hd-png.png',
+                      width: 20.w,
+                      height: 20.h,
+                    
+                    ),
+                    SizedBox(width: 12.w),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 12.w),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-
+        ),
+      ),
+    ),
+  );
+}
   Widget _buildSignUpLink() {
     return Center(
       child: RichText(
