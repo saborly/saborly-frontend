@@ -105,6 +105,7 @@ class FoodCategory extends Equatable {
           LanguageService.spanish,     // Then Spanish (default)
           LanguageService.catalan,     // Then Catalan
           LanguageService.arabic,      // Then Arabic
+          LanguageService.french,      
         ];
         
         // Try each language in order

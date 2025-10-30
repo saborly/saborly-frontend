@@ -136,6 +136,8 @@ factory FoodItem.fromMap(Map<String, dynamic> map, {String? currentLanguage}) {
           LanguageService.spanish,
           LanguageService.catalan,
           LanguageService.arabic,
+          LanguageService.french,
+
         ];
         
         for (final langCode in fallbackOrder) {

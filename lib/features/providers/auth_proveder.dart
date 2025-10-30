@@ -18,7 +18,7 @@ class AuthProvider extends ChangeNotifier {
   
   // Add your mobile client IDs here
   static const String _androidClientId = '130218217091-1fl1m5mplj0rqmv4mjl3f5blncbi66u8.apps.googleusercontent.com';
-  static const String _iosClientId = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com'; // Add if you have iOS
+  static const String _iosClientId = '130218217091-5e9j8a43lnhcuo6fai5dlne5e5fprq86.apps.googleusercontent.com'; // Add if you have iOS
   static const String _webClientId = '130218217091-ta95bq5pq3b38aqdlr158m6q6umug720.apps.googleusercontent.com';
 
   String? _resetToken;
@@ -53,12 +53,7 @@ class AuthProvider extends ChangeNotifier {
       clientId = _iosClientId;
     }
 
-    if (kDebugMode) {
-      print('🔧 Initializing Google Sign-In');
-      print('   Platform: ${kIsWeb ? "WEB" : Platform.operatingSystem}');
-      print('   Client ID: ${clientId != null ? "${clientId.substring(0, 20)}..." : "Platform default"}');
-    }
-
+   
     _googleSignIn = GoogleSignIn(
       scopes: [
         'email',

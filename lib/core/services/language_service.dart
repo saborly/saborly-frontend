@@ -10,6 +10,7 @@ class LanguageService extends ChangeNotifier {
   static const String spanish = 'es';
   static const String catalan = 'ca';
   static const String arabic = 'ar';
+  static const String french = 'fr'; // Added French
   
   // Supported languages with complete configuration
   static const List<LanguageOption> supportedLanguages = [
@@ -49,6 +50,15 @@ class LanguageService extends ChangeNotifier {
       countryCode: 'SA',
       isRTL: true,
     ),
+    LanguageOption( // Added French
+      code: french,
+      name: 'French',
+      nativeName: 'Français',
+      flag: '🇫🇷',
+      flagAsset: 'images/french_flag.png', // ✅ Without 'assets/' prefix
+      countryCode: 'FR',
+      isRTL: false,
+    ),
   ];
   
   String _currentLanguage = spanish; // Default to Spanish
@@ -85,6 +95,7 @@ class LanguageService extends ChangeNotifier {
   bool get isSpanish => _currentLanguage == spanish;
   bool get isCatalan => _currentLanguage == catalan;
   bool get isArabic => _currentLanguage == arabic;
+  bool get isFrench => _currentLanguage == french; // Added French
   
   // Private methods
   void _loadSavedLanguage() {
@@ -131,6 +142,8 @@ class LanguageService extends ChangeNotifier {
         return _getCatalanName(languageCode);
       case arabic:
         return _getArabicName(languageCode);
+      case french: // Added French
+        return _getFrenchName(languageCode);
       default:
         return getLanguageByCode(languageCode)?.name ?? languageCode;
     }
@@ -142,6 +155,7 @@ class LanguageService extends ChangeNotifier {
       case spanish: return 'Spanish';
       case catalan: return 'Catalan';
       case arabic: return 'Arabic';
+      case french: return 'French'; // Added French
       default: return code;
     }
   }
@@ -152,6 +166,7 @@ class LanguageService extends ChangeNotifier {
       case spanish: return 'Español';
       case catalan: return 'Catalán';
       case arabic: return 'Árabe';
+      case french: return 'Francés'; // Added French
       default: return code;
     }
   }
@@ -162,6 +177,7 @@ class LanguageService extends ChangeNotifier {
       case spanish: return 'Espanyol';
       case catalan: return 'Català';
       case arabic: return 'Àrab';
+      case french: return 'Francès'; // Added French
       default: return code;
     }
   }
@@ -172,6 +188,18 @@ class LanguageService extends ChangeNotifier {
       case spanish: return 'الإسبانية';
       case catalan: return 'الكاتالونية';
       case arabic: return 'العربية';
+      case french: return 'الفرنسية'; // Added French
+      default: return code;
+    }
+  }
+  
+  String _getFrenchName(String code) { // Added French method
+    switch (code) {
+      case english: return 'Anglais';
+      case spanish: return 'Espagnol';
+      case catalan: return 'Catalan';
+      case arabic: return 'Arabe';
+      case french: return 'Français';
       default: return code;
     }
   }
@@ -207,4 +235,4 @@ class LanguageOption {
   
   @override
   String toString() => 'LanguageOption(code: $code, name: $name)';
-}
+  }

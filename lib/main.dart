@@ -374,6 +374,7 @@ ChangeNotifierProvider<NotificationProvider>.value(
                       Locale('es', ''),
                       Locale('ca', ''),
                       Locale('ar', ''),
+                      Locale('fr', ''),
                     ],
                     localeResolutionCallback: (deviceLocale, supportedLocales) {
                       final userLocale = languageService.locale;

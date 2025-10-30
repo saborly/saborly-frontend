@@ -209,6 +209,8 @@ class LanguageSelector extends StatelessWidget {
         return 'Seleccionar Idioma';
       case LanguageService.arabic:
         return 'اختر اللغة';
+      case LanguageService.french: // Added French
+        return 'Choisir la Langue';
       default:
         return 'Select Language';
     }
@@ -368,6 +370,8 @@ class LanguageSelector extends StatelessWidget {
         return 'Canviant idioma...';
       case LanguageService.arabic:
         return 'تغيير اللغة...';
+      case LanguageService.french: // Added French
+        return 'Changement de langue...';
       default:
         return 'Changing language...';
     }
@@ -384,6 +388,8 @@ class LanguageSelector extends StatelessWidget {
         return 'Idioma canviat a ${selectedLang.nativeName}';
       case LanguageService.arabic:
         return 'تم تغيير اللغة إلى ${selectedLang.nativeName}';
+      case LanguageService.french: // Added French
+        return 'Langue changée en ${selectedLang.nativeName}';
       default:
         return 'Language changed to ${selectedLang.nativeName}';
     }

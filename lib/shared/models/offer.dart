@@ -415,7 +415,7 @@ class FoodItemWithOffer extends Equatable {
       }
 
       // Fallback chain
-      const fallbackChain = ['en', 'es', 'ca', 'ar'];
+      const fallbackChain = ['en', 'es', 'ca', 'ar', 'fr'];
       for (final lang in fallbackChain) {
         if (value[lang] != null) {
           final text = value[lang].toString().trim();

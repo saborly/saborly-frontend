@@ -1,194 +1,3 @@
-// class AppStrings {
-//   // App Info
-//   static const String appName = 'Saborly';
-//   static const String appSlogan = 'Comida Deliciosa Entregada Rápido';
-  
-//   // General
-//   static const String search = 'Buscar';
-//   static const String viewAll = 'Ver Todo';
-//   static const String add = 'Añadir';
-//   static const String remove = 'Eliminar';
-//   static const String confirm = 'Confirmar';
-//   static const String cancel = 'Cancelar';
-//   static const String retry = 'Reintentar';
-//   static const String loading = 'Cargando...';
-//   static const String error = 'Error';
-//   static const String success = 'Éxito';
-//   static const String somethingWentWrong = 'Algo salió mal';
-//   static const String noData = 'No se encontraron datos';
-//   static const String noInternet = 'Sin conexión a internet';
-//     static const String shop = 'Shop';
-
-//   // Navigation
-//   static const String home = 'Inicio';
-//   static const String menu = 'Menú';
-//   static const String offers = 'Ofertas';
-//   static const String profile = 'Perfil';
-//   static const String back = 'Atrás';
-  
-//   // Authentication
-//   static const String signIn = 'Iniciar Sesión';
-//   static const String signUp = 'Registrarse';
-//   static const String signOut = 'Cerrar Sesión';
-//   static const String email = 'Correo Electrónico';
-//   static const String password = 'Contraseña';
-//   static const String confirmPassword = 'Confirmar Contraseña';
-//   static const String forgotPassword = '¿Olvidaste tu Contraseña?';
-//   static const String dontHaveAccount = "¿No tienes una cuenta?";
-//   static const String alreadyHaveAccount = "¿Ya tienes una cuenta?";
-//   static const String firstName = 'Nombre';
-//   static const String lastName = 'Apellido';
-//   static const String phoneNumber = 'Número de Teléfono';
-//   static const String loginRequired = 'Por favor inicia sesión para continuar';
-//   static const String loginToContinue = 'Inicia Sesión para Continuar';
-  
-//   // Home
-//   static const String ourMenu = 'Nuestro Menú';
-//   static const String featuredItems = 'Artículos Destacados';
-//   static const String mostPopularItems = 'Artículos Más Populares';
-//   static const String freeDelivery = 'ENVÍO GRATIS';
-//   static const String tryChicken = 'PRUEBA POLLO';
-//   static const String freeShake = 'BATIDO GRATIS';
-//   static const String coolDown = 'REFRÉSCATE';
-  
-//   // Categories
-//   static const String friendsFamily = 'Combo Amigos\ny Familia';
-//   static const String highOnCoffee = 'Combo Alto\nen Café';
-//   static const String duetCombos = 'Combos Dúo';
-//   static const String whopper = 'Whopper';
-//   static const String veg = 'Vegetariano';
-//   static const String nonVeg = 'No Vegetariano';
-  
-//   // Food Items
-//   static const String creamyCheeseburger = 'Hamburguesa de Queso Cremoso';
-//   static const String bonelessWings = 'Alitas Sin Hueso - Grande';
-//   static const String creamyItalianFries = 'Papas Fritas Italianas Cremosas';
-//   static const String beefWhopper = 'Whopper de Carne con Queso';
-//   static const String mochaCheeseCombo = 'Combo Mocha con Queso';
-//   static const String orangeMojito = 'Mojito de Naranja';
-//   static const String periPeriFries = 'Papas Fritas Peri Peri (Mediano)';
-//   static const String cocaCola = 'Coca-Cola (Lata)';
-//   static const String vanillaPastry = 'Pastel de Vainilla';
-//   static const String pepsiCane = 'Pepsi (Lata)';
-  
-//   // Cart & Checkout
-//   static const String myCart = 'Mi Carrito';
-//   static const String checkout = 'Pagar';
-//   static const String proceedToCheckout = 'Proceder al Pago';
-//   static const String placeOrder = 'Realizar Pedido';
-//   static const String addToCart = 'Añadir al Carrito';
-//   static const String quantity = 'Cantidad';
-//   static const String mealSize = 'Tamaño de Comida';
-//   static const String mediumMeal = 'Comida Mediana';
-//   static const String largeMeal = 'Comida Grande';
-//   static const String burgerOnly = 'Solo Hamburguesa';
-//   static const String extras = 'Extras';
-//   static const String addons = 'Complementos';
-//   static const String extraCheese = 'Queso Extra';
-//   static const String extraPattyChicken = 'Carne de Pollo Extra';
-//   static const String specialInstructions = 'Instrucciones especiales';
-//   static const String instructionsHint = 'Alguna nota para el pedido. (Queso, etc.)';
-//   static const String subtotal = 'Subtotal';
-//   static const String deliveryFee = 'Tarifa de Envío';
-//   static const String total = 'Total';
-//   static const String cartSummary = 'Resumen del Carrito';
-//   static const String frequentlyBoughtTogether = 'Frecuentemente Comprados Juntos';
-  
-//   // Delivery & Location
-//   static const String delivery = 'Entrega a Domicilio';
-//   static const String takeaway = 'Para Llevar';
-//   static const String selectBranch = 'Seleccionar Sucursal';
-//   static const String deliveryAddress = 'Dirección de Entrega';
-//   static const String addAddress = 'Añadir';
-//   static const String editAddress = 'Editar';
-//   static const String homeAddress = 'Casa';
-//   static const String workAddress = 'Trabajo';
-//   static const String preferenceTime = 'Hora Preferida de Entrega';
-//   static const String today = 'Hoy';
-//   static const String tomorrow = 'Mañana';
-//   static const String now = 'Ahora';
-//   static const String estimatedDelivery = 'Tiempo estimado de entrega';
-  
-//   // Payment
-//   static const String selectPaymentMethod = 'Selecciona tu método de pago';
-//   static const String paypal = 'Paypal';
-//   static const String stripe = 'Stripe';
-//   static const String visaCard = 'Tarjeta VISA';
-//   static const String mastercard = 'Mastercard';
-//   static const String cardNumber = 'Número de Tarjeta';
-//   static const String expiresOn = 'Expira el';
-//   static const String payNow = 'Pagar Ahora';
-//   static const String cancelOrder = 'Cancelar';
-//   static const String cashOnDelivery = 'Pago Contra Entrega';
-//   static const String paymentMethod = 'Método de Pago';
-//   static const String paymentStatus = 'Estado del Pago';
-//   static const String unpaid = 'No Pagado';
-//   static const String paid = 'Pagado';
-  
-//   // Orders
-//   static const String orderStatus = 'Estado del Pedido';
-//   static const String orderDetails = 'Detalles del Pedido';
-//   static const String orderPlaced = 'Pedido realizado';
-//   static const String orderConfirmed = 'Pedido confirmado';
-//   static const String preparing = 'Preparando';
-//   static const String outForDelivery = 'En camino'; 
-// static const String ready = 'Listo para entregar';
-
-//   static const String delivered = 'Entregado';
-//   static const String getYourOrder = 'Recibe tu pedido ';
-//   static const String orderHistory = 'Historial de Pedidos';
-//   static const String reorder = 'Volver a Pedir';
-//   static const String trackOrder = 'Rastrear Pedido';
-  
-//   // Validation Messages
-//   static const String pleaseEnterEmail = 'Por favor ingresa tu correo electrónico';
-//   static const String pleaseEnterValidEmail = 'Por favor ingresa un correo válido';
-//   static const String pleaseEnterPassword = 'Por favor ingresa tu contraseña';
-//   static const String passwordTooShort = 'La contraseña debe tener al menos 6 caracteres';
-//   static const String passwordsDontMatch = 'Las contraseñas no coinciden';
-//   static const String pleaseEnterName = 'Por favor ingresa tu nombre';
-//   static const String pleaseEnterPhone = 'Por favor ingresa tu número de teléfono';
-  
-//   // Success Messages
-//   static const String orderPlacedSuccessfully = '¡Pedido realizado con éxito!';
-//   static const String accountCreatedSuccessfully = '¡Cuenta creada con éxito!';
-//   static const String profileUpdatedSuccessfully = '¡Perfil actualizado con éxito!';
-//   static const String addressAddedSuccessfully = '¡Dirección añadida con éxito!';
-  
-//   // Error Messages
-//   static const String failedToPlaceOrder = 'Error al realizar el pedido';
-//   static const String failedToLogin = 'Error al iniciar sesión';
-//   static const String failedToCreateAccount = 'Error al crear la cuenta';
-//   static const String failedToLoadData = 'Error al cargar los datos';
-//   static const String failedToUpdateProfile = 'Error al actualizar el perfil';
-  
-//   // Time
-//   static const String minutes = 'min';
-//   static const String hours = 'horas';
-//   static const String am = 'am';
-//   static const String pm = 'pm';
-  
-//   // Price
-//   static const String currency = '€';
-//   static const String free = 'Gratis';
-  
-//   // Restaurant Info
-//   static const String boshundhoraRA = 'España';
-//   static const String gulshan2 = 'España';
-//   static const String banani = 'España';
-//   static const String dhanmondi = 'España';
-//   static const String km = 'km';
-//   static const String flat = 'Piso';
-//   static const String house = 'Casa';
-//   static const String road = 'Calle';
-// }
-
-
-
-
-
-
-// lib/core/constant/app_strings.dart - Multilingual Support
 class AppStrings {
   // Current language (default Spanish)
   static String _currentLanguage = 'es';
@@ -3107,16 +2916,744 @@ class AppStrings {
    
     },
 
-    
+    // ==================== FRENCH ====================
+    'fr': {
+      // App Info
+      'appName': 'Saborly',
+      'appSlogan': 'Nourriture Délicieuse Livrée Rapidement',
+
+      // General
+      'search': 'Rechercher',
+      'viewAll': 'Voir Tout',
+      'add': 'Ajouter',
+      'remove': 'Supprimer',
+      'confirm': 'Confirmer',
+      'cancel': 'Annuler',
+      'retry': 'Réessayer',
+      'loading': 'Chargement...',
+      'error': 'Erreur',
+      'success': 'Succès',
+      'somethingWentWrong': 'Quelque chose s\'est mal passé',
+      'noData': 'Aucune donnée trouvée',
+      'noInternet': 'Pas de connexion Internet',
+      'shop': 'Boutique',
+      "deliveryNotAvailableNow": "Livraison non disponible actuellement",
+
+      // Navigation
+      'home': 'Accueil',
+      'menu': 'Menu',
+      'offers': 'Offres',
+      'profile': 'Profil',
+      'back': 'Retour',
+
+      // Authentication
+      'signIn': 'Se Connecter',
+      'signUp': 'S\'inscrire',
+      'signOut': 'Se Déconnecter',
+      'email': 'E-mail',
+      'password': 'Mot de Passe',
+      'confirmPassword': 'Confirmer le Mot de Passe',
+      'forgotPassword': 'Mot de Passe Oublié ?',
+      'dontHaveAccount': "Vous n'avez pas de compte ?",
+      'alreadyHaveAccount': "Vous avez déjà un compte ?",
+      'firstName': 'Prénom',
+      'lastName': 'Nom',
+      'phoneNumber': 'Numéro de Téléphone',
+      'loginRequired': 'Veuillez vous connecter pour continuer',
+      'loginToContinue': 'Connectez-vous pour Continuer',
+
+      // Home
+      'ourMenu': 'Notre Menu',
+      'featuredItems': 'Articles en Vedette',
+      'mostPopularItems': 'Articles les Plus Populaires',
+      'freeDelivery': 'LIVRAISON GRATUITE',
+      'tryChicken': 'ESSAYEZ LE POULET',
+      'freeShake': 'SHAKE GRATUIT',
+      'coolDown': 'RAFRAÎCHISSEZ-VOUS',
+      "canDeliver": "Peut Livrer",
+
+      // Categories
+      'friendsFamily': 'Combo Amis\net Famille',
+      'highOnCoffee': 'Combo Café\nIntense',
+      'duetCombos': 'Combos Duo',
+      'whopper': 'Whopper',
+      'veg': 'Végétarien',
+      'nonVeg': 'Non-Végétarien',
+
+      // Cart & Checkout
+      'myCart': 'Mon Panier',
+      'checkout': 'Paiement',
+      'proceedToCheckout': 'Procéder au Paiement',
+      'placeOrder': 'Passer la Commande',
+      'addToCart': 'Ajouter au Panier',
+      'quantity': 'Quantité',
+      'mealSize': 'Taille du Repas',
+      'mediumMeal': 'Repas Moyen',
+      'largeMeal': 'Grand Repas',
+      'burgerOnly': 'Burger Seulement',
+      'extras': 'Extras',
+      'addons': 'Suppléments',
+      'extraCheese': 'Fromage Supplémentaire',
+      'extraPattyChicken': 'Steak de Poulet Supplémentaire',
+      'specialInstructions': 'Instructions Spéciales',
+      'instructionsHint': 'Notes pour la commande (Fromage, etc.)',
+      'subtotal': 'Sous-total',
+      'deliveryFee': 'Frais de Livraison',
+      'total': 'Total',
+      'cartSummary': 'Résumé du Panier',
+      'frequentlyBoughtTogether': 'Achetés Fréquemment Ensemble',
+
+      // Delivery & Location
+      'delivery': 'Livraison',
+      'takeaway': 'À Emporter',
+      'selectBranch': 'Sélectionner la Succursale',
+      'deliveryAddress': 'Adresse de Livraison',
+      'addAddress': 'Ajouter une Adresse',
+      'editAddress': 'Modifier l\'Adresse',
+      'homeAddress': 'Domicile',
+      'workAddress': 'Travail',
+      'preferenceTime': 'Heure de Livraison Préférée',
+      'today': 'Aujourd\'hui',
+      'tomorrow': 'Demain',
+      'now': 'Maintenant',
+      'estimatedDelivery': 'Temps de livraison estimé',
+
+      // Payment
+      'selectPaymentMethod': 'Sélectionnez votre méthode de paiement',
+      'paypal': 'PayPal',
+      'stripe': 'Stripe',
+      'visaCard': 'Carte VISA',
+      'mastercard': 'Mastercard',
+      'cardNumber': 'Numéro de Carte',
+      'expiresOn': 'Expire le',
+      'payNow': 'Payer Maintenant',
+      'cancelOrder': 'Annuler',
+      'cashOnDelivery': 'Paiement à la Livraison',
+      'paymentMethod': 'Méthode de Paiement',
+      'paymentStatus': 'Statut du Paiement',
+      'unpaid': 'Non Payé',
+      'paid': 'Payé',
+
+      // Orders
+      'orderStatus': 'Statut de la Commande',
+      'orderDetails': 'Détails de la Commande',
+      'orderPlaced': 'Commande passée',
+      'orderConfirmed': 'Commande confirmée',
+      'preparing': 'En Préparation',
+      'outForDelivery': 'En Livraison',
+      'ready': 'Prêt à être récupéré',
+      'delivered': 'Livré',
+      'getYourOrder': 'Recevez votre commande ',
+      'orderHistory': 'Historique des Commandes',
+      'reorder': 'Commander à Nouveau',
+      'trackOrder': 'Suivre la Commande',
+      'orderCompleted': 'Commande Terminée',
+
+      // Validation Messages
+      'pleaseEnterEmail': 'Veuillez saisir votre e-mail',
+      'pleaseEnterValidEmail': 'Veuillez saisir un e-mail valide',
+      'pleaseEnterPassword': 'Veuillez saisir votre mot de passe',
+      'passwordTooShort': 'Le mot de passe doit contenir au moins 6 caractères',
+      'passwordsDontMatch': 'Les mots de passe ne correspondent pas',
+      'pleaseEnterName': 'Veuillez saisir votre nom',
+      'pleaseEnterPhone': 'Veuillez saisir votre numéro de téléphone',
+
+      // Success Messages
+      'orderPlacedSuccessfully': 'Commande passée avec succès !',
+      'accountCreatedSuccessfully': 'Compte créé avec succès !',
+      'profileUpdatedSuccessfully': 'Profil mis à jour avec succès !',
+      'addressAddedSuccessfully': 'Adresse ajoutée avec succès !',
+
+      // Error Messages
+      'failedToPlaceOrder': 'Échec de la commande',
+      'failedToLogin': 'Échec de la connexion',
+      'failedToCreateAccount': 'Échec de la création du compte',
+      'failedToLoadData': 'Échec du chargement des données',
+      'failedToUpdateProfile': 'Échec de la mise à jour du profil',
+
+      // Time
+      'minutes': 'min',
+      'hours': 'heures',
+      'am': 'am',
+      'pm': 'pm',
+
+      // Price
+      'currency': '€',
+      'free': 'Gratuit',
+
+      // Restaurant Info
+      'boshundhoraRA': 'Espagne',
+      'gulshan2': 'Espagne',
+      'banani': 'Espagne',
+      'dhanmondi': 'Espagne',
+      'km': 'km',
+      'flat': 'Appartement',
+      'house': 'Maison',
+      'road': 'Rue',
+
+      'specialOffers': 'Offres Spéciales',
+      'hotDeals': 'OFFRES CHAUDES',
+      'exclusiveOffers': 'Offres Exclusives',
+      'saveUpTo': 'Économisez jusqu\'à 50% sur vos plats préférés',
+      'itemsOnOffer': 'articles en offre',
+      'noOffersAvailable': 'Aucune Offre Disponible',
+      'checkBackLater': 'Revenez plus tard pour des offres excitantes !\nDe nouvelles offres sont ajoutées régulièrement.',
+      'browseMenu': 'Parcourir le Menu',
+      'featuredItemsTitle': 'Articles en Vedette',
+      'popularItemsTitle': 'Articles Populaires',
+      'noFeaturedItems': 'Aucun Article en Vedette',
+      'noPopularItems': 'Aucun Article Populaire',
+      'checkBackForItems': 'Revenez plus tard pour les articles',
+
+      'viewYourOrders': 'Voir vos commandes précédentes',
+      'orderNumber': 'Commande #',
+      'items': 'articles',
+      'item': 'article',
+      'totalAmount': 'Montant Total',
+      'viewDetails': 'Voir les Détails',
+      'goToMenu': 'Aller au menu',
+      'pending': 'En Attente',
+      'confirmed': 'Confirmé',
+
+      'readyForPickup': 'Prêt à être Récupéré',
+      'collected': 'Récupéré',
+      'cancelled': 'Annulé',
+      'refunded': 'Remboursé',
+      'branch': 'Succursale',
+      'noOrdersYet': 'Aucune Commande pour le Moment',
+      'orderHistoryAppear': 'Votre historique de commandes apparaîtra ici\nune fois que vous passerez votre première commande',
+      'startOrdering': 'Commencer à Commander',
+      'contactUs': 'Nous Contacter',
+      'sendMessage': 'Envoyez-nous un Message',
+      'fullName': 'Nom Complet',
+      'yourName': 'Votre nom',
+      'phoneOptional': 'Téléphone (Optionnel)',
+      'subject': 'Sujet',
+      'subjectOfMessage': 'Sujet du message',
+      'message': 'Message',
+      'writeMessageHere': 'Écrivez votre message ici...',
+
+      'callUs': 'Appelez-nous',
+      'visitUs': 'Visitez-nous',
+      'writeUs': 'Écrivez-nous',
+      'followUs': 'Suivez-nous',
+      'discoverOurOfferings': 'Découvrez nos délicieuses offres',
+      'allCategories': 'Toutes les Catégories',
+      'noFeaturedItemsFound': 'Aucun Article en Vedette',
+      'noPopularItemsFound': 'Aucun Article Populaire',
+      'checkBackLaterFor': 'Revenez plus tard pour',
+
+      // Order History
+      'loadingYourOrders': 'Chargement de vos commandes...',
+      'oopsSomethingWrong': 'Oups ! Quelque chose s\'est mal passé',
+      'yourOrderHistory': 'Votre historique de commandes apparaîtra ici\nune fois que vous passerez votre première commande',
+
+      'yesterday': 'Hier',
+
+      // Offers
+      'loadingAmazingOffers': 'Chargement d\'offres incroyables...',
+      'saveUpTo50': 'Économisez jusqu\'à 50% sur vos plats préférés',
+
+      'checkBackForDeals': 'Revenez plus tard pour des offres excitantes !\nDe nouvelles offres sont ajoutées régulièrement.',
+      "pizza": "Pizza",
+      "burger": "Burger",
+      "pasta": "Pâtes",
+      "salad": "Salade",
+
+      // Contact
+      'sendUsMessage': 'Envoyez-nous un Message',
+      'completeTheForm': 'Complétez le formulaire et nous vous recontacterons bientôt',
+      'emailAddress': 'Adresse E-mail',
+      'writeYourMessage': 'Écrivez votre message ici...',
+      "yourMessage": "Votre Message",
+      'pleaseEnterSubject': 'Veuillez saisir le sujet',
+      'pleaseEnterMessage': 'Veuillez saisir votre message',
+      'messageTooShort': 'Le message doit contenir au moins 10 caractères',
+      'messageTooLong': 'Le message ne peut pas dépasser 2000 caractères',
+      "calculating": "Calcul en cours",
+
+      // Profile
+      'accountManagement': 'Gestion du Compte',
+      'manageYourAccount': 'Gérez vos paramètres et préférences de compte',
+      'activityOverview': 'Aperçu de l\'Activité',
+      'orders': 'Commandes',
+      'reviews': 'Avis',
+      'favorites': 'Favoris',
+      'points': 'Points',
+      'quickActions': 'Actions Rapides',
+      'downloadData': 'Télécharger les Données',
+      'helpCenter': 'Centre d\'Aide',
+      'editProfile': 'Modifier le Profil',
+      'accountSettings': 'Paramètres du Compte',
+      'personalInformation': 'Informations Personnelles',
+      'preferences': 'Préférences',
+      'notifications': 'Notifications',
+      'privacy': 'Confidentialité',
+      'securitySupport': 'Sécurité & Support',
+      'changePassword': 'Changer le Mot de Passe',
+      'helpSupport': 'Aide & Support',
+      'about': 'À Propos',
+      'version': 'Version',
+      "changeAddress": "Changer l'Adresse",
+
+      // Cart
+      'emptyCart': 'Votre panier est vide',
+      'addSomeFood': 'Ajoutez de la délicieuse nourriture pour commencer',
+      'anySpecialRequests': 'Des demandes spéciales ou instructions pour votre commande...',
+      "range": "Rayon",
+      "readyIn": "Prêt dans",
+
+      // Checkout
+      'deliveryAvailable': 'Livraison Disponible',
+      'deliveryNotAvailable': 'Livraison Non Disponible',
+      'distance': 'Distance',
+      'addressBeyondRange': 'L\'adresse est hors de la zone de livraison',
+      'pleaseSelectAddress': 'Veuillez sélectionner une adresse de livraison',
+      'addMoreForFree': 'plus pour la livraison GRATUITE !',
+      'noDeliveryAddress': 'Aucune Adresse de Livraison',
+      'addDeliveryAddress': 'Ajoutez votre adresse de livraison pour continuer',
+      'selectAddress': 'Sélectionner l\'Adresse',
+      'completeAddressDetails': 'Compléter les Détails de l\'Adresse',
+      'savedAddresses': 'Adresses Enregistrées',
+      'addYourFirstAddress': 'Ajoutez Votre Première Adresse',
+      'addNewAddress': 'Ajouter une Nouvelle Adresse',
+      'searchAddress': 'Rechercher une Adresse',
+      'startTypingAddress': 'Commencez à taper votre adresse...',
+      'noAddressesFound': 'Aucune adresse trouvée',
+      'tryDifferentSearch': 'Essayez un terme de recherche différent',
+      'addressType': 'Type d\'Adresse',
+      'office': 'Bureau',
+      'other': 'Autre',
+      'apartmentNumber': 'Numéro d\'Appartement/Maison',
+      'apartmentPlaceholder': 'ex. : Appt 4B, Étage 2, Bâtiment C',
+      'deliveryInstructions': 'Instructions de Livraison (Optionnel)',
+      'deliveryInstructionsPlaceholder': 'ex. : Sonner à la porte, Laisser devant la porte',
+      'saveAddress': 'Enregistrer l\'Adresse',
+      'pleaseEnterApartment': 'Veuillez saisir votre numéro d\'appartement/maison',
+      'pickupLocation': 'Lieu de Récupération',
+      'pickupTime': 'Heure de Récupération',
+
+      // Payment
+      'pickupOrder': 'Commande à Récupérer',
+      'deliveryOrder': 'Commande en Livraison',
+      'payAtShop': 'Payer en Boutique',
+      'payAtCounter': 'Payez au comptoir lorsque vous récupérez votre commande',
+      'choosePaymentType': 'Choisissez le Type de Paiement',
+      'cash': 'Espèces',
+      'card': 'Carte',
+      'payWithCash': 'Payer en espèces',
+      'payWithCard': 'Payer par carte',
+      'otherOptions': 'Autres Options (À Venir)',
+      'paySecurelyWith': 'Payer en toute sécurité avec',
+      'comingSoon': 'À Venir',
+      'paymentSummary': 'Résumé du Paiement',
+      'orderType': 'Type de Commande',
+      'paymentType': 'Type de Paiement',
+      'payAtShopCounter': 'Payez au comptoir de la boutique lors de la récupération',
+      'payWithCashOnDelivery': 'Payez en espèces à la livraison de votre commande',
+      'payWithCardOnDelivery': 'Payez par carte à la livraison de votre commande',
+      'noneSelected': 'Aucune Sélection',
+      'shopPayment': 'Paiement en Boutique',
+      'deliveryPayment': 'Paiement à la Livraison',
+
+      // Menu
+      'loadingDeliciousMenu': 'Chargement du menu délicieux...',
+      'discoverDelicious': 'Découvrez nos délicieuses offres',
+      'filters': 'Filtres',
+      'foodType': 'Type de Nourriture',
+      'vegetarian': 'Végétarien',
+      'nonVegetarian': 'Non-Végétarien',
+      'popularItems': 'Articles Populaires',
+      'clearAll': 'Tout Effacer',
+      'apply': 'Appliquer',
+      'advancedFilters': 'Filtres Avancés',
+      'chooseDeliveryAddress': 'Choisissez où livrer votre commande',
+      'setAsDefault': 'Définir par Défaut',
+      'delete': 'Supprimer',
+      'deleteAddress': 'Supprimer l\'Adresse',
+      'confirmDeleteAddress': 'Êtes-vous sûr de vouloir supprimer cette adresse ? Cette action ne peut pas être annulée.',
+      'defaultAddressUpdated': 'Adresse par défaut mise à jour',
+      'addressDeletedSuccessfully': 'Adresse supprimée avec succès',
+      "yourOrderWillBeReady": "Votre commande sera prête",
+      'addressSavedWithDistance': 'Adresse enregistrée ! Distance : {distance}',
+      'addressBeyondRangeWithLimit': 'Désolé, cette adresse est au-delà de notre rayon de livraison de {limit}km',
+      'failedToFetchPlaceDetails': 'Échec de la récupération des détails du lieu',
+      'noDescription': 'Aucune description',
+      'pleaseSelectDeliveryAddress': 'Veuillez sélectionner une adresse de livraison',
+      'addressBeyondDeliveryRange': 'L\'adresse sélectionnée est hors de la zone de livraison',
+      'cartEmpty': 'Votre panier est vide',
+      'moreItems': '+{count} autres articles',
+      'noOrdersDescription': 'Votre historique de commandes apparaîtra ici\nune fois que vous passerez votre première commande',
+      'welcomeBack': 'Bon retour ! Veuillez saisir vos identifiants.',
+      'pickup': 'Récupération',
+      'pressBackAgain': 'Appuyez à nouveau pour quitter',
+      'securityAndSupport': 'Sécurité & Support',
+      'helpAndSupport': 'Aide & Support',
+      'signInPrompt': 'Connectez-vous pour accéder à votre profil et à vos commandes',
+      'viewPastOrders': 'Voir vos commandes précédentes',
+      'updatePassword': 'Mettre à jour votre mot de passe',
+      'getInTouch': 'Entrez en contact avec nous',
+      'learnAboutUs': 'En savoir plus sur nous',
+      'notificationPreferences': 'Préférences de notifications',
+      'getHelpAndSupport': 'Obtenir de l\'aide et du support',
+      'appVersion': 'Version 1.0.0',
+      'aboutApp': 'À Propos de Saborly',
+      'appDescription': 'Bienvenue chez Saborly ! Nous livrons de délicieux plats de vos restaurants préférés directement à votre porte.',
+      'copyright': '© 2025 Saborly. Tous droits réservés.',
+      'companyAddress': 'C/ de Pere IV, 208, Sant Martí, 08005 Barcelone, Espagne',
+      'close': 'Fermer',
+      'save': 'Enregistrer',
+      'areYouSureSignOut': 'Êtes-vous sûr de vouloir vous déconnecter ?',
+      'imageNotAvailable': 'Image non disponible',
+      'addedToCart': '{itemName} ajouté au panier',
+      'undo': 'Annuler',
+      'outOfStock': 'en rupture de stock',
+      'loadingMenu': 'Chargement du menu délicieux...',
+      'noCategoriesAvailable': 'Aucune catégorie disponible',
+      'noFoodItemsAvailable': 'Aucun article de nourriture disponible',
+      'discoverOfferings': 'Découvrez nos délicieuses offres',
+      'appLogo': 'Logo de l\'Application',
+      'noItems': 'Aucun Article {type}',
+      'featured': 'En Vedette',
+      'popular': 'Populaire',
+      'aboutUs': 'À Propos de Nous',
+      'cart': 'Panier',
+      'account': 'Compte',
+      'orderNotFound': 'Commande non trouvée',
+      'goBack': 'Retour',
+      'callRestaurant': 'Appeler le Restaurant',
+      'restaurantAddress': 'Saborly, C/ de Pere IV, 208, Sant Martí, 08005 Barcelone, Espagne',
+      'estimatedTime': '40 min',
+      'paymentFailed': 'Échec',
+      'paymentRefunded': 'Remboursé',
+      'emptyOrderItems': 'Vos délicieux articles de commande',
+      'tax': 'Taxe :',
+      'jan': 'Jan',
+      'feb': 'Fév',
+      'mar': 'Mar',
+      'apr': 'Avr',
+      'may': 'Mai',
+      'jun': 'Juin',
+      'jul': 'Juil',
+      'aug': 'Aoû',
+      'sep': 'Sep',
+      'oct': 'Oct',
+      'nov': 'Nov',
+      'dec': 'Déc',
+      'callError': 'Impossible d\'appeler le 34932112072',
+      'callErrorGeneric': 'Erreur lors de l\'appel : {error}',
+      'loadingOffers': 'Chargement d\'offres incroyables...',
+      'checkBackLaterOffers': 'Revenez plus tard pour des offres excitantes !\nDe nouvelles offres sont ajoutées régulièrement.',
+      'addFoodToStart': 'Ajoutez de la délicieuse nourriture pour commencer',
+      'specialInstructionsHint': 'Des demandes ou instructions spéciales pour votre commande à emporter...',
+      'orderSummary': 'Résumé de la Commande',
+      'sizeLabel': 'Taille :',
+      'extrasLabel': 'Extras :',
+      'addonsLabel': 'Suppléments :',
+      'payAtShopDescription': 'Payez à la boutique lorsque vous récupérez votre commande',
+      'choosePaymentDelivery': 'Choisissez comment vous voulez payer lors de la livraison',
+      'otherOptionsComingSoon': 'Autres Options (À Venir)',
+      'paypalDescription': 'Payez en toute sécurité avec PayPal',
+      'stripeDescription': 'Payez avec carte de crédit ou de débit',
+      'cardDescription': 'Payez avec VISA ou Mastercard',
+      'shopPaymentMethod': 'Paiement en Boutique',
+      'errorFailedToLoadOrder': 'Erreur : Échec du chargement du statut de la commande',
+      'unexpectedError': 'Erreur inattendue. Veuillez réessayer.',
+      'businessHours': 'Lun - Dim : 12:00 - 23:00',
+      'address': 'C/ de Pere IV, 208, Sant Martí, 08005 Barcelone, Espagne',
+      'infoEmail': 'info@saborly.es',
+      'supportEmail': 'support@saborly.es',
+      'formSubmissionSuccess': 'Merci ! Votre message a été envoyé avec succès.',
+      'formSubmissionError': 'Échec de l\'envoi du message. Veuillez réessayer.',
+      'tagline': 'Nourriture délicieuse, livrée rapidement',
+      'failedToLoadOffers': 'Échec du chargement des offres',
+      'unknownError': 'Erreur inconnue',
+      'days': '{days} jours',
+      'offerPlaceholder': 'Offre',
+      'brandDescription': 'Expériences culinaires exceptionnelles qui ravissent vos sens. Rejoignez notre communauté gastronomique.',
+
+      // Quick Links
+      'quickLinks': 'Liens Rapides',
+      'reservations': 'Réservations',
+      'gallery': 'Galerie',
+      'blog': 'Blog',
+      'careers': 'Carrières',
+
+      // Resources Links
+      'resources': 'Ressources',
+      'privacyPolicy': 'Politique de Confidentialité',
+      'termsOfService': 'Conditions d\'Utilisation',
+      'cookiePolicy': 'Politique des Cookies',
+      'faq': 'FAQ',
+
+      // Contact Section
+      'stayConnected': 'Restez Connecté',
+      'subscribeOffers': 'Abonnez-vous pour des offres exclusives',
+      'yourEmail': 'Votre e-mail',
+      'subscribe': 'S\'abonner',
+      'weAccept': 'Nous Acceptons',
+      'visa': 'Visa',
+      'resetPassword': 'Réinitialiser le Mot de Passe',
+      'enterYourEmail': 'Entrez votre e-mail',
+      'verificationCode': 'Code de Vérification',
+      'enter6DigitCode': 'Entrez le code à 6 chiffres',
+      'pleaseEnterCode': 'Veuillez saisir le code',
+      'codeMustBe6Digits': 'Le code doit contenir 6 chiffres',
+      'newPassword': 'Nouveau Mot de Passe',
+      'enterNewPassword': 'Entrez le nouveau mot de passe',
+      'passwordMinLength': 'Le mot de passe doit contenir au moins 6 caractères',
+      'reEnterNewPassword': 'Resaisissez le nouveau mot de passe',
+      'pleaseConfirmPassword': 'Veuillez confirmer votre mot de passe',
+      'passwordsDoNotMatch': 'Les mots de passe ne correspondent pas',
+      'backToLogin': 'Retour à la Connexion',
+
+      // SnackBar Messages
+      'resetCodeSent': 'Code de réinitialisation envoyé à votre e-mail',
+      'failedToSendResetCode': 'Échec de l\'envoi du code de réinitialisation',
+      'invalid6DigitCode': 'Veuillez saisir un code à 6 chiffres valide',
+      'codeVerified': 'Code vérifié avec succès',
+      'invalidOrExpiredCode': 'Code invalide ou expiré',
+      'passwordResetSuccess': 'Mot de passe réinitialisé avec succès !',
+      'failedToResetPassword': 'Échec de la réinitialisation du mot de passe',
+      'newCodeSent': 'Nouveau code envoyé à votre e-mail',
+      'failedToSendCode': 'Échec de l\'envoi du code',
+
+      // Titles
+      'createNewPassword': 'Créer un Nouveau Mot de Passe',
+      'verifyCode': 'Vérifier le Code',
+
+      // Subtitles
+      'enterNewPasswordSubtitle': 'Veuillez saisir votre nouveau mot de passe',
+      'enterCodeSubtitle': 'Entrez le code à 6 chiffres envoyé à {email}',
+      'enterEmailSubtitle': 'Entrez votre e-mail pour recevoir un code de réinitialisation',
+
+      // Button Texts
+      'resetPasswordButton': 'Réinitialiser le Mot de Passe',
+      'verifyCodeButton': 'Vérifier le Code',
+      'sendResetCode': 'Envoyer le Code de Réinitialisation',
+      'resendCodeCountdown': 'Renvoyer le code dans {seconds}s',
+      'resendCode': 'Renvoyer le Code',
+      'allSet': 'Tout est Prêt !',
+      'passwordUpdatedDescription': 'Votre mot de passe a été mis à jour avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
+      'newPasswordRequirements': 'Votre nouveau mot de passe doit être différent du précédent et répondre à nos exigences de sécurité.',
+      "frequentlyAskedQuestions": "Foire Aux Questions",
+
+      // Password Requirements
+      'passwordMinLength8': 'Au moins 8 caractères',
+      'passwordUpperLower': 'Contient des lettres majuscules et minuscules',
+      'passwordNumber': 'Inclut au moins un chiffre',
+      'passwordSpecialChar': 'A au moins un caractère spécial',
+
+      // Form Header and Header
+      'passwordUpdated': 'Mot de Passe Mis à Jour !',
+      'passwordChanged': 'Votre mot de passe a été changé avec succès.',
+      'createStrongPassword': 'Créez un nouveau mot de passe fort pour votre compte.',
+
+      'passwordMinLength8Error': 'Le mot de passe doit contenir au moins 8 caractères',
+      'passwordSecurityError': 'Le mot de passe doit répondre aux exigences de sécurité',
+
+      // Success Content
+      'passwordResetSuccessDescription': 'Votre mot de passe a été mis à jour avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
+      'passwordSecurityTip': 'Gardez votre mot de passe sécurisé et ne le partagez avec personne.',
+
+      // Sign In Button
+      'signInNow': 'Se Connecter Maintenant',
+
+      // SnackBar Messages
+      'passwordUpdatedSuccess': 'Mot de passe mis à jour avec succès !',
+      'passwordResetFailed': 'Échec de la réinitialisation du mot de passe. Veuillez réessayer.',
+
+      // AppBar and Web Header
+      'secureAccount': 'Gardez votre compte sécurisé avec un mot de passe fort',
+
+      // Password Card
+      'currentPassword': 'Mot de Passe Actuel',
+      'enterCurrentPassword': 'Entrez le mot de passe actuel',
+      'pleaseEnterCurrentPassword': 'Veuillez saisir votre mot de passe actuel',
+      'pleaseEnterNewPassword': 'Veuillez saisir un nouveau mot de passe',
+      'passwordMinLength6': 'Le mot de passe doit contenir au moins 6 caractères',
+      'newPasswordDifferent': 'Le nouveau mot de passe doit être différent de l\'actuel',
+      'pleaseConfirmNewPassword': 'Veuillez confirmer votre nouveau mot de passe',
+
+      // Security Tips
+      'passwordRequirements': 'Exigences du Mot de Passe',
+      'passwordMinLength6Tip': 'Au moins 6 caractères',
+      'passwordNumbersSpecial': 'Ajoutez des chiffres et des caractères spéciaux',
+      'avoidCommonWords': 'Évitez les mots ou modèles courants',
+
+      // Button
+      'changePasswordButton': 'Changer le Mot de Passe',
+
+      // SnackBar Messages
+      'passwordChangedSuccess': 'Mot de passe changé avec succès',
+      'passwordChangeFailed': 'Échec du changement de mot de passe',
+
+      // Header
+      'verifyYourEmail': 'Vérifiez Votre E-mail',
+      'sentVerificationCode': 'Nous avons envoyé un code de vérification à',
+
+      // Timer
+      'codeExpired': 'Code expiré',
+      'codeExpiresIn': 'Le code expire dans {time}',
+
+      // Resend Button
+      'didntReceiveCode': 'Vous n\'avez pas reçu le code ? ',
+      'resend': 'Renvoyer',
+
+      // Button
+      'verifyEmail': 'Vérifier l\'E-mail',
+
+      // SnackBar Messages
+      'emailVerifiedSuccess': 'E-mail vérifié avec succès !',
+      'invalidOrExpiredOTP': 'OTP invalide ou expiré. Veuillez réessayer.',
+      'joinApp': 'Rejoindre Saborly',
+      'createAccountDescription': 'Créez votre compte et commencez votre voyage avec nous. Découvrez la meilleure plateforme de shopping conçue pour vous.',
+      "startYourCulinaryJourney": "Commencez Votre Voyage Culinaire",
+      "searchFoodDescription": "Recherchez vos plats, cuisines ou ingrédients préférés pour découvrir des options de nourriture incroyables",
+
+      // Feature List
+      'secureCheckout': 'Paiement sécurisé et rapide',
+      'personalizedRecommendations': 'Recommandations personnalisées',
+      'exclusiveBenefits': 'Avantages exclusifs pour les membres',
+      'customerSupport': 'Support client 24/7',
+
+      // Form Header and Header
+      'createAccount': 'Créer un Compte',
+      'fillInDetails': 'Remplissez vos détails pour commencer',
+      'signUpToStart': 'Inscrivez-vous pour commencer avec Saborly.',
+
+      // SnackBar Messages
+      'verificationCodeSent': 'Code de vérification envoyé ! Veuillez vérifier votre e-mail.',
+      'accountCreatedSuccess': 'Compte créé avec succès !',
+
+      // Hero Section
+      'welcomeToApp': 'Bienvenue chez Saborly',
+      'bestFastFoodDestination': 'Votre destination pour la meilleure restauration rapide',
+
+      // Story Section
+      'ourStory': 'Notre Histoire',
+      'storyDescription': 'Saborly est né d\'une passion pour livrer de la nourriture délicieuse et de qualité. Depuis nos débuts, nous nous sommes engagés à servir les meilleurs plats, préparés avec des ingrédients frais et des recettes authentiques. Chaque jour, nous nous efforçons de dépasser les attentes de nos clients et de créer des expériences culinaires mémorables.',
+
+      // Values Section
+      'ourValues': 'Nos Valeurs',
+      'quality': 'Qualité',
+      'qualityDescription': 'Ingrédients frais et de haute qualité',
+      'speed': 'Rapidité',
+      'speedDescription': 'Service rapide sans compromettre la qualité',
+      'passion': 'Passion',
+      'passionDescription': 'Amour pour ce que nous faisons dans chaque plat',
+      "orderProgress": "Progression de la Commande",
+      "paymentInfo": "Informations de Paiement",
+
+      // Mission Section
+      'ourMission': 'Notre Mission',
+      'missionDescription': 'Faire de chaque repas une expérience spéciale, en offrant des saveurs authentiques et un service exceptionnel qui dépasse les attentes de nos clients.',
+      "offerPrice": "Prix de l'Offre",
+      "startingFrom": "À partir de",
+
+      'privacy_subtitle': 'Votre vie privée est notre priorité',
+      'privacy_intro': 'Chez Saborly, nous nous engageons à protéger votre vie privée et à assurer la sécurité de vos informations personnelles. Cette politique explique comment nous collectons, utilisons et protégeons vos données.',
+      'last_updated': 'Dernière mise à jour : 18 octobre 2025',
+      'info_collect_title': 'Informations que Nous Collectons',
+      'info_collect_content': 'Nous collectons les informations que vous nous fournissez directement lorsque vous créez un compte, passez une commande ou communiquez avec nous.',
+      'info_collect_point1': 'Détails personnels (nom, e-mail, numéro de téléphone)',
+      'info_collect_point2': 'Adresse de livraison et données de localisation',
+      'info_collect_point3': 'Informations de paiement (chiffrées en toute sécurité)',
+      'info_collect_point4': 'Historique des commandes et préférences',
+      'info_collect_point5': 'Informations sur l\'appareil et l\'utilisation',
+      'use_info_title': 'Comment Nous Utilisons Vos Informations',
+      'use_info_content': 'Nous utilisons les informations que nous collectons pour vous fournir le meilleur service possible.',
+      'use_info_point1': 'Traiter et exécuter vos commandes',
+      'use_info_point2': 'Envoyer des confirmations et mises à jour de commande',
+      'use_info_point3': 'Fournir un support client',
+      'use_info_point4': 'Améliorer nos services et l\'expérience utilisateur',
+      'use_info_point5': 'Envoyer des offres promotionnelles (avec votre consentement)',
+      'use_info_point6': 'Prévenir la fraude et assurer la sécurité',
+      'sharing_title': 'Partage et Divulgation des Informations',
+      'sharing_content': 'Nous respectons votre vie privée et ne vendons pas vos informations personnelles.',
+      'sharing_point1': 'Prestataires de services (processeurs de paiement, partenaires de livraison)',
+      'sharing_point2': 'Exigences légales et application de la loi',
+      'sharing_point3': 'Transferts d\'entreprise (fusions, acquisitions)',
+      'sharing_point4': 'Avec votre consentement explicite',
+      'security_title': 'Sécurité des Données',
+      'security_content': 'Nous mettons en œuvre des mesures de sécurité standard de l\'industrie pour protéger vos informations.',
+      'security_point1': 'Chiffrement SSL/TLS pour la transmission des données',
+      'security_point2': 'Traitement des paiements sécurisé (conforme PCI DSS)',
+      'security_point3': 'Audits de sécurité et mises à jour régulières',
+      'security_point4': 'Contrôles d\'accès et authentification',
+      'security_point5': 'Systèmes de sauvegarde et de récupération des données',
+      'rights_title': 'Vos Droits',
+      'rights_content': 'Vous avez le contrôle de vos informations personnelles.',
+      'rights_point1': 'Accéder à vos données personnelles',
+      'rights_point2': 'Corriger les informations inexactes',
+      'rights_point3': 'Demander la suppression des données',
+      'rights_point4': 'Vous opposer au traitement',
+      'rights_point5': 'Portabilité des données',
+      'rights_point6': 'Retirer votre consentement à tout moment',
+      'cookies_title': 'Cookies et Suivi',
+      'cookies_content': 'Nous utilisons des cookies pour améliorer votre expérience et analyser les modèles d\'utilisation.',
+      'cookies_point1': 'Cookies essentiels (nécessaires au fonctionnement)',
+      'cookies_point2': 'Cookies de performance (analytiques)',
+      'cookies_point3': 'Cookies fonctionnels (préférences)',
+      'cookies_point4': 'Cookies marketing (avec consentement)',
+      'children_privacy_title': 'Vie Privée des Enfants',
+      'children_privacy_content': 'Nos services ne sont pas destinés aux enfants de moins de 13 ans. Nous ne collectons pas sciemment d\'informations personnelles auprès d\'enfants.',
+      'contact_questions': 'Des Questions Sur Votre Vie Privée ?',
+      'contact_support': 'Notre équipe est là pour vous aider à comprendre comment nous protégeons vos données',
+      'contact_email': 'support@saborly.es',
+      'contact_phone': '+34 932 112 072',
+
+      // FAQScreen
+      'faq_subtitle': 'Trouvez des réponses aux questions courantes',
+      'faq_category_all': 'Toutes',
+      'faq_category_orders': 'Commandes',
+      'faq_category_payment': 'Paiement',
+      'faq_category_delivery': 'Livraison',
+      'faq_category_account': 'Compte',
+      'faq_contact_title': 'Vous avez encore des questions ?',
+      'faq_contact_subtitle': 'Notre équipe de support est disponible 24h/24 et 7j/7 pour vous aider',
+      'faq_contact_email': 'support@saborly.es',
+      'faq_contact_phone': '+34 932 112 072',
+      'faq_contact_chat': 'Chat en Direct (À Venir)',
+      'faq_order_place_question': 'Comment passer une commande ?',
+      'faq_order_place_answer': 'Passer une commande est facile ! Parcourez simplement notre menu, sélectionnez vos articles préférés, personnalisez-les à votre goût et ajoutez-les à votre panier. Lorsque vous êtes prêt, passez à la caisse, entrez vos coordonnées de livraison, choisissez votre méthode de paiement et confirmez votre commande. Vous recevrez immédiatement un e-mail de confirmation.',
+      'faq_order_modify_question': 'Puis-je modifier ou annuler ma commande ?',
+      'faq_order_modify_answer': 'Oui ! Vous pouvez modifier ou annuler votre commande dans les 5 minutes suivant sa passation via l\'application. Après ce délai, le restaurant commence à préparer votre nourriture. Si vous devez apporter des modifications après cette fenêtre, veuillez contacter immédiatement notre équipe d\'assistance clientèle, et nous ferons de notre mieux pour vous aider.',
+      'faq_payment_methods_question': 'Quelles méthodes de paiement acceptez-vous ?',
+      'faq_payment_methods_answer': 'Nous acceptons toutes les principales cartes de crédit et de débit (Visa, Mastercard, American Express), PayPal, Apple Pay et Google Pay. Tous les paiements sont traités via des connexions sécurisées et cryptées pour garantir la protection de vos informations financières.',
+      'faq_payment_security_question': 'Mes informations de paiement sont-elles sécurisées ?',
+      'faq_payment_security_answer': 'Oui ! Nous utilisons le cryptage SSL standard de l\'industrie et respectons les normes PCI DSS pour garantir que vos informations de paiement sont complètement sécurisées. Nous ne stockons jamais les détails complets de votre carte sur nos serveurs.',
+      'faq_delivery_time_question': 'Combien de temps prend la livraison ?',
+      'faq_delivery_time_answer': 'Le délai de livraison typique est de 30 à 45 minutes, selon votre emplacement, le temps de préparation et la demande actuelle. Vous pouvez suivre votre commande en temps réel via notre application, et nous vous informerons à chaque étape du processus de livraison.',
+      'faq_delivery_fees_question': 'Y a-t-il des frais de livraison ?',
+      'faq_delivery_fees_answer': 'Les frais de livraison varient en fonction de la distance et du restaurant. Les frais exacts sont toujours affichés avant que vous ne confirmiez votre commande.',
+      'faq_delivery_contactless_question': 'Proposez-vous la livraison sans contact ?',
+      'faq_delivery_contactless_answer': 'Oui ! Nous proposons la livraison sans contact pour votre sécurité et commodité. Sélectionnez simplement cette option à la caisse, et votre commande sera laissée à votre porte avec une notification envoyée sur votre téléphone.',
+      'faq_account_track_question': 'Comment suivre ma commande ?',
+      'faq_account_track_answer': 'Vous pouvez suivre votre commande en temps réel via notre application ou site web. Après avoir passé votre commande, vous verrez des mises à jour en direct incluant la confirmation de commande, le statut de préparation, la notification d\'expédition et l\'heure de livraison estimée. Vous pouvez également voir l\'emplacement de votre livreur sur la carte.',
+      'faq_account_incorrect_question': 'Que faire si ma commande est incorrecte ou manque des articles ?',
+      'faq_account_incorrect_answer': 'S\'il y a un problème avec votre commande, veuillez nous contacter immédiatement via l\'application ou le support client. Prenez des photos du problème si possible. Nous travaillerons avec le restaurant pour résoudre le problème et offrir un remboursement, un remplacement ou un crédit sur votre compte.',
+      'faq_account_dietary_question': 'Avez-vous des filtres diététiques ?',
+      'faq_account_dietary_answer': 'Oui ! Vous pouvez filtrer les éléments du menu par préférences alimentaires, y compris végétarien, végétalien, sans gluten, sans produits laitiers, sans noix, halal et casher. Nous fournissons également des informations détaillées sur les allergènes pour chaque plat. Cherchez l\'icône de filtre dans le menu de l\'application.',
+
+      "noNotifications": "Aucune Notification",
+      "youWillSeeNotificationsHere": "Vous verrez les notifications ici",
+      "markAllAsRead": "Tout marquer comme lu",
+      "allNotificationsMarkedAsRead": "Toutes les notifications marquées comme lues",
+      "notificationDeleted": "Notification supprimée",
+      "clearAllNotifications": "Effacer Toutes les Notifications",
+      "areYouSureYouWantToClearAllNotifications": "Êtes-vous sûr de vouloir effacer toutes les notifications ?",
+      "allNotificationsCleared": "Toutes les notifications effacées",
+      "noNotificationsInThisCategory": "Aucune notification dans cette catégorie",
+      "yourPhone": "Votre Téléphone",
+      "yourSubject": "Votre Sujet"
+    },
   };
-  
-  // ========== BACKWARD COMPATIBILITY (Static getters) ==========
-  // These allow existing code to work without modification
-  
+
   // App Info
   static String get appName => get('appName');
   static String get appSlogan => get('appSlogan');
-    static String get callus => get('callus');
+  static String get callus => get('callus');
 
   // General
   static String get search => get('search');
@@ -3173,11 +3710,12 @@ class AppStrings {
   static String get whopper => get('whopper');
   static String get veg => get('veg');
   static String get nonVeg => get('nonVeg');
-   static String get appLogo => get('appLogo');
+  static String get appLogo => get('appLogo');
   static String get noItems => get('noItems');
   static String get checkBackLater => get('checkBackLater');
   static String get featured => get('featured');
   static String get popular => get('popular');
+  
   // Cart & Checkout
   static String get myCart => get('myCart');
   static String get checkout => get('checkout');
@@ -3254,7 +3792,7 @@ class AppStrings {
   static String get passwordsDontMatch => get('passwordsDontMatch');
   static String get pleaseEnterName => get('pleaseEnterName');
   static String get pleaseEnterPhone => get('pleaseEnterPhone');
-    static String get yourSubject => get('yourSubject');
+  static String get yourSubject => get('yourSubject');
 
   // Success Messages
   static String get orderPlacedSuccessfully => get('orderPlacedSuccessfully');
@@ -3289,7 +3827,6 @@ class AppStrings {
   static String get house => get('house');
   static String get road => get('road');
 
-
   static String get defaultLabel => get('default');
   static String get chooseDeliveryAddress => get('chooseDeliveryAddress');
   static String get setAsDefault => get('setAsDefault');
@@ -3301,7 +3838,7 @@ class AppStrings {
 
   // New static getters for backward compatibility
   static String get tagline => get('tagline');
- static String get completeAddressDetails => get('completeAddressDetails');
+  static String get completeAddressDetails => get('completeAddressDetails');
   static String get selectAddress => get('selectAddress');
   static String get savedAddresses => get('savedAddresses');
   static String get addYourFirstAddress => get('addYourFirstAddress');
@@ -3343,10 +3880,9 @@ class AppStrings {
   static String get card => get('card');
 
   static String get yesterday => get('yesterday');
-    static String get welcomeBack => get('welcomeBack');
+  static String get welcomeBack => get('welcomeBack');
 
-
-     static String get pressBackAgain => get('pressBackAgain');
+  static String get pressBackAgain => get('pressBackAgain');
   static String get quickActions => get('quickActions');
   static String get downloadData => get('downloadData');
   static String get helpCenter => get('helpCenter');
@@ -3375,7 +3911,7 @@ class AppStrings {
   static String get close => get('close');
   static String get save => get('save');
   static String get areYouSureSignOut => get('areYouSureSignOut');
-    static String get imageNotAvailable => get('imageNotAvailable');
+  static String get imageNotAvailable => get('imageNotAvailable');
   static String get addedToCart => get('addedToCart');
   static String get undo => get('undo');
   static String get outOfStock => get('outOfStock');
@@ -3396,8 +3932,7 @@ class AppStrings {
   static String get cart => get('cart');
   static String get account => get('account');
 
-
-   static String get orderNotFound => get('orderNotFound');
+  static String get orderNotFound => get('orderNotFound');
   static String get goBack => get('goBack');
   static String get collected => get('collected');
   static String get readyForPickup => get('readyForPickup');
@@ -3425,7 +3960,8 @@ class AppStrings {
 
   static String get callError => get('callError');
   static String get callErrorGeneric => get('callErrorGeneric');
-    // New static getters for backward compatibility
+  
+  // New static getters for backward compatibility
   static String get loadingOffers => get('loadingOffers');
   static String get specialOffers => get('specialOffers');
   static String get noOffersAvailable => get('noOffersAvailable');
@@ -3472,7 +4008,6 @@ class AppStrings {
   static String get formSubmissionSuccess => get('formSubmissionSuccess');
   static String get formSubmissionError => get('formSubmissionError');
 
-
   static String get failedToLoadOffers => get('failedToLoadOffers');
   static String get unknownError => get('unknownError');
  
@@ -3502,7 +4037,7 @@ class AppStrings {
   // New static getters for backward compatibility
   static String get resetPassword => get('resetPassword');
   static String get enterYourEmail => get('enterYourEmail');
-   static String get verificationCode => get('verificationCode');
+  static String get verificationCode => get('verificationCode');
   static String get enter6DigitCode => get('enter6DigitCode');
   static String get pleaseEnterCode => get('pleaseEnterCode');
   static String get codeMustBe6Digits => get('codeMustBe6Digits');
@@ -3549,7 +4084,7 @@ class AppStrings {
   static String get changePasswordButton => get('changePasswordButton');
   static String get passwordChangedSuccess => get('passwordChangedSuccess');
   static String get passwordChangeFailed => get('passwordChangeFailed');
-    static String get verifyYourEmail => get('verifyYourEmail');
+  static String get verifyYourEmail => get('verifyYourEmail');
   static String get sentVerificationCode => get('sentVerificationCode');
   static String get codeExpired => get('codeExpired');
   static String get codeExpiresIn => get('codeExpiresIn');
@@ -3558,7 +4093,7 @@ class AppStrings {
   static String get verifyEmail => get('verifyEmail');
   static String get emailVerifiedSuccess => get('emailVerifiedSuccess');
   static String get invalidOrExpiredOTP => get('invalidOrExpiredOTP');
- static String get joinApp => get('joinApp');
+  static String get joinApp => get('joinApp');
   static String get createAccountDescription => get('createAccountDescription');
   static String get secureCheckout => get('secureCheckout');
   static String get personalizedRecommendations => get('personalizedRecommendations');

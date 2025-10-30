@@ -134,6 +134,7 @@ Future<ApiResponse<String>> refreshToken() async {
 
   /// ✅ FIXED: Get categories with current language
   Future<ApiResponse<List<FoodCategory>>> getCategories() async {
+    debugPrint('🌐 Fetching categories with language: $_currentLanguage');
     try {
     
       
@@ -154,7 +155,7 @@ Future<ApiResponse<String>> refreshToken() async {
             .map((json) => FoodCategory.fromMap(json, currentLanguage: _currentLanguage))
             .toList();
         
-     
+     debugPrint('✅ Fetched ${categories} categories');
         
         return ApiResponse.success(categories, statusCode: response.statusCode);
       }
