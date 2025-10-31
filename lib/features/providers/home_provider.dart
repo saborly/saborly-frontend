@@ -81,7 +81,9 @@ class HomeProvider extends ChangeNotifier {
   
   Future<void> loadItemsWithOffers() async {
     try {
-     
+      if (kDebugMode) {
+        print('🎁 Loading items with offers...');
+      }
       
       final response = await _apiService.dio.get(
         '/offer/items-with-offers',

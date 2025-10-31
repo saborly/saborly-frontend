@@ -27,7 +27,7 @@ class AppStrings {
       // App Info
       'appName': 'Saborly',
       'appSlogan': 'Delicious Food Delivered Fast',
-      
+        "driverPickup": "Driver PickUp",
       // General
       'search': 'Search',
       'viewAll': 'View All',
@@ -802,7 +802,7 @@ class AppStrings {
       'search': 'Buscar',
       'orderCompleted':'Pedido completado',
             
-
+  "driverPickup": "Recogida del conductor",
 
       'viewAll': 'Ver Todo',
       'add': 'Añadir',
@@ -1561,7 +1561,8 @@ class AppStrings {
       'appSlogan': 'Menjar Deliciós Entregat Ràpid',
      
                         'orderCompleted':'Comanda completada',
-      // General
+
+  "driverPickup": "Recollida del conductor",      // General
       'search': 'Cercar',
       'viewAll': 'Veure Tot',
       'add': 'Afegir',
@@ -2250,6 +2251,7 @@ class AppStrings {
   "frequentlyAskedQuestions": "الأسئلة الشائعة",
   "orderProgress": "تقدم الطلب",
   "yourOrderWillBeReady": "سيكون طلبك جاهزًا",
+    "driverPickup": "استلام السائق",
       // General
       'search': 'بحث',
       'viewAll': 'عرض الكل',
@@ -2921,7 +2923,7 @@ class AppStrings {
       // App Info
       'appName': 'Saborly',
       'appSlogan': 'Nourriture Délicieuse Livrée Rapidement',
-
+  "driverPickup": "Ramassage du conducteur",
       // General
       'search': 'Rechercher',
       'viewAll': 'Voir Tout',

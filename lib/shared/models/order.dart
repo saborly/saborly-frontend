@@ -7,7 +7,9 @@ enum OrderStatus {
   confirmed,
   preparing,
   ready,
-  pickup,      // For pickup orders
+  pickup,
+  driverpickup,
+        // For pickup orders
   shop,        // For shop orders
   outForDelivery, // For delivery orders
   delivered,
@@ -237,28 +239,37 @@ codPaymentType: map['codPaymentType'] != null
 
   );
 }
-  static OrderStatus _parseOrderStatus(dynamic status) {
-    switch (status.toString().toLowerCase()) {
-      case 'pending':
-        return OrderStatus.pending;
-      case 'confirmed':
-        return OrderStatus.confirmed;
-      case 'preparing':
-        return OrderStatus.preparing;
-      case 'ready':
-        return OrderStatus.ready;
-      case 'outfordelivery':
-      case 'out_for_delivery':
-        return OrderStatus.outForDelivery;
-      case 'delivered':
-        return OrderStatus.delivered;
-      case 'cancelled':
-        return OrderStatus.cancelled;
-      default:
-        return OrderStatus.pending;
-    }
+ // In order.dart - Replace the _parseOrderStatus method
+static OrderStatus _parseOrderStatus(dynamic status) {
+  switch (status.toString().toLowerCase()) {
+    case 'pending':
+      return OrderStatus.pending;
+    case 'confirmed':
+      return OrderStatus.confirmed;
+    case 'preparing':
+      return OrderStatus.preparing;
+    case 'ready':
+      return OrderStatus.ready;
+    case 'pickup':
+      return OrderStatus.pickup;
+    case 'driverpickup':
+      return OrderStatus.driverpickup;
+    case 'shop':
+      return OrderStatus.shop;
+    case 'out-for-delivery':
+    case 'out_for_delivery':
+    case 'outfordelivery':
+      return OrderStatus.outForDelivery;
+    case 'delivered':
+      return OrderStatus.delivered;
+    case 'cancelled':
+      return OrderStatus.cancelled;
+    case 'refunded':
+      return OrderStatus.refunded;
+    default:
+      return OrderStatus.pending;
   }
-
+}
   static PaymentMethod _parsePaymentMethod(dynamic method) {
     switch (method.toString().toLowerCase()) {
       case 'cash-on-delivery':

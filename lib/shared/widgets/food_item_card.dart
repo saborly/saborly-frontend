@@ -113,7 +113,8 @@ class FoodItemCard extends StatelessWidget {
       final isMobile = MediaQuery.of(context).size.width < 600;
       final displayName = isMobile && foodItem.name.length > 16
           ? '${foodItem.name.substring(0, 15)}…'
-          : foodItem.name;
+          : foodItem.name.length > 20
+          ? '${foodItem.name.substring(0, 19)}…':foodItem.name;
 
       return Text(
         displayName,
@@ -123,7 +124,7 @@ class FoodItemCard extends StatelessWidget {
           fontSize: _getTitleFontSize(cardSize, screenWidth),
           fontWeight: FontWeight.w700,
           color: AppColors.textDark,
-          height: 1.2,
+          height: 1.4,
         ),
       );
     },

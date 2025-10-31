@@ -755,6 +755,12 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> with SingleTick
         statusIcon = Icons.shopping_bag_rounded;
         text = 'Pickup';
         break;
+        case OrderStatus.driverpickup:
+        backgroundColor = const Color(0xFFBFDBFE);
+        textColor = const Color.fromARGB(255, 40, 147, 173);
+        statusIcon = Icons.shopping_bag_rounded;
+        text = 'Drive Pickup';
+        break;
       case OrderStatus.shop:
         backgroundColor = const Color(0xFFD1FAE5);
         textColor = const Color(0xFF065F46);

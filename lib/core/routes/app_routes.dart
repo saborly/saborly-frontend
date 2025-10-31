@@ -60,6 +60,7 @@ static const String faq = '/faq';
   static final GoRouter router = GoRouter(
     // Show splash on mobile, home on web
     initialLocation: kIsWeb ? home : splash,
+    
     redirect: (BuildContext context, GoRouterState state) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final isLoggedIn = authProvider.isAuthenticated;

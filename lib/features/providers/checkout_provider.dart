@@ -30,7 +30,7 @@ class CheckoutProvider extends ChangeNotifier {
 
   static const double shopLat = 41.3995;
   static const double shopLng = 2.1909;
-  static const double maxDeliveryDistance = 6.0;
+  static const double maxDeliveryDistance = 3.5;
 
   // Getters
   List<Branch> get branches => _branches;
@@ -106,7 +106,7 @@ class CheckoutProvider extends ChangeNotifier {
       return null;
     }
 
-    if (distance <= 3) {
+    if (distance <= 3.5) {
       return orderTotal >= 20 ? 0.0 : 3.5;
     } else if (distance <= 5) {
       return 10.0;
