@@ -1,3 +1,4 @@
+import 'package:Saborly/features/providers/offer_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +32,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
         orderProvider: context.read<OrderProvider>(),
         cartProvider: context.read<CartProvider>(),
         checkoutProvider: context.read<CheckoutProvider>(),
+              offersProvider: context.read<OffersProvider>(), // NEW: Add this line
+
       );
     });
   }

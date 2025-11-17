@@ -1,3 +1,4 @@
+// lib/shared/models/offer.dart - With isOneTimePerDevice Support
 import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
 import 'package:Saborly/core/services/language_service.dart';
@@ -17,7 +18,8 @@ class OfferModel extends Equatable {
   final String? couponCode;
   final bool isActive;
   final bool isFeatured;
-  final List<String> platforms; 
+  final List<String> platforms;
+  final bool isOneTimePerDevice; // NEW
 
   const OfferModel({
     required this.id,
@@ -34,16 +36,18 @@ class OfferModel extends Equatable {
     this.couponCode,
     this.isActive = true,
     this.isFeatured = false,
-    this.platforms = const ['all'], // NEW: Default to all platforms
+    this.platforms = const ['all'],
+    this.isOneTimePerDevice = false, // NEW
   });
 
   @override
   List<Object?> get props => [
         id, title, description, badge, imageUrl, expiryDate, category,
-        type, value, minOrderAmount, couponCode, isActive, isFeatured, platforms,
+        type, value, minOrderAmount, couponCode, isActive, isFeatured, 
+        platforms, isOneTimePerDevice, // NEW
       ];
 
-  // NEW: Check if offer is valid for a specific platform
+  /// Check if offer is valid for a specific platform
   bool isValidForPlatform(String platform) {
     if (platforms.isEmpty || platforms.contains('all')) return true;
     return platforms.contains(platform);
@@ -84,7 +88,7 @@ class OfferModel extends Equatable {
       type,
     );
 
-    // NEW: Parse platforms array
+    // Parse platforms array
     List<String> platforms = ['all'];
     if (json['platforms'] != null && json['platforms'] is List) {
       platforms = (json['platforms'] as List)
@@ -109,7 +113,8 @@ class OfferModel extends Equatable {
       couponCode: json['couponCode'] as String?,
       isActive: json['isActive'] as bool? ?? true,
       isFeatured: json['isFeatured'] as bool? ?? false,
-      platforms: platforms, // NEW
+      platforms: platforms,
+      isOneTimePerDevice: json['isOneTimePerDevice'] as bool? ?? false, // NEW
     );
   }
 
@@ -128,7 +133,8 @@ class OfferModel extends Equatable {
       'couponCode': couponCode,
       'isActive': isActive,
       'isFeatured': isFeatured,
-      'platforms': platforms, // NEW
+      'platforms': platforms,
+      'isOneTimePerDevice': isOneTimePerDevice, // NEW
     };
   }
 
@@ -206,7 +212,8 @@ class OfferModel extends Equatable {
     String? couponCode,
     bool? isActive,
     bool? isFeatured,
-    List<String>? platforms, // NEW
+    List<String>? platforms,
+    bool? isOneTimePerDevice, // NEW
   }) {
     return OfferModel(
       id: id ?? this.id,
@@ -223,19 +230,21 @@ class OfferModel extends Equatable {
       couponCode: couponCode ?? this.couponCode,
       isActive: isActive ?? this.isActive,
       isFeatured: isFeatured ?? this.isFeatured,
-      platforms: platforms ?? this.platforms, // NEW
+      platforms: platforms ?? this.platforms,
+      isOneTimePerDevice: isOneTimePerDevice ?? this.isOneTimePerDevice, // NEW
     );
   }
 }
 
-// Simple Offer Info (used in FoodItem) with Platform Support
+// Simple Offer Info (used in FoodItem) with Platform and Device Support
 class SimpleOffer extends Equatable {
   final String id;
   final String title;
   final String type;
   final double value;
   final String badge;
-  final List<String> platforms; // NEW
+  final List<String> platforms;
+  final bool isOneTimePerDevice; // NEW
 
   const SimpleOffer({
     required this.id,
@@ -243,13 +252,14 @@ class SimpleOffer extends Equatable {
     required this.type,
     required this.value,
     required this.badge,
-    this.platforms = const ['all'], // NEW
+    this.platforms = const ['all'],
+    this.isOneTimePerDevice = false, // NEW
   });
 
   @override
-  List<Object?> get props => [id, title, type, value, badge, platforms];
+  List<Object?> get props => [id, title, type, value, badge, platforms, isOneTimePerDevice];
 
-  // NEW: Check if offer is valid for a specific platform
+  /// Check if offer is valid for a specific platform
   bool isValidForPlatform(String platform) {
     if (platforms.isEmpty || platforms.contains('all')) return true;
     return platforms.contains(platform);
@@ -270,7 +280,8 @@ class SimpleOffer extends Equatable {
       type: json['type'] as String,
       value: (json['value'] as num).toDouble(),
       badge: json['badge'] as String,
-      platforms: platforms, // NEW
+      platforms: platforms,
+      isOneTimePerDevice: json['isOneTimePerDevice'] as bool? ?? false, // NEW
     );
   }
 
@@ -281,7 +292,8 @@ class SimpleOffer extends Equatable {
       'type': type,
       'value': value,
       'badge': badge,
-      'platforms': platforms, // NEW
+      'platforms': platforms,
+      'isOneTimePerDevice': isOneTimePerDevice, // NEW
     };
   }
 
@@ -291,7 +303,8 @@ class SimpleOffer extends Equatable {
     String? type,
     double? value,
     String? badge,
-    List<String>? platforms, // NEW
+    List<String>? platforms,
+    bool? isOneTimePerDevice, // NEW
   }) {
     return SimpleOffer(
       id: id ?? this.id,
@@ -299,10 +312,13 @@ class SimpleOffer extends Equatable {
       type: type ?? this.type,
       value: value ?? this.value,
       badge: badge ?? this.badge,
-      platforms: platforms ?? this.platforms, // NEW
+      platforms: platforms ?? this.platforms,
+      isOneTimePerDevice: isOneTimePerDevice ?? this.isOneTimePerDevice, // NEW
     );
   }
 }
+
+// Rest of the models remain the same (CategoryInfo, FoodItemWithOffer)
 
 // Category Info (used in FoodItemWithOffer)
 class CategoryInfo extends Equatable {

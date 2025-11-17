@@ -1,121 +1,176 @@
 // lib/core/services/device_discount_manager.dart
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 
-/// Manages device-level discount eligibility to ensure 
-/// one device can only receive one discount
 class DeviceDiscountManager {
-  static const String _keyActiveDiscount = 'active_device_discount';
-  static const String _keyDiscountHistory = 'device_discount_history';
-  static const String _keyDeviceId = 'device_unique_id';
-  
   final SharedPreferences _prefs;
   String? _deviceId;
 
+  static const String _keyActiveDiscount = 'active_discount';
+  static const String _keyDiscountHistory = 'discount_history';
+  static const String _keyDeviceId = 'device_id';
+  static const String _keyClaimedOffers = 'claimed_offers'; // NEW
+
   DeviceDiscountManager(this._prefs);
 
-  /// Initialize and get device ID
+  String? get deviceId => _deviceId;
+
+  /// Initialize and get/generate device ID
   Future<void> initialize() async {
-    _deviceId = await _getOrCreateDeviceId();
+    _deviceId = _prefs.getString(_keyDeviceId);
+
+    if (_deviceId == null || _deviceId!.isEmpty) {
+      _deviceId = await _generateDeviceId();
+      await _prefs.setString(_keyDeviceId, _deviceId!);
+      
+      if (kDebugMode) {
+        print('📱 Generated new device ID: $_deviceId');
+      }
+    } else {
+      if (kDebugMode) {
+        print('📱 Using existing device ID: $_deviceId');
+      }
+    }
   }
 
-  /// Get or create a unique device identifier
-  Future<String> _getOrCreateDeviceId() async {
-    // Check if we already have a device ID stored
-    String? storedId = _prefs.getString(_keyDeviceId);
-    if (storedId != null && storedId.isNotEmpty) {
-      return storedId;
-    }
-
-    // Generate new device ID
-    final deviceInfo = DeviceInfoPlugin();
-    String deviceId;
-
+  /// Generate unique device ID
+  Future<String> _generateDeviceId() async {
     try {
-      if (kIsWeb) {
-        // For web, use a combination of browser info
-        final webInfo = await deviceInfo.webBrowserInfo;
-        deviceId = '${webInfo.vendor}_${webInfo.userAgent}_${webInfo.hardwareConcurrency}';
-      } else if (Platform.isAndroid) {
+      final deviceInfo = DeviceInfoPlugin();
+      String identifier = '';
+
+      if (Platform.isAndroid) {
         final androidInfo = await deviceInfo.androidInfo;
-        deviceId = androidInfo.id; // This is the Android ID
+        identifier = '${androidInfo.id}_${androidInfo.device}_${androidInfo.model}';
       } else if (Platform.isIOS) {
         final iosInfo = await deviceInfo.iosInfo;
-        deviceId = iosInfo.identifierForVendor ?? 'ios_${DateTime.now().millisecondsSinceEpoch}';
+        identifier = '${iosInfo.identifierForVendor}_${iosInfo.model}';
       } else {
-        // Fallback for other platforms
-        deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
+        identifier = 'web_${DateTime.now().millisecondsSinceEpoch}';
       }
 
-      // Store the device ID
-      await _prefs.setString(_keyDeviceId, deviceId);
-      return deviceId;
+      return identifier.hashCode.abs().toString();
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error getting device ID: $e');
+        print('❌ Error generating device ID: $e');
       }
-      // Fallback to timestamp-based ID
-      deviceId = 'fallback_${DateTime.now().millisecondsSinceEpoch}';
-      await _prefs.setString(_keyDeviceId, deviceId);
-      return deviceId;
+      return 'fallback_${DateTime.now().millisecondsSinceEpoch}';
     }
   }
 
-  /// Check if device already has an active discount
-  Future<bool> hasActiveDiscount() async {
-    final activeDiscountJson = _prefs.getString(_keyActiveDiscount);
-    
-    if (activeDiscountJson == null) {
-      return false;
-    }
+  // ==================== CLAIMED OFFERS MANAGEMENT ====================
 
+  /// Get set of claimed offer IDs for this device
+  Future<Set<String>> getClaimedOfferIds() async {
     try {
-      // Parse stored discount data
-      final data = _parseDiscountData(activeDiscountJson);
-      
-      // Check if discount is still valid
-      if (data['expiryDate'] != null) {
-        final expiryDate = DateTime.parse(data['expiryDate'] as String);
-        if (expiryDate.isBefore(DateTime.now())) {
-          // Discount expired, clear it
-          await clearActiveDiscount();
-          return false;
+      final claimedJson = _prefs.getString(_keyClaimedOffers);
+      if (claimedJson == null) return {};
+
+      final List<dynamic> claimedList = json.decode(claimedJson);
+      return claimedList
+          .map((item) => item['offerId'] as String?)
+          .whereType<String>()
+          .toSet();
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error getting claimed offers: $e');
+      }
+      return {};
+    }
+  }
+
+  /// Mark an offer as claimed by this device
+  Future<bool> markOfferAsClaimed(String offerId, {
+    String? offerTitle,
+    String? userId,
+  }) async {
+    try {
+      final claimedJson = _prefs.getString(_keyClaimedOffers) ?? '[]';
+      final List<dynamic> claimedList = json.decode(claimedJson);
+
+      // Check if already claimed
+      if (claimedList.any((item) => item['offerId'] == offerId)) {
+        if (kDebugMode) {
+          print('⚠️ Offer $offerId already claimed by this device');
         }
+        return false;
+      }
+
+      // Add new claim
+      claimedList.add({
+        'offerId': offerId,
+        'offerTitle': offerTitle,
+        'claimedAt': DateTime.now().toIso8601String(),
+        'userId': userId,
+        'deviceId': _deviceId,
+      });
+
+      await _prefs.setString(_keyClaimedOffers, json.encode(claimedList));
+
+      if (kDebugMode) {
+        print('✅ Marked offer $offerId as claimed for device $_deviceId');
       }
 
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error checking active discount: $e');
+        print('❌ Error marking offer as claimed: $e');
       }
       return false;
     }
   }
 
-  /// Get the currently active discount for this device
-  Future<Map<String, dynamic>?> getActiveDiscount() async {
-    final activeDiscountJson = _prefs.getString(_keyActiveDiscount);
-    
-    if (activeDiscountJson == null) {
-      return null;
-    }
+  /// Check if specific offer is claimed by this device
+  Future<bool> isOfferClaimed(String offerId) async {
+    final claimedIds = await getClaimedOfferIds();
+    return claimedIds.contains(offerId);
+  }
 
+  /// Get full claimed offers history
+  Future<List<Map<String, dynamic>>> getClaimedOffersHistory() async {
     try {
-      final data = _parseDiscountData(activeDiscountJson);
-      
-      // Check if discount is still valid
-      if (data['expiryDate'] != null) {
-        final expiryDate = DateTime.parse(data['expiryDate'] as String);
-        if (expiryDate.isBefore(DateTime.now())) {
-          // Discount expired
+      final claimedJson = _prefs.getString(_keyClaimedOffers);
+      if (claimedJson == null) return [];
+
+      final List<dynamic> claimedList = json.decode(claimedJson);
+      return claimedList.cast<Map<String, dynamic>>();
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error getting claimed offers history: $e');
+      }
+      return [];
+    }
+  }
+
+  // ==================== ACTIVE DISCOUNT MANAGEMENT ====================
+
+  /// Check if device has an active discount
+  Future<bool> hasActiveDiscount() async {
+    final activeDiscount = await getActiveDiscount();
+    return activeDiscount != null;
+  }
+
+  /// Get currently active discount for this device
+  Future<Map<String, dynamic>?> getActiveDiscount() async {
+    try {
+      final discountJson = _prefs.getString(_keyActiveDiscount);
+      if (discountJson == null) return null;
+
+      final discount = json.decode(discountJson) as Map<String, dynamic>;
+
+      // Check if expired
+      if (discount['expiryDate'] != null) {
+        final expiry = DateTime.parse(discount['expiryDate']);
+        if (expiry.isBefore(DateTime.now())) {
           await clearActiveDiscount();
           return null;
         }
       }
 
-      return data;
+      return discount;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error getting active discount: $e');
@@ -133,41 +188,62 @@ class DeviceDiscountManager {
     DateTime? expiryDate,
     String? itemId,
     String? itemName,
+    bool isOneTimeOffer = false,
   }) async {
-    // Check if device already has an active discount
-    if (await hasActiveDiscount()) {
+    try {
+      // Check if device already has active discount
+      if (await hasActiveDiscount()) {
+        if (kDebugMode) {
+          print('⚠️ Device already has an active discount');
+        }
+        return false;
+      }
+
+      // Check if one-time offer already claimed
+      if (isOneTimeOffer && await isOfferClaimed(offerId)) {
+        if (kDebugMode) {
+          print('⚠️ One-time offer already claimed by this device');
+        }
+        return false;
+      }
+
+      final discount = {
+        'offerId': offerId,
+        'offerTitle': offerTitle,
+        'offerType': offerType,
+        'discountValue': discountValue,
+        'expiryDate': expiryDate?.toIso8601String(),
+        'claimedAt': DateTime.now().toIso8601String(),
+        'itemId': itemId,
+        'itemName': itemName,
+        'deviceId': _deviceId,
+        'isOneTimeOffer': isOneTimeOffer,
+      };
+
+      await _prefs.setString(_keyActiveDiscount, json.encode(discount));
+
+      // Add to history
+      await _addToHistory(discount);
+
+      // Mark as claimed if one-time offer
+      if (isOneTimeOffer) {
+        await markOfferAsClaimed(offerId, offerTitle: offerTitle);
+      }
+
       if (kDebugMode) {
-        print('⚠️ Device already has an active discount');
+        print('✅ Discount claimed: $offerTitle');
+      }
+
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error claiming discount: $e');
       }
       return false;
     }
-
-    final discountData = {
-      'deviceId': _deviceId,
-      'offerId': offerId,
-      'offerTitle': offerTitle,
-      'offerType': offerType,
-      'discountValue': discountValue,
-      'expiryDate': expiryDate?.toIso8601String(),
-      'claimedAt': DateTime.now().toIso8601String(),
-      'itemId': itemId,
-      'itemName': itemName,
-    };
-
-    // Store as active discount
-    await _prefs.setString(_keyActiveDiscount, _encodeDiscountData(discountData));
-    
-    // Add to history
-    await _addToHistory(discountData);
-
-    if (kDebugMode) {
-      print('✅ Discount claimed successfully: $offerTitle');
-    }
-
-    return true;
   }
 
-  /// Clear the active discount
+  /// Clear active discount (called after order completion)
   Future<void> clearActiveDiscount() async {
     await _prefs.remove(_keyActiveDiscount);
     
@@ -176,93 +252,52 @@ class DeviceDiscountManager {
     }
   }
 
-  /// Get discount history for this device
+  /// Get discount history
   Future<List<Map<String, dynamic>>> getDiscountHistory() async {
-    final historyJson = _prefs.getString(_keyDiscountHistory);
-    
-    if (historyJson == null) {
-      return [];
-    }
-
     try {
-      // Simple comma-separated storage
-      final List<String> historyItems = historyJson.split('|||');
-      return historyItems
-          .where((item) => item.isNotEmpty)
-          .map((item) => _parseDiscountData(item))
-          .toList();
+      final historyJson = _prefs.getString(_keyDiscountHistory);
+      if (historyJson == null) return [];
+
+      final List<dynamic> history = json.decode(historyJson);
+      return history.cast<Map<String, dynamic>>();
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error getting discount history: $e');
+        print('❌ Error getting history: $e');
       }
       return [];
     }
   }
 
   /// Add discount to history
-  Future<void> _addToHistory(Map<String, dynamic> discountData) async {
-    final history = await getDiscountHistory();
-    history.insert(0, discountData);
-    
-    // Keep only last 10 discounts
-    if (history.length > 10) {
-      history.removeRange(10, history.length);
-    }
+  Future<void> _addToHistory(Map<String, dynamic> discount) async {
+    try {
+      final history = await getDiscountHistory();
+      history.insert(0, {
+        ...discount,
+        'usedAt': DateTime.now().toIso8601String(),
+      });
 
-    // Store history
-    final historyJson = history
-        .map((item) => _encodeDiscountData(item))
-        .join('|||');
-    
-    await _prefs.setString(_keyDiscountHistory, historyJson);
-  }
+      // Keep only last 50 entries
+      if (history.length > 50) {
+        history.removeRange(50, history.length);
+      }
 
-  /// Simple encoding for storage (key=value pairs)
-  String _encodeDiscountData(Map<String, dynamic> data) {
-    return data.entries
-        .map((e) => '${e.key}=${e.value?.toString() ?? ""}')
-        .join('&');
-  }
-
-  /// Simple decoding from storage
-  Map<String, dynamic> _parseDiscountData(String encoded) {
-    final Map<String, dynamic> data = {};
-    
-    final pairs = encoded.split('&');
-    for (final pair in pairs) {
-      final parts = pair.split('=');
-      if (parts.length == 2) {
-        final key = parts[0];
-        final value = parts[1];
-        
-        // Parse numbers
-        if (key == 'discountValue') {
-          data[key] = double.tryParse(value) ?? 0.0;
-        } else {
-          data[key] = value.isEmpty ? null : value;
-        }
+      await _prefs.setString(_keyDiscountHistory, json.encode(history));
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error adding to history: $e');
       }
     }
-    
-    return data;
   }
 
-  /// Check if a specific offer was already claimed on this device
-  Future<bool> wasOfferClaimed(String offerId) async {
-    final history = await getDiscountHistory();
-    return history.any((item) => item['offerId'] == offerId);
-  }
-
-  /// Get device ID
-  String? get deviceId => _deviceId;
-
-  /// Reset all discount data (for testing or user request)
-  Future<void> resetAllDiscounts() async {
+  /// Clear all data (for testing/debugging)
+  Future<void> clearAll() async {
     await _prefs.remove(_keyActiveDiscount);
     await _prefs.remove(_keyDiscountHistory);
+    await _prefs.remove(_keyClaimedOffers);
     
     if (kDebugMode) {
-      print('🔄 All discount data reset');
+      print('🗑️ All discount data cleared');
     }
   }
 }
