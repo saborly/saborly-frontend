@@ -20,6 +20,9 @@ import 'package:Saborly/shared/widgets/offersSection.dart';
 import 'package:Saborly/shared/widgets/ooter.dart';
 import 'package:Saborly/shared/widgets/promotional_banner.dart';
 import 'package:Saborly/shared/widgets/search_bar_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../shared/widgets/download_app_modal.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,8 +42,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final GlobalKey _searchResultsKey = GlobalKey();
   final TextEditingController _searchController = TextEditingController();
   String _lastProcessedLanguage = '';
-  
-  // ✅ Route observer for detecting navigation
+  bool _hasShownModal = false;
+  bool _isDataLoaded = false; // ✅ Track if initial data is loaded
+
   static final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
   @override
@@ -49,21 +53,64 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final initialLanguage = context.read<LanguageService>().currentLanguage;
     _lastProcessedLanguage = initialLanguage;
     
+    // ✅ Load data immediately without waiting
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        // ✅ Clear search on init
         _clearSearchSilently();
-        context.read<HomeProvider>().loadHomeData();
-        context.read<OffersProvider>().loadOffers();
+        _loadDataAndShowModal();
       }
     });
+  }
+
+  // ✅ Load data and show modal in parallel (non-blocking)
+  Future<void> _loadDataAndShowModal() async {
+    if (!mounted) return;
+
+    // Start loading data immediately
+    final dataFuture = Future.wait([
+      context.read<HomeProvider>().loadHomeData(),
+      context.read<OffersProvider>().loadOffers(),
+    ]);
+
+    // Mark as loaded once data arrives
+    dataFuture.then((_) {
+      if (mounted) {
+        setState(() => _isDataLoaded = true);
+      }
+    });
+
+    // Check modal timing in parallel (don't wait for data)
+    if (ResponsiveUtils.isWeb(context) && !_hasShownModal) {
+      _checkAndShowModal();
+    }
+  }
+
+  // ✅ Show modal with minimal delay, independent of data loading
+  Future<void> _checkAndShowModal() async {
+    if (!mounted || _hasShownModal) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final lastDismissed = prefs.getInt('download_modal_dismissed') ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    
+    // Show if dismissed more than 2 hours ago
+    if (now - lastDismissed > 7200000) {
+      _hasShownModal = true;
+      
+      // Minimal delay - just enough for first frame
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      if (mounted) {
+        await showDownloadAppModal(context);
+        await prefs.setInt('download_modal_dismissed', now);
+      }
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     
-    // ✅ Subscribe to route changes
     final modalRoute = ModalRoute.of(context);
     if (modalRoute is PageRoute) {
       routeObserver.subscribe(this, modalRoute);
@@ -83,30 +130,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
   }
 
-  // ✅ RouteAware callbacks
   @override
   void didPopNext() {
-    // Called when returning to this page from another page
-    if (mounted) {
-      _clearSearchSilently();
-    }
+    if (mounted) _clearSearchSilently();
   }
 
   @override
   void didPush() {
-    // Called when this page is first pushed
-    if (mounted) {
-      _clearSearchSilently();
-    }
+    if (mounted) _clearSearchSilently();
   }
 
   @override
   void didPushNext() {
-    // Called when navigating away from this page
-    // Clear search when leaving
-    if (mounted) {
-      _clearSearchSilently();
-    }
+    if (mounted) _clearSearchSilently();
   }
 
   @override
@@ -117,13 +153,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     super.dispose();
   }
 
-  /// ✅ Clear search silently (without animation)
   void _clearSearchSilently() {
     _searchController.clear();
     context.read<HomeProvider>().exitSearchMode();
   }
 
-  /// ✅ Simplified search handler
   void _handleSearch(String query) {
     final provider = context.read<HomeProvider>();
     
@@ -132,19 +166,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     } else {
       provider.performSearch(query.trim());
       
-      // Auto-scroll to results after a delay
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) _scrollToSearchResults();
       });
     }
   }
 
-  /// ✅ Clear search and reset view (with animation)
   void _clearSearch() {
     _searchController.clear();
     context.read<HomeProvider>().exitSearchMode();
     
-    // Scroll to top
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
@@ -154,7 +185,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
   }
 
-  /// ✅ Scroll to search results section
   void _scrollToSearchResults() {
     if (_searchResultsKey.currentContext != null) {
       Scrollable.ensureVisible(
@@ -212,10 +242,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           },
           child: Scaffold(
             backgroundColor: isWeb ? const Color(0xFFFAFAFA) : Colors.white,
-            appBar: isWeb || isTalet  ? null : _buildMobileAppBar(),
-            body: Consumer<HomeProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading && !provider.isInSearchMode && provider.categories.isEmpty) {
+            appBar: isWeb || isTalet ? null : _buildMobileAppBar(),
+            body: Consumer2<HomeProvider, OffersProvider>(
+              builder: (context, homeProvider, offersProvider, child) {
+                if (homeProvider.isLoading && 
+                    !homeProvider.isInSearchMode && 
+                    homeProvider.categories.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
           
@@ -223,8 +255,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   onRefresh: () async {
                     _clearSearch();
                     await Future.wait([
-                      provider.loadHomeData(),
-                      context.read<OffersProvider>().loadOffers(),
+                      homeProvider.loadHomeData(),
+                      offersProvider.loadOffers(),
                     ]);
                   },
                   child: LayoutBuilder(
@@ -254,7 +286,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                     children: [
                                       if (isWeb) SizedBox(height: 32.h) else SizedBox(height: 16.h),
           
-                                      // ✅ Search bar with controller
                                       if (!isWeb) ...[
                                         SizedBox(height: 16.h),
                                         SearchBarWidget(
@@ -263,23 +294,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         ),
                                         SizedBox(height: 16.h),
                                         
-                                        // ✅ Show search status banner
-                                        if (provider.isInSearchMode) 
-                                          _buildSearchStatusBanner(provider),
+                                        if (homeProvider.isInSearchMode) 
+                                          _buildSearchStatusBanner(homeProvider),
                                       ],
 
-                                      // ✅ Use provider's isInSearchMode
-                                      if (provider.isInSearchMode) ...[
-                                        // Show ONLY search results
+                                      if (homeProvider.isInSearchMode) ...[
                                         SizedBox(height: 24.h),
                                         _buildSearchResults(
-                                          provider,
+                                          homeProvider,
                                           isSmallScreen,
                                           isTablet,
                                           isDesktop,
                                         ),
                                       ] else ...[
-                                        // Show normal home content
                                         DynamicPromotionalBanner(),
                                         SizedBox(height: isWeb ? 40.h : 24.h),
           
@@ -287,33 +314,36 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           AppStrings.get('ourMenu'),
                                           isWeb: isWeb,
                                           onViewAll: () {
-                                            _clearSearchSilently(); // Clear before navigation
+                                            _clearSearchSilently();
                                             context.go(AppRoutes.menu);
                                           },
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
-                                        _buildCategoriesSlider(provider, context, isWeb),
+                                        _buildCategoriesSlider(homeProvider, context, isWeb),
                                         SizedBox(height: isWeb ? 48.h : 24.h),
           
                                         _buildSectionHeader(
                                           AppStrings.get('featuredItems'),
                                           isWeb: isWeb,
-                                          onViewAll: () => _navigateToFeaturedPage(context, provider),
+                                          onViewAll: () => _navigateToFeaturedPage(context, homeProvider),
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
-                                        _buildFeaturedItems(provider, isSmallScreen, isTablet, isDesktop),
+                                        _buildFeaturedItems(homeProvider, isSmallScreen, isTablet, isDesktop),
                                         SizedBox(height: isWeb ? 48.h : 24.h),
           
-                                        const OffersSection(),
-                                        SizedBox(height: isWeb ? 48.h : 24.h),
+                                        if (offersProvider.itemsWithOffers.isNotEmpty || 
+                                            offersProvider.allOffers.isNotEmpty) ...[
+                                          const OffersSection(),
+                                          SizedBox(height: isWeb ? 48.h : 24.h),
+                                        ],
           
                                         _buildSectionHeader(
                                           AppStrings.get('mostPopularItems'),
                                           isWeb: isWeb,
-                                          onViewAll: () => _navigateToPopularPage(context, provider),
+                                          onViewAll: () => _navigateToPopularPage(context, homeProvider),
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
-                                        _buildPopularItems(provider, isSmallScreen, isTablet, isDesktop),
+                                        _buildPopularItems(homeProvider, isSmallScreen, isTablet, isDesktop),
                                       ],
                                       
                                       SizedBox(height: isWeb ? 64.h : 32.h),
@@ -323,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                               ),
                             ),
           
-                            if (isWeb && !provider.isInSearchMode)
+                            if (isWeb && !homeProvider.isInSearchMode)
                               Container(
                                 width: double.infinity,
                                 child: FoodKingFooter(),
@@ -342,7 +372,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  /// ✅ Use provider's data for status banner
   Widget _buildSearchStatusBanner(HomeProvider provider) {
     final totalResults = provider.searchResults.length;
     
@@ -358,11 +387,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.search,
-            color: AppColors.primary,
-            size: 20.sp,
-          ),
+          Icon(Icons.search, color: AppColors.primary, size: 20.sp),
           SizedBox(width: 12.w),
           Expanded(
             child: Column(
@@ -383,21 +408,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   provider.isSearchLoading 
                       ? 'Loading...'
                       : '$totalResults ${totalResults == 1 ? 'result' : 'results'} found',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.textMedium,
-                  ),
+                  style: TextStyle(fontSize: 12.sp, color: AppColors.textMedium),
                 ),
               ],
             ),
           ),
           IconButton(
             onPressed: _clearSearch,
-            icon: Icon(
-              Icons.close,
-              color: AppColors.textDark,
-              size: 20.sp,
-            ),
+            icon: Icon(Icons.close, color: AppColors.textDark, size: 20.sp),
             padding: EdgeInsets.zero,
             constraints: BoxConstraints(),
           ),
@@ -406,7 +424,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  /// ✅ Use provider's searchResults
   Widget _buildSearchResults(
     HomeProvider provider,
     bool isSmallScreen,
@@ -461,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               key: ValueKey('search_${item.id}'),
               foodItem: item,
               onTap: () {
-                _clearSearchSilently(); // ✅ Clear before navigation
+                _clearSearchSilently();
                 context.push(AppRoutes.foodDetail, extra: item);
               },
             );
@@ -478,11 +495,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.search_off,
-              size: 80.sp,
-              color: AppColors.textLight,
-            ),
+            Icon(Icons.search_off, size: 80.sp, color: AppColors.textLight),
             SizedBox(height: 24.h),
             Text(
               'No Results Found',
@@ -495,25 +508,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             SizedBox(height: 12.h),
             Text(
               'Try searching with different keywords',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: AppColors.textMedium,
-              ),
+              style: TextStyle(fontSize: 14.sp, color: AppColors.textMedium),
             ),
             SizedBox(height: 24.h),
             TextButton.icon(
               onPressed: _clearSearch,
               icon: Icon(Icons.clear_all, size: 20.sp),
-              label: Text(
-                'Clear Search',
-                style: TextStyle(fontSize: 16.sp),
-              ),
+              label: Text('Clear Search', style: TextStyle(fontSize: 16.sp)),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
-                padding: EdgeInsets.symmetric(
-                  horizontal: 24.w,
-                  vertical: 12.h,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
               ),
             ),
           ],
@@ -523,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   void _navigateToFeaturedPage(BuildContext context, HomeProvider provider) {
-    _clearSearchSilently(); // ✅ Clear before navigation
+    _clearSearchSilently();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -538,7 +542,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   void _navigateToPopularPage(BuildContext context, HomeProvider provider) {
-    _clearSearchSilently(); // ✅ Clear before navigation
+    _clearSearchSilently();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -570,10 +574,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       actions: [
         Padding(
           padding: EdgeInsets.only(right: 4.w),
-          child: LanguageSelector(
-            showLabel: false,
-            isCompact: true,
-          ),
+          child: LanguageSelector(showLabel: false, isCompact: true),
         ),
         Consumer<NotificationProvider>(
           builder: (context, notificationProvider, _) {
@@ -584,7 +585,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               children: [
                 IconButton(
                   onPressed: () {
-                    _clearSearchSilently(); // ✅ Clear before navigation
+                    _clearSearchSilently();
                     context.push(AppRoutes.notifications);
                   },
                   icon: Icon(
@@ -604,10 +605,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      constraints: BoxConstraints(
-                        minWidth: 16.w,
-                        minHeight: 16.h,
-                      ),
+                      constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.h),
                       child: Text(
                         unreadCount > 99 ? '99+' : '$unreadCount',
                         style: TextStyle(
@@ -760,7 +758,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             child: FoodCategoryCard(
               category: category,
               onTap: () {
-                _clearSearchSilently(); // ✅ Clear before navigation
+                _clearSearchSilently();
                 context.push(AppRoutes.menu, extra: {'category': category.id});
               },
             ),
@@ -801,7 +799,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           key: ValueKey('featured_${item.id}'),
           foodItem: item,
           onTap: () {
-            _clearSearchSilently(); // ✅ Clear before navigation
+            _clearSearchSilently();
             context.push(AppRoutes.foodDetail, extra: item);
           },
         );
@@ -840,7 +838,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           key: ValueKey('popular_${item.id}'),
           foodItem: item,
           onTap: () {
-            _clearSearchSilently(); // ✅ Clear before navigation
+            _clearSearchSilently();
             context.push(AppRoutes.foodDetail, extra: item);
           },
         );
@@ -849,8 +847,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 }
 
-
-// ItemsGridPage remains unchanged
 class ItemsGridPage extends StatelessWidget {
   final ItemType itemType;
   final String titleKey;

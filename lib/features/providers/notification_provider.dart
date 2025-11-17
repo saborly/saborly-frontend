@@ -42,7 +42,6 @@ class NotificationProvider extends ChangeNotifier {
         _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Error loading notifications: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -58,7 +57,6 @@ class NotificationProvider extends ChangeNotifier {
       );
       await prefs.setString(_storageKey, encoded);
     } catch (e) {
-      if (kDebugMode) print('❌ Error saving notifications: $e');
     }
   }
 

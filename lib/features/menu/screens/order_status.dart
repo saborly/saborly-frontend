@@ -577,7 +577,6 @@ Widget _buildCancelledProgress(Order order) {
  Widget _buildOrderProgress(Order order) {
   final bool isPickupOrder = order.deliveryType == DeliveryType.pickup;
   final bool isCancelled = order.status == OrderStatus.cancelled;
-  debugPrint("order status is: ${order.status}");
 
   return Container(
     padding: EdgeInsets.all(isDesktop ? 36 : (isTablet ? 32 : 28)),

@@ -113,43 +113,28 @@ Future<bool> signInWithGoogle() async {
   _setError(null);
 
   try {
-    if (kDebugMode) {
-      print('🔵 Starting Google Sign-In...');
-      print('   Platform: ${kIsWeb ? "WEB" : Platform.operatingSystem}');
-    }
+ 
 
     // Sign out first to ensure clean state
     try {
       await _googleSignIn.signOut();
-      if (kDebugMode) print('   Signed out previous session');
     } catch (e) {
-      if (kDebugMode) print('   No previous session to sign out');
     }
 
     // Trigger Google Sign-In flow
     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
     if (googleUser == null) {
-      if (kDebugMode) print('⚠️ User cancelled Google Sign-In');
       _setSocialLoading(false);
       return false;
     }
 
-    if (kDebugMode) {
-      print('✅ Got Google account:');
-      print('   Email: ${googleUser.email}');
-      print('   Display Name: ${googleUser.displayName}');
-      print('   ID: ${googleUser.id}');
-    }
+  
 
     // Get authentication details
     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-    if (kDebugMode) {
-      print('✅ Got authentication:');
-      print('   ID Token: ${googleAuth.idToken != null ? "Present (${googleAuth.idToken!.length} chars)" : "NULL"}');
-      print('   Access Token: ${googleAuth.accessToken != null ? "Present" : "NULL"}');
-    }
+    
 
     // ✅ CRITICAL FIX: Handle both web and mobile flows properly
     String? idToken = googleAuth.idToken;
@@ -157,7 +142,6 @@ Future<bool> signInWithGoogle() async {
 
     // Check if we have either token
     if (idToken == null && accessToken == null) {
-      if (kDebugMode) print('❌ No tokens available');
       _setError('Failed to get Google credentials');
       _setSocialLoading(false);
       return false;
@@ -165,11 +149,7 @@ Future<bool> signInWithGoogle() async {
 
     // ✅ FIX: Use web flow for both web AND when ID token is missing
     if (kIsWeb || (idToken == null && accessToken != null)) {
-      if (kDebugMode) {
-        print('🔄 Using web/userInfo flow...');
-        print('   Reason: ${kIsWeb ? "Web platform" : "No ID token available"}');
-      }
-      
+     
       try {
         // Get user info from Google using access token
         final userInfoResponse = await http.get(
@@ -182,12 +162,7 @@ Future<bool> signInWithGoogle() async {
         if (userInfoResponse.statusCode == 200) {
           final userInfo = json.decode(userInfoResponse.body);
           
-          if (kDebugMode) {
-            print('✅ Got user info from Google:');
-            print('   Email: ${userInfo['email']}');
-            print('   Name: ${userInfo['name']}');
-            print('   Verified: ${userInfo['verified_email']}');
-          }
+        
 
           // Send user info directly to backend
           final response = await _apiService.googleSignInWeb(
@@ -204,16 +179,11 @@ Future<bool> signInWithGoogle() async {
             _setupTokenExpiryTimer();
             await _registerFCMToken();
 
-            if (kDebugMode) {
-              print('✅ Google Sign-In successful (Web flow)!');
-              print('   User: ${_user!.firstName} ${_user!.lastName}');
-              print('   Email: ${_user!.email}');
-            }
+          
             
             _setSocialLoading(false);
             return true;
           } else {
-            if (kDebugMode) print('❌ Backend error: ${response.error}');
             _setError(response.error ?? 'Google sign-in failed on server');
             _setSocialLoading(false);
             return false;
@@ -222,7 +192,6 @@ Future<bool> signInWithGoogle() async {
           throw Exception('Failed to get user info: ${userInfoResponse.statusCode}');
         }
       } catch (e) {
-        if (kDebugMode) print('❌ Error getting user info: $e');
         _setError('Failed to get user information from Google');
         _setSocialLoading(false);
         return false;
@@ -230,7 +199,6 @@ Future<bool> signInWithGoogle() async {
     }
 
     // Mobile flow with ID token (only if we have ID token)
-    if (kDebugMode) print('📤 Using mobile flow with ID token...');
     
     final response = await _apiService.googleSignIn(idToken!);
 
@@ -240,25 +208,17 @@ Future<bool> signInWithGoogle() async {
       _setupTokenExpiryTimer();
       await _registerFCMToken();
 
-      if (kDebugMode) {
-        print('✅ Google Sign-In successful (Mobile flow)!');
-        print('   User: ${_user!.firstName} ${_user!.lastName}');
-        print('   Email: ${_user!.email}');
-      }
+     
       
       _setSocialLoading(false);
       return true;
     } else {
-      if (kDebugMode) print('❌ Backend error: ${response.error}');
       _setError(response.error ?? 'Google sign-in failed on server');
       _setSocialLoading(false);
       return false;
     }
   } catch (e, stackTrace) {
-    if (kDebugMode) {
-      print('❌ Google Sign-In error: $e');
-      print('Stack trace: $stackTrace');
-    }
+   
     
     String errorMessage = 'Google sign-in error occurred';
     if (e.toString().contains('SIGN_IN_REQUIRED')) {
@@ -279,9 +239,7 @@ Future<bool> signInWithGoogle() async {
   Future<void> _signOutFromGoogle() async {
     try {
       await _googleSignIn.signOut();
-      if (kDebugMode) print('✅ Signed out from Google');
     } catch (e) {
-      if (kDebugMode) print('⚠️ Google sign-out error: $e');
     }
   }
 
@@ -292,20 +250,14 @@ Future<bool> signInWithGoogle() async {
     
     final tokenExpiry = _prefs.getInt('token_expiry');
     if (tokenExpiry == null) {
-      if (kDebugMode) print('⚠️ No token expiry found');
       return;
     }
 
     final expiryTime = DateTime.fromMillisecondsSinceEpoch(tokenExpiry);
     final now = DateTime.now();
-    
-    if (kDebugMode) {
-      print('🔐 Token expires at: $expiryTime');
-      print('⏰ Current time: $now');
-    }
+   
     
     if (expiryTime.isBefore(now)) {
-      if (kDebugMode) print('❌ Token expired - logging out');
       _handleTokenExpiry();
       return;
     }
@@ -313,10 +265,6 @@ Future<bool> signInWithGoogle() async {
     final duration = expiryTime.difference(now);
     final refreshDuration = duration - _tokenRefreshBuffer;
     
-    if (kDebugMode) {
-      print('⏳ Token expires in: ${duration.inMinutes} minutes');
-      print('🔄 Will refresh in: ${refreshDuration.inMinutes} minutes');
-    }
     
     if (refreshDuration.isNegative) {
       _refreshToken();
@@ -334,7 +282,6 @@ Future<bool> signInWithGoogle() async {
     if (_user == null) return;
     
     try {
-      if (kDebugMode) print('🔄 Refreshing token...');
       
       final response = await _apiService.refreshToken();
       
@@ -343,19 +290,15 @@ Future<bool> signInWithGoogle() async {
         await _saveUserData();
         _setupTokenExpiryTimer();
         
-        if (kDebugMode) print('✅ Token refreshed successfully');
       } else {
-        if (kDebugMode) print('❌ Refresh failed: ${response.error}');
         await _handleTokenExpiry();
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Refresh error: $e');
       await _handleTokenExpiry();
     }
   }
 
   Future<void> _handleTokenExpiry() async {
-    if (kDebugMode) print('🚫 Token expired - forcing logout');
     
     _setError('Your session has expired. Please login again.');
     await _clearUserData();
@@ -372,31 +315,22 @@ Future<bool> signInWithGoogle() async {
     final tokenExpiry = _prefs.getInt('token_expiry');
     
     if (tokenExpiry == null) {
-      if (kDebugMode) print('⚠️ No token expiry found');
       return;
     }
 
     final expiryTime = DateTime.fromMillisecondsSinceEpoch(tokenExpiry);
     final now = DateTime.now();
-    
-    if (kDebugMode) {
-      print('🔍 Validating token...');
-      print('   Expires: $expiryTime');
-      print('   Now: $now');
-    }
+   
     
     if (now.add(_tokenRefreshBuffer).isAfter(expiryTime)) {
-      if (kDebugMode) print('⏰ Token expiring soon - attempting refresh');
       await _refreshToken();
       return;
     }
     
     if (expiryTime.isBefore(now)) {
-      if (kDebugMode) print('❌ Token expired');
       await _handleTokenExpiry();
     } else {
       final remaining = expiryTime.difference(now);
-      if (kDebugMode) print('✅ Token valid - ${remaining.inMinutes} min remaining');
     }
   }
 
@@ -411,7 +345,6 @@ Future<bool> signInWithGoogle() async {
           final expiryTime = DateTime.fromMillisecondsSinceEpoch(tokenExpiry);
           
           if (DateTime.now().isAfter(expiryTime)) {
-            if (kDebugMode) print('⏰ Token expired on startup - refreshing');
             await _refreshToken();
             _setLoading(false);
             return;
@@ -437,12 +370,10 @@ Future<bool> signInWithGoogle() async {
             token: token,
           );
           
-          if (kDebugMode) print('✅ Auth restored for: $email');
           _setupTokenExpiryTimer();
         }
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Auth check error: $e');
       _setError('Failed to check authentication');
     } finally {
       _setLoading(false);
@@ -557,9 +488,7 @@ Future<bool> signInWithGoogle() async {
       _user = null;
       _setRequiresVerification(false);
       
-      if (kDebugMode) print('✅ Signed out');
     } catch (e) {
-      if (kDebugMode) print('⚠️ Logout error: $e');
       await _clearUserData();
       _user = null;
       _setRequiresVerification(false);
@@ -571,7 +500,6 @@ Future<bool> signInWithGoogle() async {
   Future<void> _registerFCMToken() async {
     try {
       if (kIsWeb) {
-        if (kDebugMode) print('⚠️ FCM not supported on web, skipping');
         return;
       }
 
@@ -586,7 +514,6 @@ Future<bool> signInWithGoogle() async {
         );
       }
     } catch (e) {
-      if (kDebugMode) print('⚠️ FCM error: $e');
     }
   }
 
@@ -770,7 +697,6 @@ Future<bool> signInWithGoogle() async {
       await _prefs.setInt('token_expiry', expiryTime.millisecondsSinceEpoch);
       
       if (kDebugMode) {
-        print('💾 User data saved - expires: $expiryTime');
       }
     }
   }
@@ -829,7 +755,6 @@ Future<bool> signInWithGoogle() async {
     await _prefs.remove('token_expiry');
     _apiService.clearAuthToken();
     
-    if (kDebugMode) print('🗑️ User data cleared');
   }
 
   void clearError() => _setError(null);

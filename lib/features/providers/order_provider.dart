@@ -130,10 +130,7 @@ class OrderProvider extends ChangeNotifier {
             _orders[index] = newOrder;
           }
           
-          if (kDebugMode) {
-            print('✅ Order updated: ${newOrder.status.name}');
-          }
-          
+        
           notifyListeners();
         }
       } else {
@@ -145,9 +142,7 @@ class OrderProvider extends ChangeNotifier {
       if (!silent) {
         _setError('Error loading order: ${e.toString()}');
       }
-      if (kDebugMode) {
-        print('❌ Error loading order: $e');
-      }
+  
     } finally {
       if (!silent) {
         _setLoading(false);
@@ -243,9 +238,7 @@ class OrderProvider extends ChangeNotifier {
       );
       notifyListeners();
       
-      if (kDebugMode) {
-        print('✅ Order status manually updated to: ${newStatus.name}');
-      }
+  
     }
 
     // Also update in orders list

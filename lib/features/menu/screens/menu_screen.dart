@@ -27,6 +27,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   String? _selectedCategoryId;
   DateTime? _lastPressedAt;
   late AnimationController _filterAnimationController;
+  bool _isInitialized = false; // ADD THIS FLAG
 
   @override
   void initState() {
@@ -39,39 +40,46 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) => _initializeScreen());
   }
 Future<void> _initializeScreen() async {
-  final provider = context.read<MenuProvider>();
+    final provider = context.read<MenuProvider>();
 
-  // Only load categories if not already loaded
-  if (provider.categories.isEmpty) {
-    await provider.loadCategories();
-  }
+    try {
+      // ✅ Load BOTH categories and food items in parallel
+      await Future.wait([
+        if (provider.categories.isEmpty) provider.loadCategories(),
+        provider.loadFoodItems(categoryId: _selectedCategoryId),
+      ]);
 
-  if (mounted && provider.categories.isNotEmpty) {
-    setState(() {
-      _tabController = TabController(
-        length: provider.categories.length + 1,
-        vsync: this,
-      );
-      _tabController!.addListener(_onTabChanged);
-    });
+      // Setup TabController after data is loaded
+      if (mounted && provider.categories.isNotEmpty) {
+        setState(() {
+          _tabController = TabController(
+            length: provider.categories.length + 1,
+            vsync: this,
+          );
+          _tabController!.addListener(_onTabChanged);
+        });
 
-    if (_selectedCategoryId != null) {
-      final index = provider.categories.indexWhere(
-        (category) => category.id == _selectedCategoryId,
-      );
-      if (index != -1) {
-        _tabController!.index = index + 1;
+        // Set initial tab if category is specified
+        if (_selectedCategoryId != null) {
+          final index = provider.categories.indexWhere(
+            (category) => category.id == _selectedCategoryId,
+          );
+          if (index != -1) {
+            _tabController!.index = index + 1;
+          }
+        }
+      }
+    } catch (e) {
+      
+    } finally {
+      // Mark as initialized
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
       }
     }
-
-    // Only load food items if not already loaded for this category
-    if (provider.foodItems.isEmpty || provider.categories != _selectedCategoryId) {
-      await provider.loadFoodItems(categoryId: _selectedCategoryId);
-    }
-  }
-}
-
-void _onTabChanged() {
+  }void _onTabChanged() {
     if (_tabController == null) return;
     
     final provider = context.read<MenuProvider>();
@@ -148,16 +156,19 @@ void _onTabChanged() {
             appBar: !isWeb ? _buildModernAppBar(context) : null,
             body: Consumer<MenuProvider>(
               builder: (context, provider, child) {
-                if (provider.isLoading && provider.categories.isEmpty) {
+                              if (!_isInitialized && provider.isLoading) {
                   return _buildLoadingState();
                 }
 
-                if (provider.error != null) {
+
+ if (_isInitialized && provider.error != null) {
                   return _buildErrorState(provider.error!);
                 }
-
-                if (provider.categories.isEmpty) {
-  return _buildEmptyState(AppStrings.get('noCategoriesAvailable'));
+               if (_isInitialized && provider.categories.isEmpty) {
+                  return _buildEmptyState(AppStrings.get('noCategoriesAvailable'));
+                }
+                    if (!_isInitialized) {
+                  return _buildLoadingState();
                 }
 
                 return CustomScrollView(

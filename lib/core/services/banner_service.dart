@@ -57,7 +57,6 @@ class BannerService {
         throw Exception('Failed to load banners');
       }
     } catch (e) {
-      print('Error fetching banners: $e');
       return [];
     }
   }
@@ -106,7 +105,6 @@ class ContactService {
         };
       }
     } catch (e) {
-      print('Error submitting contact form: $e');
       return {
         'success': false,
         'message': 'Error de conexión. Por favor verifica tu internet.',

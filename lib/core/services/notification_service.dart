@@ -43,38 +43,29 @@ class NotificationService {
   /// Permission will be requested later via requestPermissionWithDialog()
   Future<void> initialize() async {
     try {
-      if (kDebugMode) print('🔔 Initializing NotificationService (no permission request)...');
-
+   
       // Check current permission status WITHOUT requesting
       final settings = await _messaging.getNotificationSettings();
       
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        if (kDebugMode) print('✅ Notification permission already granted');
         await _completeInitialization();
       } else {
-        if (kDebugMode) print('⏳ Notification permission not yet granted');
         // Don't request permission here - wait for user-initiated request
       }
       
       _isInitialized = true;
-      if (kDebugMode) print('✅ NotificationService initialized (ready for permission request)');
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('❌ Notification initialization error: $e');
-        print('Stack trace: $stackTrace');
-      }
+      
     }
   }
 
   /// Request permission and complete setup - call this from your dialog
   Future<bool> requestPermissionWithDialog() async {
     try {
-      if (kDebugMode) print('📋 Requesting notification permission...');
       
       // Check if already granted
       final currentSettings = await _messaging.getNotificationSettings();
       if (currentSettings.authorizationStatus == AuthorizationStatus.authorized) {
-        if (kDebugMode) print('✅ Permission already granted');
         await _completeInitialization();
         return true;
       }
@@ -90,12 +81,9 @@ class NotificationService {
         criticalAlert: false,
       );
       
-      if (kDebugMode) {
-        print('Permission status: ${settings.authorizationStatus}');
-      }
+    
       
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        if (kDebugMode) print('✅ Permission granted! Completing setup...');
         await _completeInitialization();
         
         // Save that user has been asked
@@ -105,7 +93,6 @@ class NotificationService {
         
         return true;
       } else {
-        if (kDebugMode) print('❌ Permission denied');
         
         // Save that user has been asked
         final prefs = await SharedPreferences.getInstance();
@@ -115,7 +102,6 @@ class NotificationService {
         return false;
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Permission request error: $e');
       return false;
     }
   }
@@ -127,21 +113,17 @@ class NotificationService {
       final hasAsked = prefs.getBool('notification_permission_asked') ?? false;
       
       if (hasAsked) {
-        if (kDebugMode) print('⏭️ Already asked for permission before');
         return false;
       }
       
       // Check current status
       final settings = await _messaging.getNotificationSettings();
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        if (kDebugMode) print('✅ Already authorized');
         return false;
       }
       
-      if (kDebugMode) print('✅ Should show permission dialog');
       return true;
     } catch (e) {
-      if (kDebugMode) print('❌ Error checking permission dialog status: $e');
       return false;
     }
   }
@@ -152,7 +134,6 @@ class NotificationService {
       if (!kIsWeb) {
         await _initializeLocalNotifications();
       } else {
-        if (kDebugMode) print('🌐 Running on web - skipping local notifications');
       }
       
       await _getFCMToken();
@@ -160,25 +141,20 @@ class NotificationService {
       
       final initialMessage = await _messaging.getInitialMessage();
       if (initialMessage != null) {
-        if (kDebugMode) print('📬 App opened from notification');
         await _handleMessage(initialMessage);
         await _saveNotificationToProvider(initialMessage);
       }
       
-      if (kDebugMode) print('✅ Notification setup completed');
     } catch (e) {
-      if (kDebugMode) print('❌ Complete initialization error: $e');
     }
   }
 
   Future<void> _initializeLocalNotifications() async {
     if (kIsWeb) {
-      if (kDebugMode) print('🌐 Skipping local notifications for web');
       return;
     }
 
     try {
-      if (kDebugMode) print('📱 Initializing local notifications...');
       
       _localNotifications = FlutterLocalNotificationsPlugin();
       
@@ -197,14 +173,12 @@ class NotificationService {
       final initialized = await _localNotifications!.initialize(
         initSettings,
         onDidReceiveNotificationResponse: (details) {
-          if (kDebugMode) print('👆 Local notification tapped: ${details.payload}');
           if (details.payload != null) {
             _handleNotificationTap(details.payload!);
           }
         },
       );
       
-      if (kDebugMode) print('Local notifications initialized: $initialized');
 
       try {
         if (!kIsWeb && Platform.isAndroid) {
@@ -223,25 +197,20 @@ class NotificationService {
           
           if (androidPlugin != null) {
             await androidPlugin.createNotificationChannel(channel);
-            if (kDebugMode) print('✅ Android notification channel created');
           }
         }
       } catch (e) {
-        if (kDebugMode) print('⚠️ Could not create Android channel: $e');
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Local notifications error: $e');
     }
   }
 
   Future<void> _getFCMToken() async {
     try {
-      if (kDebugMode) print('🔑 Getting FCM token...');
       
       if (kIsWeb) {
         const vapidKey = 'BIxx0P8Ifh3XE6K8mZnlMx1ayvu9pRPTAIikbuqHkgf_OjUXZ_X23WE-prcaJyqVsCbjCk6kn0g8syuST25ncSo';
         
-        if (kDebugMode) print('🌐 Getting web token with VAPID key');
         
         _fcmToken = await _messaging.getToken(vapidKey: vapidKey);
       } else {
@@ -249,76 +218,51 @@ class NotificationService {
       }
       
       if (_fcmToken != null) {
-        if (kDebugMode) {
-          print('✅ FCM Token obtained');
-          print('Token: ${_fcmToken!.substring(0, 50)}...');
-        }
+     
         await _saveFCMToken(_fcmToken!);
       } else {
-        if (kDebugMode) print('❌ Failed to get FCM token');
       }
 
       _messaging.onTokenRefresh.listen((newToken) {
-        if (kDebugMode) print('🔄 FCM token refreshed');
         _fcmToken = newToken;
         _saveFCMToken(newToken);
       });
     } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('❌ FCM token error: $e');
-        print('Stack trace: $stackTrace');
-      }
+   
     }
   }
 
   void _setupMessageHandlers() {
-    if (kDebugMode) print('📨 Setting up message handlers...');
     
     try {
       FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-        if (kDebugMode) {
-          print('📨 Foreground message received');
-          print('   Title: ${message.notification?.title}');
-          print('   Body: ${message.notification?.body}');
-          print('   Data: ${message.data}');
-        }
+       
         
         await _handleForegroundMessage(message);
         await _saveNotificationToProvider(message);
       }, onError: (error) {
-        if (kDebugMode) print('❌ Foreground message error: $error');
       });
 
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
-        if (kDebugMode) {
-          print('👆 Notification tapped (app in background)');
-          print('   Data: ${message.data}');
-        }
-        
+     
         await _handleMessage(message);
         await _saveNotificationToProvider(message);
       }, onError: (error) {
-        if (kDebugMode) print('❌ Message opened error: $error');
       });
       
-      if (kDebugMode) print('✅ Message handlers setup complete');
     } catch (e) {
-      if (kDebugMode) print('❌ Message handler setup error: $e');
     }
   }
 
   Future<void> _saveNotificationToProvider(RemoteMessage message) async {
     try {
-      if (kDebugMode) print('💾 _saveNotificationToProvider called');
       
       final notification = message.notification;
       if (notification == null) {
-        if (kDebugMode) print('⚠️ No notification object in message');
         return;
       }
       
       if (notificationProviderCallback == null) {
-        if (kDebugMode) print('❌ notificationProviderCallback is null!');
         return;
       }
       
@@ -333,12 +277,8 @@ class NotificationService {
       );
       
       await notificationProviderCallback!(appNotification);
-      if (kDebugMode) print('✅ Callback executed successfully');
     } catch (e, stack) {
-      if (kDebugMode) {
-        print('❌ Error in _saveNotificationToProvider: $e');
-        print('Stack trace: $stack');
-      }
+      
     }
   }
 
@@ -349,9 +289,7 @@ class NotificationService {
 
       if (notification != null) {
         if (kIsWeb) {
-          if (kDebugMode) print('🌐 Browser will show notification automatically');
         } else {
-          if (kDebugMode) print('📱 Showing local notification');
           await _showLocalNotification(
             title: notification.title ?? 'New Notification',
             body: notification.body ?? '',
@@ -364,7 +302,6 @@ class NotificationService {
         onNotificationReceived!(data);
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Foreground message error: $e');
     }
   }
 
@@ -372,18 +309,15 @@ class NotificationService {
     try {
       final data = message.data;
       
-      if (kDebugMode) print('📬 Handling message data: $data');
       
       if (onNotificationTapped != null) {
         onNotificationTapped!(data);
       }
     } catch (e) {
-      if (kDebugMode) print('❌ Message handling error: $e');
     }
   }
 
   void _handleNotificationTap(String payload) {
-    if (kDebugMode) print('🔔 Notification tapped with payload: $payload');
   }
 
   Future<void> _showLocalNotification({
@@ -426,7 +360,6 @@ class NotificationService {
         payload: payload != null ? payload.toString() : null,
       );
     } catch (e) {
-      if (kDebugMode) print('❌ Show notification error: $e');
     }
   }
 
@@ -434,27 +367,21 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('fcm_token', token);
-      if (kDebugMode) print('✅ FCM token saved to preferences');
     } catch (e) {
-      if (kDebugMode) print('❌ Save FCM token error: $e');
     }
   }
 
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _messaging.subscribeToTopic(topic);
-      if (kDebugMode) print('✅ Subscribed to topic: $topic');
     } catch (e) {
-      if (kDebugMode) print('❌ Subscribe to topic error: $e');
     }
   }
 
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _messaging.unsubscribeFromTopic(topic);
-      if (kDebugMode) print('✅ Unsubscribed from topic: $topic');
     } catch (e) {
-      if (kDebugMode) print('❌ Unsubscribe to topic error: $e');
     }
   }
 
@@ -464,9 +391,7 @@ class NotificationService {
       _fcmToken = null;
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('fcm_token');
-      if (kDebugMode) print('✅ FCM token deleted');
     } catch (e) {
-      if (kDebugMode) print('❌ Delete token error: $e');
     }
   }
 }

@@ -1,4 +1,6 @@
+import 'package:Saborly/core/utils/time_utils.dart';
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 import 'dart:math' show cos, sqrt, asin;
 import '../../../core/services/api_service.dart';
 import '../../../shared/models/branch.dart';
@@ -31,7 +33,14 @@ class CheckoutProvider extends ChangeNotifier {
   static const double shopLat = 41.3995;
   static const double shopLng = 2.1909;
   static const double maxDeliveryDistance = 3.5;
+  bool _isRestaurantOpen = true;
+  String? _restaurantClosedMessage;
+  
+  bool get isRestaurantOpen => _isRestaurantOpen;
+  String? get restaurantClosedMessage => _restaurantClosedMessage;
 
+  // ✅ NEW: Check if orders are allowed (both delivery enabled AND restaurant open)
+  bool get canPlaceOrder => _isDeliveryEnabled && _isRestaurantOpen;
   // Getters
   List<Branch> get branches => _branches;
   Branch? get selectedBranch => _selectedBranch;
@@ -108,15 +117,14 @@ class CheckoutProvider extends ChangeNotifier {
 
     if (distance <= 3.5) {
       return orderTotal >= 20 ? 0.0 : 3.5;
-    } else if (distance <= 5) {
-      return 10.0;
-    } else {
-      return 12.0;
-    }
+    } 
   }
 
-  // ✅ NEW: Check if delivery is enabled from backend
-  Future<void> checkDeliveryAvailability() async {
+Future<void> checkDeliveryAvailability() async {
+    // Check restaurant hours first
+    _checkRestaurantHours();
+    
+    // Then check delivery settings from backend
     try {
       final response = await _apiService.getPublicSettings();
       
@@ -134,17 +142,63 @@ class CheckoutProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error checking delivery availability: $e');
       // Default to enabled on error
       _isDeliveryEnabled = true;
     }
   }
 
+  // ✅ NEW: Check restaurant operating hours
+  void _checkRestaurantHours() {
+    _isRestaurantOpen = TimeUtils.isRestaurantOpen();
+    
+    if (!_isRestaurantOpen) {
+      final nextOpening = TimeUtils.getNextOpeningTime();
+      if (nextOpening != null) {
+        final formatter = DateFormat('EEEE \'at\' h:mm a');
+        final spainTime = TimeUtils.getSpainTime();
+        
+        if (nextOpening.day == spainTime.day) {
+          // Opening today
+          final timeFormatter = DateFormat('h:mm a');
+          _restaurantClosedMessage = 
+            'We\'re currently closed. We open today at ${timeFormatter.format(nextOpening)}';
+        } else if (nextOpening.day == spainTime.day + 1) {
+          // Opening tomorrow
+          final timeFormatter = DateFormat('h:mm a');
+          _restaurantClosedMessage = 
+            'We\'re currently closed. We open tomorrow at ${timeFormatter.format(nextOpening)}';
+        } else {
+          // Opening later
+          _restaurantClosedMessage = 
+            'We\'re currently closed. We open on ${formatter.format(nextOpening)}';
+        }
+      } else {
+        _restaurantClosedMessage = 'We\'re currently closed. Please check back later.';
+      }
+    } else {
+      _restaurantClosedMessage = null;
+    }
+  }
+
+  // ✅ NEW: Periodic check for restaurant hours (call this in initState)
+  void startHoursMonitoring() {
+    // Check immediately
+    _checkRestaurantHours();
+    
+    // Check every minute
+    Future.delayed(Duration(minutes: 1), () {
+      if (!_disposed) {
+        _checkRestaurantHours();
+        startHoursMonitoring();
+      }
+    });
+  }
+
+  bool _disposed = false;
   // ✅ UPDATED: Modified setDeliveryType to check if delivery is enabled
   void setDeliveryType(DeliveryType type) {
     // CRITICAL: Prevent setting delivery if it's disabled
     if (type == DeliveryType.delivery && !_isDeliveryEnabled) {
-      debugPrint('Cannot set delivery type: Delivery is disabled');
       // Don't call notifyListeners() - no state change should occur
       return;
     }
@@ -365,7 +419,11 @@ class CheckoutProvider extends ChangeNotifier {
       return false;
     }
   }
-
+ @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
   void reset() {
     _selectedAddress = null;
     _deliveryDistance = null;

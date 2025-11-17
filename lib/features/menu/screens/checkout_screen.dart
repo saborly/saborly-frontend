@@ -1,3 +1,4 @@
+import 'package:Saborly/core/utils/time_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -35,8 +36,11 @@ void initState() {
     // Link CartProvider to CheckoutProvider
     checkoutProvider.setCartProvider(cartProvider);
 
-    // ✅ CRITICAL: Check delivery availability FIRST before loading anything else
+    // ✅ CRITICAL: Check delivery availability AND restaurant hours FIRST
     await checkoutProvider.checkDeliveryAvailability();
+    
+    // ✅ NEW: Start monitoring restaurant hours
+    checkoutProvider.startHoursMonitoring();
 
     // Load branches and addresses
     checkoutProvider.loadBranches();
@@ -46,6 +50,7 @@ void initState() {
     checkoutProvider.updateDeliveryFee(cartProvider.subtotal);
   });
 }
+
   @override
   void dispose() {
     _addressController.dispose();
@@ -103,49 +108,55 @@ Widget _buildWebLayout() {
   return SingleChildScrollView(
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          Expanded(
-            flex: 7,
-            child: Column(
-              children: [
-                _buildDeliveryTypeSelector(),
-                const SizedBox(height: 24),
-                Consumer<CheckoutProvider>(
-                  builder: (context, checkoutProvider, child) {
-                    // ✅ UPDATED: Only show delivery section if enabled AND selected
-                    if (checkoutProvider.deliveryType == DeliveryType.delivery &&
-                        checkoutProvider.isDeliveryEnabled) {
-                      return Column(
-                        children: [
-                          _buildDeliveryAddressSection(),
-                          const SizedBox(height: 24),
-                        ],
-                      );
-                    }
-                    return Column(
-                      children: [
-                        _buildBranchInfo(),
-                        const SizedBox(height: 24),
-                      ],
-                    );
-                  },
+          // ✅ NEW: Restaurant closed banner
+          _buildRestaurantClosedBanner(),
+          
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 7,
+                child: Column(
+                  children: [
+                    _buildDeliveryTypeSelector(),
+                    const SizedBox(height: 24),
+                    Consumer<CheckoutProvider>(
+                      builder: (context, checkoutProvider, child) {
+                        if (checkoutProvider.deliveryType == DeliveryType.delivery &&
+                            checkoutProvider.isDeliveryEnabled) {
+                          return Column(
+                            children: [
+                              _buildDeliveryAddressSection(),
+                              const SizedBox(height: 24),
+                            ],
+                          );
+                        }
+                        return Column(
+                          children: [
+                            _buildBranchInfo(),
+                            const SizedBox(height: 24),
+                          ],
+                        );
+                      },
+                    ),
+                    _buildPickupTimePreference(),
+                  ],
                 ),
-                _buildPickupTimePreference(),
-              ],
-            ),
-          ),
-          const SizedBox(width: 32),
-          SizedBox(
-            width: 420,
-            child: Column(
-              children: [
-                _buildCartSummary(),
-                const SizedBox(height: 24),
-                _buildWebCheckoutButton(),
-              ],
-            ),
+              ),
+              const SizedBox(width: 32),
+              SizedBox(
+                width: 420,
+                child: Column(
+                  children: [
+                    _buildCartSummary(),
+                    const SizedBox(height: 24),
+                    _buildWebCheckoutButton(),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -158,15 +169,16 @@ Widget _buildMobileLayout() {
   return SingleChildScrollView(
     child: Column(
       children: [
+        // ✅ NEW: Restaurant closed banner
+        _buildRestaurantClosedBanner(),
+        
         _buildDeliveryTypeSelector(),
         Consumer<CheckoutProvider>(
           builder: (context, checkoutProvider, child) {
-            // ✅ UPDATED: Only show delivery section if delivery is enabled AND selected
             if (checkoutProvider.deliveryType == DeliveryType.delivery &&
                 checkoutProvider.isDeliveryEnabled) {
               return _buildDeliveryAddressSection();
             }
-            // Always show branch info for pickup
             return _buildBranchInfo();
           },
         ),
@@ -177,6 +189,8 @@ Widget _buildMobileLayout() {
     ),
   );
 }
+
+
 Widget _buildDeliveryTypeSelector() {
   final isWeb = kIsWeb;
   return Consumer2<CheckoutProvider, CartProvider>(
@@ -2186,110 +2200,327 @@ Widget _buildDeliveryAddressSection() {
     }
   }
 
-  Widget _buildBottomBar() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Consumer<CheckoutProvider>(
-          builder: (context, checkoutProvider, child) {
-            final canProceed = checkoutProvider.isReadyForOrder;
+ Widget _buildBottomBar() {
+  return Container(
+    padding: EdgeInsets.all(16.w),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          blurRadius: 10,
+          offset: const Offset(0, -2),
+        ),
+      ],
+    ),
+    child: SafeArea(
+      child: Consumer<CheckoutProvider>(
+        builder: (context, checkoutProvider, child) {
+          final canProceed = checkoutProvider.isReadyForOrder && 
+                            checkoutProvider.canPlaceOrder; // ✅ NEW: Also check if restaurant is open
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Show warning if delivery is selected but no valid address
-                if (checkoutProvider.deliveryType == DeliveryType.delivery &&
-                    (!canProceed || !checkoutProvider.canDeliver)) ...[
-                  Container(
-                    padding: EdgeInsets.all(12.w),
-                    margin: EdgeInsets.only(bottom: 12.h),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(color: Colors.orange.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: Colors.orange.shade700,
-                          size: 20.sp,
-                        ),
-                        SizedBox(width: 10.w),
-                        Expanded(
-                          child: Text(
-                            checkoutProvider.selectedAddress == null
-                                ? AppStrings.get('pleaseSelectDeliveryAddress')
-                                : AppStrings.get('addressBeyondDeliveryRange'),
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              color: Colors.orange.shade900,
-                              fontWeight: FontWeight.w500,
-                            ),
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ✅ UPDATED: Show appropriate warning
+              if (!checkoutProvider.isRestaurantOpen) ...[
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  margin: EdgeInsets.only(bottom: 12.h),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.schedule,
+                        color: Colors.red.shade700,
+                        size: 20.sp,
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          checkoutProvider.restaurantClosedMessage ?? 
+                            'Restaurant is currently closed',
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: Colors.red.shade900,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-
-                CustomButton(
-                  text: AppStrings.placeOrder,
-                  onPressed:
-                      canProceed ? () => context.push(AppRoutes.payment) : null,
+                ),
+              ] else if (checkoutProvider.deliveryType == DeliveryType.delivery &&
+                  (!canProceed || !checkoutProvider.canDeliver)) ...[
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  margin: EdgeInsets.only(bottom: 12.h),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.orange.shade700,
+                        size: 20.sp,
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          checkoutProvider.selectedAddress == null
+                              ? AppStrings.get('pleaseSelectDeliveryAddress')
+                              : AppStrings.get('addressBeyondDeliveryRange'),
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: Colors.orange.shade900,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            );
-          },
-        ),
-      ),
-    );
-  }
 
-  Widget _buildWebCheckoutButton() {
-    return Consumer<CheckoutProvider>(
-      builder: (context, checkoutProvider, child) {
-        final canProceed =
-            checkoutProvider.deliveryType == DeliveryType.pickup ||
-                (checkoutProvider.selectedAddress != null &&
-                    checkoutProvider.canDeliver);
-
-        return Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
+              CustomButton(
+                text: AppStrings.placeOrder,
+                onPressed: canProceed ? () => context.push(AppRoutes.payment) : null,
               ),
             ],
-          ),
-          child: SizedBox(
-            height: 56,
-            child: CustomButton(
-              text: AppStrings.placeOrder,
-              onPressed:
-                  canProceed ? () => context.push(AppRoutes.payment) : null,
+          );
+        },
+      ),
+    ),
+  );
+}
+ Widget _buildWebCheckoutButton() {
+  return Consumer<CheckoutProvider>(
+    builder: (context, checkoutProvider, child) {
+      final canProceed = checkoutProvider.isReadyForOrder && 
+                        checkoutProvider.canPlaceOrder; // ✅ NEW: Also check if restaurant is open
+
+      return Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
             ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // ✅ NEW: Show closing soon warning if within 30 minutes
+            if (checkoutProvider.isRestaurantOpen && 
+                TimeUtils.getTimeUntilClosing() != null) ...[
+              Container(
+                margin: EdgeInsets.only(bottom: 16),
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.access_time, color: Colors.orange.shade700, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Closing in ${TimeUtils.getTimeUntilClosing()} - ${AppStrings.orderBeforeClosing}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            SizedBox(
+              height: 56,
+              child: CustomButton(
+                text: AppStrings.placeOrder,
+                onPressed: canProceed ? () => context.push(AppRoutes.payment) : null,
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+Widget _buildRestaurantClosedBanner() {
+  return Consumer<CheckoutProvider>(
+    builder: (context, checkoutProvider, child) {
+      if (checkoutProvider.isRestaurantOpen) return SizedBox.shrink();
+      
+      final isWeb = kIsWeb;
+      
+      return Container(
+        margin: isWeb 
+          ? EdgeInsets.only(bottom: 24) 
+          : EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        padding: EdgeInsets.all(isWeb ? 24.w : 20.w),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.red.shade50,
+              Colors.red.shade100.withOpacity(0.3),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        );
-      },
-    );
-  }
+          borderRadius: BorderRadius.circular(isWeb ? 16.r : 14.r),
+          border: Border.all(color: Colors.red.shade300, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.red.withOpacity(0.1),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(isWeb ? 12.w : 10.w),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade600,
+                    borderRadius: BorderRadius.circular(12.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.schedule,
+                    color: Colors.white,
+                    size: isWeb ? 28.sp : 24.sp,
+                  ),
+                ),
+                SizedBox(width: isWeb ? 16.w : 14.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.restaurantClosed,
+                        style: TextStyle(
+                          fontSize: isWeb ? 20.sp : 18.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.red.shade900,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        checkoutProvider.restaurantClosedMessage ?? 
+                          AppStrings.restaurantClosedDescription,
+                        style: TextStyle(
+                          fontSize: isWeb ? 14.sp : 13.sp,
+                          color: Colors.red.shade800,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+            Container(
+              padding: EdgeInsets.all(isWeb ? 16.w : 14.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(isWeb ? 12.r : 10.r),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        color: Colors.red.shade700,
+                        size: isWeb ? 18.sp : 16.sp,
+                      ),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'Our Hours',
+                        style: TextStyle(
+                          fontSize: isWeb ? 15.sp : 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.red.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+                  ..._buildHoursList(isWeb),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+List<Widget> _buildHoursList(bool isWeb) {
+  final days = [
+    {'day': 'Monday - Thursday', 'hours': '12:00 PM - 11:00 PM'},
+    {'day': 'Friday - Saturday', 'hours': '12:00 PM - 12:00 AM'},
+    {'day': 'Sunday', 'hours': '12:00 PM - 11:00 PM'},
+  ];
+  
+  return days.map((item) => Padding(
+    padding: EdgeInsets.only(bottom: 8.h),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          item['day']!,
+          style: TextStyle(
+            fontSize: isWeb ? 13.sp : 12.sp,
+            color: AppColors.textMedium,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          item['hours']!,
+          style: TextStyle(
+            fontSize: isWeb ? 13.sp : 12.sp,
+            color: AppColors.textDark,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  )).toList();
+}
 
   Widget _buildBranchInfo() {
     final isWeb = kIsWeb;

@@ -1,5 +1,4 @@
-// lib/features/menu/food_detail_screen.dart - COMPLETE FIX
-
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -14,7 +13,6 @@ import 'package:Saborly/features/providers/home_provider.dart';
 import '../../../shared/models/food_item.dart';
 import '../../../shared/widgets/custom_button.dart';
 
-/// ✅ FIXED: Reloads item data when language changes
 class FoodDetailScreen extends StatefulWidget {
   final FoodItem foodItem;
 
@@ -34,16 +32,21 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
   AnimationController? _animationController;
   Animation<double>? _fadeAnimation;
   
-  // ✅ CRITICAL: Store current food item that can be updated
   late FoodItem _currentFoodItem;
   String _lastLanguage = '';
   bool _isLoadingLanguageChange = false;
+  
+  // ✅ Platform detection
+  late String _currentPlatform;
 
   @override
   void initState() {
     super.initState();
     _currentFoodItem = widget.foodItem;
     _lastLanguage = context.read<LanguageService>().currentLanguage;
+    
+    // ✅ Detect platform
+    _currentPlatform = _detectPlatform();
     
     if (_currentFoodItem.mealSizes.isNotEmpty) {
       _selectedMealSize = _currentFoodItem.mealSizes.first;
@@ -60,24 +63,30 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
     _animationController!.forward();
   }
 
-  /// ✅ CRITICAL: Detect language changes and reload item
+  // ✅ Platform detection method
+  String _detectPlatform() {
+    if (kIsWeb) {
+      return 'web';
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      return 'mobile';
+    }
+    return 'all';
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final languageService = context.watch<LanguageService>();
     final currentLang = languageService.currentLanguage;
     
-    // Update AppStrings
     AppStrings.setLanguage(currentLang);
     
-    // ✅ CRITICAL: Reload item if language changed
     if (_lastLanguage != currentLang && !_isLoadingLanguageChange) {
       _lastLanguage = currentLang;
       _reloadFoodItem(currentLang);
     }
   }
 
-  /// ✅ CRITICAL: Fetch fresh item data in new language
   Future<void> _reloadFoodItem(String newLanguage) async {
     setState(() {
       _isLoadingLanguageChange = true;
@@ -93,9 +102,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
             _currentFoodItem = response.data!;
             _isLoadingLanguageChange = false;
             
-            // ✅ Reset selections to match new language data
             if (_currentFoodItem.mealSizes.isNotEmpty) {
-              // Try to keep same selection by matching ID
               final previousSizeId = _selectedMealSize?.id;
               _selectedMealSize = _currentFoodItem.mealSizes.firstWhere(
                 (size) => size.id == previousSizeId,
@@ -103,24 +110,19 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
               );
             }
             
-            // Update extras
             final previousExtraIds = _selectedExtras.map((e) => e.id).toList();
             _selectedExtras = _currentFoodItem.extras
                 .where((extra) => previousExtraIds.contains(extra.id))
                 .toList();
             
-            // Update addons
             final previousAddonIds = _selectedAddons.map((a) => a.id).toList();
             _selectedAddons = _currentFoodItem.addons
                 .where((addon) => previousAddonIds.contains(addon.id))
                 .toList();
           });
-          
-        
         }
       }
     } catch (e) {
-    
       if (mounted) {
         setState(() {
           _isLoadingLanguageChange = false;
@@ -139,6 +141,22 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
   bool get _isLargeScreen => MediaQuery.of(context).size.width > 768;
   bool get _isDesktop => MediaQuery.of(context).size.width > 1200;
 
+  // ✅ Platform-aware discount calculations
+double get _effectivePrice {
+  // Base price from selected size or default price
+  double basePrice = _selectedMealSize != null && _selectedMealSize!.additionalPrice > 0
+      ? _selectedMealSize!.additionalPrice
+      : _currentFoodItem.price;
+  
+  // Apply platform-specific discount to base price only
+  return _currentFoodItem.getEffectivePriceForPlatform(_currentPlatform) * 
+         (basePrice / _currentFoodItem.price);
+}
+
+double get _discountAmount => _currentFoodItem.getDiscountAmountForPlatform(_currentPlatform);
+int get _discountPercentage => _currentFoodItem.getDiscountPercentageForPlatform(_currentPlatform);
+bool get _hasActiveOffer => _currentFoodItem.hasActiveOfferForPlatform(_currentPlatform);
+
   @override
   Widget build(BuildContext context) {
     return Consumer<LanguageService>(
@@ -149,7 +167,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
             children: [
               _isLargeScreen ? _buildDesktopLayout() : _buildMobileLayout(),
               
-              // ✅ Show loading overlay during language change
               if (_isLoadingLanguageChange)
                 Container(
                   color: Colors.black.withOpacity(0.3),
@@ -451,7 +468,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ✅ FIXED: Now uses _currentFoodItem which updates on language change
                     Text(
                       _currentFoodItem.name,
                       style: TextStyle(
@@ -507,7 +523,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
             ],
           ),
           SizedBox(height: _isLargeScreen ? 20.h : 16.h),
-          // ✅ FIXED: Description also updates
           Text(
             _currentFoodItem.description,
             style: TextStyle(
@@ -544,7 +559,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    if (_currentFoodItem.hasActiveOffer) ...[
+                    if (_hasActiveOffer) ...[
                       Text(
                         '${AppStrings.get('currency')}${_currentFoodItem.price.toStringAsFixed(2)}',
                         style: TextStyle(
@@ -556,7 +571,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
                       SizedBox(height: 4.h),
                     ],
                     Text(
-                      '${AppStrings.get('currency')}${_currentFoodItem.effectivePrice.toStringAsFixed(2)}',
+                      '${AppStrings.get('currency')}${_effectivePrice.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: _isLargeScreen ? 28.sp : 24.sp,
                         fontWeight: FontWeight.w800,
@@ -808,6 +823,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
       ),
     );
   }
+
 
   Widget _buildExtraOption(Extra extra) {
     final isSelected = _selectedExtras.any((e) => e.id == extra.id);
@@ -1139,30 +1155,40 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
     );
   }
 double _calculateTotalPrice() {
-    double total = widget.foodItem.price; // Use effectivePrice instead of price
-    
-    if (_selectedMealSize != null && _selectedMealSize!.additionalPrice<=0) {
-      total += _selectedMealSize!.additionalPrice-widget.foodItem.discountAmount;
-    }
-    else if(_selectedMealSize != null){
-            total = _selectedMealSize!.additionalPrice- widget.foodItem.discountAmount;
-
-    }
-    else{
-      total=total-widget.foodItem.discountAmount;
-    }
-    
-    
-    for (var extra in _selectedExtras) {
-      total += extra.price-widget.foodItem.discountAmount;
-    }
-    
-    for (var addon in _selectedAddons) {
-      total += addon.price- widget.foodItem.discountAmount;
-    }
-    
-    return total * _quantity;
+  double total = 0.0;
+  
+  // Start with base price (considering meal size)
+  if (_selectedMealSize != null && _selectedMealSize!.additionalPrice > 0) {
+    total = _selectedMealSize!.additionalPrice;
+  } else {
+    total = _currentFoodItem.price;
   }
+  
+  // Apply platform-specific discount to base price
+  if (_hasActiveOffer) {
+    final discountedBasePrice = _currentFoodItem.getEffectivePriceForPlatform(_currentPlatform);
+    final basePriceRatio = total / _currentFoodItem.price;
+    total = discountedBasePrice * basePriceRatio;
+  }
+  
+  // Add meal size additional cost if it's negative (discount)
+  if (_selectedMealSize != null && _selectedMealSize!.additionalPrice < 0) {
+    total += _selectedMealSize!.additionalPrice;
+  }
+  
+  // Add extras (no discount on extras)
+  for (var extra in _selectedExtras) {
+    total += extra.price;
+  }
+  
+  // Add addons (no discount on addons)
+  for (var addon in _selectedAddons) {
+    total += addon.price;
+  }
+  
+  return total * _quantity;
+}
+
 Widget _buildDesktopBottomBar() {
     return Container(
       padding: EdgeInsets.symmetric(
@@ -1198,13 +1224,13 @@ Widget _buildDesktopBottomBar() {
                 SizedBox(height: 4.h),
              Row(
   children: [
-    if (widget.foodItem.hasActiveOffer &&
+  if (_hasActiveOffer &&
         (_selectedMealSize == null || (_selectedMealSize?.additionalPrice ?? 0) <= 0))
       ...[
         Text(
-          '${AppStrings.currency}${(_quantity * widget.foodItem.price).toStringAsFixed(2)}',
+          '${AppStrings.currency}${(_quantity * _currentFoodItem.price).toStringAsFixed(2)}',
           style: TextStyle(
-            fontSize: 18.sp,
+            fontSize: 16.sp,
             color: AppColors.textLight,
             decoration: TextDecoration.lineThrough,
           ),
@@ -1212,15 +1238,16 @@ Widget _buildDesktopBottomBar() {
         SizedBox(width: 8.w),
       ],
 
+
     // Case 2: Offer active AND selected size has extra cost > 0
-    if (widget.foodItem.hasActiveOffer &&
+ if (_hasActiveOffer &&
         _selectedMealSize != null &&
         _selectedMealSize!.additionalPrice > 0)
       ...[
         Text(
           '${AppStrings.currency}${(_quantity * _selectedMealSize!.additionalPrice).toStringAsFixed(2)}',
           style: TextStyle(
-            fontSize: 18.sp,
+            fontSize: 16.sp,
             color: AppColors.textLight,
             decoration: TextDecoration.lineThrough,
           ),
@@ -1239,7 +1266,10 @@ Widget _buildDesktopBottomBar() {
       ),
     ),
   ],
-), ],
+), 
+
+
+],
             ),
             SizedBox(width: 24.w),
             Expanded(

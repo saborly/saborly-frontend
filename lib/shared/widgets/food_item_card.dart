@@ -1,4 +1,4 @@
-// lib/shared/widgets/food_item_card.dart - ENHANCED: Better offer display
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -18,6 +18,16 @@ class FoodItemCard extends StatelessWidget {
     required this.foodItem,
     required this.onTap,
   });
+
+  /// ✅ Detect current platform
+  String _getCurrentPlatform() {
+    if (kIsWeb) {
+      return 'web';
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      return 'mobile';
+    }
+    return 'all';
+  }
 
   double _getResponsiveValue({
     required double mobile,
@@ -59,6 +69,7 @@ class FoodItemCard extends StatelessWidget {
     final cardSize = _getCardSize(constraints);
     final isExtraSmall = cardSize == CardSize.extraSmall;
     final isSmall = cardSize == CardSize.small || cardSize == CardSize.extraSmall;
+    final platform = _getCurrentPlatform(); // ✅ Get current platform
 
     return Container(
       margin: EdgeInsets.symmetric(
@@ -79,68 +90,82 @@ class FoodItemCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(_getBorderRadius(cardSize, screenWidth)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-        Expanded(
-            flex: isExtraSmall ? 5 : (isSmall ? 5 : 5),
-            child: _buildImageSection(cardSize, screenWidth),
-          ),
-          Expanded(
-            flex: isExtraSmall ? 6 : (isSmall ? 5 : 5),
-            child: _buildDetailsSection(cardSize, screenWidth, isWeb, context),
-          ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: isExtraSmall ? 2 : (isSmall ? 3 : 4),
+                  child: _buildImageSection(cardSize, screenWidth, platform), // ✅ Pass platform
+                ),
+                Expanded(
+                  flex: isExtraSmall ? 3 : (isSmall ? 4 : 4),
+                  child: _buildDetailsSection(cardSize, screenWidth, isWeb, context, platform), // ✅ Pass platform
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailsSection(CardSize cardSize, double screenWidth, bool isWeb, BuildContext context) {
+  Widget _buildDetailsSection(CardSize cardSize, double screenWidth, bool isWeb, BuildContext context, String platform) {
+    final isExtraSmall = cardSize == CardSize.extraSmall;
     final padding = _getPadding(cardSize, screenWidth);
+    
+    // ✅ Use platform-aware methods
+    final hasActiveOffer = foodItem.hasActiveOfferForPlatform(platform);
+    final effectivePrice = foodItem.getEffectivePriceForPlatform(platform);
 
     return Padding(
       padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // ✅ ENHANCED: Show offer title if available
-  
-          
-        Flexible(
-  child: Builder(
-    builder: (context) {
-      final isMobile = MediaQuery.of(context).size.width < 600;
-      final displayName = isMobile && foodItem.name.length > 16
-          ? '${foodItem.name.substring(0, 15)}…'
-          : foodItem.name.length > 20
-          ? '${foodItem.name.substring(0, 19)}…':foodItem.name;
-
-      return Text(
-        displayName,
-        maxLines: cardSize == CardSize.extraSmall ? 2 : 2,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: _getTitleFontSize(cardSize, screenWidth),
-          fontWeight: FontWeight.w700,
-          color: AppColors.textDark,
-          height: 1.4,
-        ),
-      );
-    },
-  ),
-),
+          // Title with proper constraints
+          Flexible(
+            child: Text(
+              foodItem.name,
+              maxLines: isExtraSmall ? 1 : 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.start,
+              strutStyle: StrutStyle(
+                fontSize: _getTitleFontSize(cardSize, screenWidth),
+                height: 1.4,
+                forceStrutHeight: true,
+              ),
+              style: TextStyle(
+                fontSize: _getTitleFontSize(cardSize, screenWidth),
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+                height: 1.4,
+                leadingDistribution: TextLeadingDistribution.even,
+              ),
+            ),
+          ),
           if (cardSize != CardSize.extraSmall) ...[
-            SizedBox(height: _getSpacing(cardSize, screenWidth)),
+            SizedBox(height: _getSpacing(cardSize, screenWidth) * 0.8),
+            // Description with proper constraints
             Flexible(
               child: Text(
                 foodItem.description,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.start,
+                strutStyle: StrutStyle(
+                  fontSize: _getDescriptionFontSize(cardSize, screenWidth),
+                  height: 1.4,
+                  forceStrutHeight: true,
+                ),
                 style: TextStyle(
                   fontSize: _getDescriptionFontSize(cardSize, screenWidth),
                   color: AppColors.textLight,
                   height: 1.4,
+                  leadingDistribution: TextLeadingDistribution.even,
                 ),
               ),
             ),
@@ -154,8 +179,10 @@ class FoodItemCard extends StatelessWidget {
                 flex: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (foodItem.hasActiveOffer) ...[
+                    // ✅ Show original price only if there's an active offer for this platform
+                    if (hasActiveOffer) ...[
                       Text(
                         '${AppStrings.currency}${foodItem.price.toStringAsFixed(2)}',
                         style: TextStyle(
@@ -163,45 +190,30 @@ class FoodItemCard extends StatelessWidget {
                           color: AppColors.textLight,
                           decoration: TextDecoration.lineThrough,
                           decorationThickness: 2,
+                          height: 1.2,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 2.h),
+                      SizedBox(height: 1.h),
                     ],
-                    Row(
-                      children: [
-                        Text(
-                          '${AppStrings.currency}${foodItem.effectivePrice.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: _getPriceFontSize(cardSize, screenWidth),
-                            fontWeight: FontWeight.w800,
-                            color: foodItem.hasActiveOffer 
-                              ? const Color(0xFF00C853) 
-                              : AppColors.primary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        // ✅ Show savings amount
-                        // if (foodItem.hasActiveOffer && foodItem.discountAmount > 0) ...[
-                        //   SizedBox(width: 4.w),
-                        //   Text(
-                        //     'Save ${AppStrings.currency}${foodItem.discountAmount.toStringAsFixed(0)}',
-                        //     style: TextStyle(
-                        //       fontSize: _getSmallFontSize(cardSize, screenWidth) * 0.85,
-                        //       fontWeight: FontWeight.w600,
-                        //       color: const Color(0xFF00C853),
-                        //     ),
-                        //   ),
-                        // ],
-                      ],
+                    // ✅ Show effective price for current platform
+                    Text(
+                      '${AppStrings.currency}${effectivePrice.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: _getPriceFontSize(cardSize, screenWidth),
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 8.w),
-              _buildAddButton(cardSize, screenWidth, context),
+              SizedBox(width: 4.w),
+              _buildAddButton(cardSize, screenWidth, context, platform), // ✅ Pass platform
             ],
           ),
         ],
@@ -209,10 +221,13 @@ class FoodItemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImageSection(CardSize cardSize, double screenWidth) {
+  Widget _buildImageSection(CardSize cardSize, double screenWidth, String platform) {
+    // ✅ Use platform-aware methods
+    final hasActiveOffer = foodItem.hasActiveOfferForPlatform(platform);
+    final discountPercentage = foodItem.getDiscountPercentageForPlatform(platform);
+
     return Stack(
       children: [
-        // Main Image
         SizedBox.expand(
           child: kIsWeb
               ? Image.network(
@@ -253,8 +268,7 @@ class FoodItemCard extends StatelessWidget {
                   errorWidget: (context, url, error) => _buildImageError(cardSize, screenWidth),
                 ),
         ),
-        
-        // TOP LEFT: Veg/Non-Veg Badge
+        // Veg/Non-veg indicator
         Positioned(
           top: _getPadding(cardSize, screenWidth),
           left: _getPadding(cardSize, screenWidth),
@@ -278,9 +292,8 @@ class FoodItemCard extends StatelessWidget {
             ),
           ),
         ),
-        
-        // ✅ TOP RIGHT: ENHANCED Discount Badge (ALWAYS show if has offer)
-        if (foodItem.hasActiveOffer && foodItem.discountPercentage > 0)
+        // ✅ Show offer badge only if there's an active offer for this platform
+        if (hasActiveOffer)
           Positioned(
             top: _getPadding(cardSize, screenWidth),
             right: _getPadding(cardSize, screenWidth),
@@ -290,17 +303,12 @@ class FoodItemCard extends StatelessWidget {
                 vertical: _getSmallPadding(cardSize, screenWidth) * 1.5,
               ),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFFF6B6B),
-                    Color(0xFFFF8E53),
-                  ],
-                ),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(12.r),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF6B6B).withOpacity(0.4),
-                    blurRadius: 8.r,
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 4.r,
                     offset: Offset(0, 2.h),
                   ),
                 ],
@@ -315,7 +323,7 @@ class FoodItemCard extends StatelessWidget {
                   ),
                   SizedBox(width: 4.w),
                   Text(
-                    '${foodItem.discountPercentage}% OFF',
+                    foodItem.offer?.badge ?? '$discountPercentage% OFF',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: _getSmallFontSize(cardSize, screenWidth),
@@ -326,45 +334,7 @@ class FoodItemCard extends StatelessWidget {
               ),
             ),
           ),
-        
-        // BOTTOM LEFT: Rating Badge
-        if (foodItem.rating > 0)
-          Positioned(
-            bottom: _getPadding(cardSize, screenWidth),
-            left: _getPadding(cardSize, screenWidth),
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: _getPadding(cardSize, screenWidth),
-                vertical: _getSmallPadding(cardSize, screenWidth) * 1.5,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.75),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.star,
-                    color: Colors.amber,
-                    size: _getSmallIconSize(cardSize, screenWidth),
-                  ),
-                  SizedBox(width: 4.w),
-                  Text(
-                    foodItem.rating.toStringAsFixed(1),
-                    style: TextStyle(
-                      fontSize: _getSmallFontSize(cardSize, screenWidth),
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        
-        // BOTTOM RIGHT: Featured/Popular Badge
-        if (foodItem.isFeatured || foodItem.isPopular)
+       if (foodItem.isFeatured || foodItem.isPopular)
           Positioned(
             bottom: _getPadding(cardSize, screenWidth),
             right: _getPadding(cardSize, screenWidth),
@@ -444,13 +414,16 @@ class FoodItemCard extends StatelessWidget {
     );
   }
 
-  void _addToCart(BuildContext context, CartProvider cartProvider) {
+  void _addToCart(BuildContext context, CartProvider cartProvider, String platform) {
     if (foodItem.mealSizes.isNotEmpty ||
         foodItem.extras.isNotEmpty ||
         foodItem.addons.isNotEmpty) {
       onTap();
     } else {
+      // ✅ Use platform-aware effective price
+      final effectivePrice = foodItem.getEffectivePriceForPlatform(platform);
       final foodItemWithDiscount = foodItem.copyWith(
+        price: effectivePrice,
       );
       cartProvider.addItem(foodItem: foodItemWithDiscount);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -475,14 +448,14 @@ class FoodItemCard extends StatelessWidget {
     }
   }
 
-  Widget _buildAddButton(CardSize cardSize, double screenWidth, BuildContext context) {
+  Widget _buildAddButton(CardSize cardSize, double screenWidth, BuildContext context, String platform) {
     return Consumer<CartProvider>(
       builder: (context, cartProvider, child) {
         return Material(
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(10.r),
-            onTap: () => _addToCart(context, cartProvider),
+            onTap: () => _addToCart(context, cartProvider, platform), // ✅ Pass platform
             child: Container(
               padding: EdgeInsets.symmetric(
                 horizontal: _getPadding(cardSize, screenWidth) * 1.2,

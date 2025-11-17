@@ -1,4 +1,4 @@
-// lib/shared/models/food_item.dart - FIXED English Support
+// lib/shared/models/food_item.dart - Platform-Aware Discounts
 import 'package:equatable/equatable.dart';
 import 'package:Saborly/shared/models/offer.dart';
 import 'package:Saborly/core/services/language_service.dart';
@@ -50,6 +50,51 @@ class FoodItem extends Equatable {
         offer, tags, mealSizes, extras, addons, availabilityStatus,
       ];
 
+  // NEW: Check if offer is valid for current platform
+  bool hasOfferForPlatform(String platform) {
+    if (offer == null) return false;
+    return offer!.isValidForPlatform(platform);
+  }
+
+  // NEW: Get effective price for specific platform
+  double getEffectivePriceForPlatform(String platform) {
+    if (offer == null || !offer!.isValidForPlatform(platform)) {
+      return price;
+    }
+    
+    switch (offer!.type) {
+      case 'percentage':
+        return price * (1 - offer!.value / 100);
+      case 'fixed-amount':
+        return (price - offer!.value).clamp(0, double.infinity);
+      default:
+        return price;
+    }
+  }
+
+  // NEW: Get discount amount for specific platform
+  double getDiscountAmountForPlatform(String platform) {
+    return price - getEffectivePriceForPlatform(platform);
+  }
+
+  // NEW: Get discount percentage for specific platform
+  int getDiscountPercentageForPlatform(String platform) {
+    if (offer == null || price == 0 || !offer!.isValidForPlatform(platform)) {
+      return 0;
+    }
+    final discountAmount = getDiscountAmountForPlatform(platform);
+    return ((discountAmount / price) * 100).round();
+  }
+
+  // NEW: Check if has active offer for specific platform
+  bool hasActiveOfferForPlatform(String platform) {
+    return offer != null && 
+           offer!.isValidForPlatform(platform) && 
+           getDiscountAmountForPlatform(platform) > 0;
+  }
+
+  // DEPRECATED: Use platform-aware methods instead
+  @Deprecated('Use getEffectivePriceForPlatform instead')
   double get effectivePrice {
     if (offer == null) return price;
     switch (offer!.type) {
@@ -62,11 +107,16 @@ class FoodItem extends Equatable {
     }
   }
 
+  @Deprecated('Use getDiscountAmountForPlatform instead')
   double get discountAmount => price - effectivePrice;
+  
+  @Deprecated('Use getDiscountPercentageForPlatform instead')
   int get discountPercentage {
     if (offer == null || price == 0) return 0;
     return ((discountAmount / price) * 100).round();
   }
+  
+  @Deprecated('Use hasActiveOfferForPlatform instead')
   bool get hasActiveOffer => offer != null && discountAmount > 0;
 
   FoodItem copyWith({
@@ -110,200 +160,162 @@ class FoodItem extends Equatable {
     };
   }
 
-  /// ✅ FIXED: Enhanced multilingual parsing with English support
-factory FoodItem.fromMap(Map<String, dynamic> map, {String? currentLanguage}) {
-  try {
-    final lang = currentLanguage ?? LanguageService.english;
+  factory FoodItem.fromMap(Map<String, dynamic> map, {String? currentLanguage}) {
+    try {
+      final lang = currentLanguage ?? LanguageService.english;
 
-    /// ✅ FIXED: Extract from _multilingual first, then fallback to top-level
-    String getLocalizedText(dynamic value, String fieldName, {String fallback = ''}) {
-      if (value == null) return fallback;
-      
-      // If already a string, use it
-      if (value is String) return value.isNotEmpty ? value : fallback;
-      
-      // If multilingual object, extract with proper fallback chain
-      if (value is Map) {
-        // Try current language first
-        if (value[lang] != null && value[lang].toString().isNotEmpty) {
-          return value[lang].toString();
-        }
+      String getLocalizedText(dynamic value, String fieldName, {String fallback = ''}) {
+        if (value == null) return fallback;
         
-        // Proper fallback order
-        final fallbackOrder = [
-          lang,
-          LanguageService.english,
-          LanguageService.spanish,
-          LanguageService.catalan,
-          LanguageService.arabic,
-          LanguageService.french,
-
-        ];
+        if (value is String) return value.isNotEmpty ? value : fallback;
         
-        for (final langCode in fallbackOrder) {
-          if (value[langCode] != null && value[langCode].toString().isNotEmpty) {
-            return value[langCode].toString();
+        if (value is Map) {
+          if (value[lang] != null && value[lang].toString().isNotEmpty) {
+            return value[lang].toString();
           }
-        }
-        
-        // Last resort: any non-empty value
-        for (var val in value.values) {
-          if (val != null && val.toString().isNotEmpty) {
-            return val.toString();
-          }
-        }
-      }
-      
-      return fallback;
-    }
-
-    // ✅ CRITICAL: Check _multilingual first
-    final multilingualData = map['_multilingual'] as Map<String, dynamic>?;
-    
-    // Parse name: Use _multilingual.name if available, otherwise fallback
-    String parsedName = '';
-    if (multilingualData != null && multilingualData['name'] != null) {
-      parsedName = getLocalizedText(multilingualData['name'], 'name', fallback: 'Unknown Item');
-    } else if (map['name'] != null) {
-      parsedName = getLocalizedText(map['name'], 'name', fallback: 'Unknown Item');
-    } else {
-      parsedName = 'Unknown Item';
-    }
-    
-    // Parse description: Use _multilingual.description if available
-    String parsedDescription = '';
-    if (multilingualData != null && multilingualData['description'] != null) {
-      parsedDescription = getLocalizedText(multilingualData['description'], 'description', fallback: '');
-    } else if (map['description'] != null) {
-      parsedDescription = getLocalizedText(map['description'], 'description', fallback: '');
-    }
- SimpleOffer? offerData;
-    if (map['offer'] != null) {
-      try {
-        if (kDebugMode) {
-          print('🎁 Parsing offer for item: ${map['name']}');
-          print('🎁 Offer data: ${map['offer']}');
-        }
-        
-        if (map['offer'] is Map) {
-          offerData = SimpleOffer.fromJson(map['offer'] as Map<String, dynamic>);
           
-          if (kDebugMode) {
-            print('✅ Offer parsed successfully:');
-            print('   - Title: ${offerData.title}');
-            print('   - Type: ${offerData.type}');
-            print('   - Value: ${offerData.value}');
-            print('   - Badge: ${offerData.badge}');
+          final fallbackOrder = [
+            lang,
+            LanguageService.english,
+            LanguageService.spanish,
+            LanguageService.catalan,
+            LanguageService.arabic,
+            LanguageService.french,
+          ];
+          
+          for (final langCode in fallbackOrder) {
+            if (value[langCode] != null && value[langCode].toString().isNotEmpty) {
+              return value[langCode].toString();
+            }
+          }
+          
+          for (var val in value.values) {
+            if (val != null && val.toString().isNotEmpty) {
+              return val.toString();
+            }
           }
         }
-      } catch (e) {
-        if (kDebugMode) {
-          print('❌ Error parsing offer: $e');
+        
+        return fallback;
+      }
+
+      final multilingualData = map['_multilingual'] as Map<String, dynamic>?;
+      
+      String parsedName = '';
+      if (multilingualData != null && multilingualData['name'] != null) {
+        parsedName = getLocalizedText(multilingualData['name'], 'name', fallback: 'Unknown Item');
+      } else if (map['name'] != null) {
+        parsedName = getLocalizedText(map['name'], 'name', fallback: 'Unknown Item');
+      } else {
+        parsedName = 'Unknown Item';
+      }
+      
+      String parsedDescription = '';
+      if (multilingualData != null && multilingualData['description'] != null) {
+        parsedDescription = getLocalizedText(multilingualData['description'], 'description', fallback: '');
+      } else if (map['description'] != null) {
+        parsedDescription = getLocalizedText(map['description'], 'description', fallback: '');
+      }
+
+      SimpleOffer? offerData;
+      if (map['offer'] != null) {
+        try {
+          if (map['offer'] is Map) {
+            offerData = SimpleOffer.fromJson(map['offer'] as Map<String, dynamic>);
+          }
+        } catch (e) {
+          offerData = null;
         }
-        offerData = null;
       }
-    }
-    // Parse category ID
-    String categoryId = '';
-    if (map['category'] != null) {
-      if (map['category'] is String) {
-        categoryId = map['category'];
-      } else if (map['category'] is Map) {
-        categoryId = map['category']['_id']?.toString() ?? 
-                    map['category']['id']?.toString() ?? '';
+
+      String categoryId = '';
+      if (map['category'] != null) {
+        if (map['category'] is String) {
+          categoryId = map['category'];
+        } else if (map['category'] is Map) {
+          categoryId = map['category']['_id']?.toString() ?? 
+                      map['category']['id']?.toString() ?? '';
+        }
       }
-    }
 
-    // Parse rating
-    double ratingValue = 0.0;
-    int reviewCountValue = 0;
-    if (map['rating'] != null) {
-      if (map['rating'] is num) {
-        ratingValue = map['rating'].toDouble();
-        reviewCountValue = map['reviewCount']?.toInt() ?? 0;
-      } else if (map['rating'] is Map) {
-        ratingValue = (map['rating']['average'] ?? 0).toDouble();
-        reviewCountValue = (map['rating']['count'] ?? 0).toInt();
+      double ratingValue = 0.0;
+      int reviewCountValue = 0;
+      if (map['rating'] != null) {
+        if (map['rating'] is num) {
+          ratingValue = map['rating'].toDouble();
+          reviewCountValue = map['reviewCount']?.toInt() ?? 0;
+        } else if (map['rating'] is Map) {
+          ratingValue = (map['rating']['average'] ?? 0).toDouble();
+          reviewCountValue = (map['rating']['count'] ?? 0).toInt();
+        }
       }
+
+      List<String> parsedTags = [];
+      if (map['tags'] != null && map['tags'] is List) {
+        parsedTags = (map['tags'] as List)
+            .map((tag) => getLocalizedText(tag, 'tag', fallback: ''))
+            .where((tag) => tag.isNotEmpty)
+            .toList();
+      }
+
+      List<MealSize> parsedMealSizes = [];
+      List<dynamic>? mealSizesList;
+      
+      if (multilingualData != null && multilingualData['mealSizes'] is List) {
+        mealSizesList = multilingualData['mealSizes'] as List;
+      } else if (map['mealSizes'] is List) {
+        mealSizesList = map['mealSizes'] as List;
+      }
+      
+      if (mealSizesList != null) {
+        parsedMealSizes = mealSizesList
+            .where((x) => x is Map<String, dynamic>)
+            .map((x) => MealSize.fromMap(x as Map<String, dynamic>, currentLanguage: lang))
+            .toList();
+      }
+
+      List<Extra> parsedExtras = [];
+      if (map['extras'] is List) {
+        parsedExtras = (map['extras'] as List)
+            .where((x) => x is Map<String, dynamic> && x.isNotEmpty)
+            .map((x) => Extra.fromMap(x as Map<String, dynamic>, currentLanguage: lang))
+            .toList();
+      }
+
+      List<Addon> parsedAddons = [];
+      if (map['addons'] is List) {
+        parsedAddons = (map['addons'] as List)
+            .where((x) => x is Map<String, dynamic> && x.isNotEmpty)
+            .map((x) => Addon.fromMap(x as Map<String, dynamic>, currentLanguage: lang))
+            .toList();
+      }
+
+      return FoodItem(
+        id: map['_id']?.toString() ?? map['id']?.toString() ?? '',
+        name: parsedName,
+        description: parsedDescription,
+        price: (map['price'] is num ? map['price'].toDouble() : 0.0),
+        imageUrl: map['imageUrl']?.toString() ?? '',
+        category: categoryId,
+        isVeg: map['isVeg'] ?? false,
+        isFeatured: map['isFeatured'] ?? false,
+        isPopular: map['isPopular'] ?? false,
+        rating: ratingValue,
+        reviewCount: reviewCountValue,
+        offer: offerData,
+        tags: parsedTags,
+        mealSizes: parsedMealSizes,
+        extras: parsedExtras,
+        addons: parsedAddons,
+        availabilityStatus: map['availabilityStatus']?.toString() ?? 'in-stock',
+      );
+    } catch (e, stackTrace) {
+      rethrow;
     }
-
-    // Parse offer
-    if (map['offer'] != null && map['offer'] is Map) {
-      offerData = SimpleOffer.fromJson(map['offer']);
-    }
-
-    // Parse tags with localization
-    List<String> parsedTags = [];
-    if (map['tags'] != null && map['tags'] is List) {
-      parsedTags = (map['tags'] as List)
-          .map((tag) => getLocalizedText(tag, 'tag', fallback: ''))
-          .where((tag) => tag.isNotEmpty)
-          .toList();
-    }
-
-    // ✅ Parse meal sizes from _multilingual if available
-    List<MealSize> parsedMealSizes = [];
-    List<dynamic>? mealSizesList;
-    
-    if (multilingualData != null && multilingualData['mealSizes'] is List) {
-      mealSizesList = multilingualData['mealSizes'] as List;
-    } else if (map['mealSizes'] is List) {
-      mealSizesList = map['mealSizes'] as List;
-    }
-    
-    if (mealSizesList != null) {
-      parsedMealSizes = mealSizesList
-          .where((x) => x is Map<String, dynamic>)
-          .map((x) => MealSize.fromMap(x as Map<String, dynamic>, currentLanguage: lang))
-          .toList();
-    }
-
-    // Parse extras
-    List<Extra> parsedExtras = [];
-    if (map['extras'] is List) {
-      parsedExtras = (map['extras'] as List)
-          .where((x) => x is Map<String, dynamic> && x.isNotEmpty)
-          .map((x) => Extra.fromMap(x as Map<String, dynamic>, currentLanguage: lang))
-          .toList();
-    }
-
-    // Parse addons
-    List<Addon> parsedAddons = [];
-    if (map['addons'] is List) {
-      parsedAddons = (map['addons'] as List)
-          .where((x) => x is Map<String, dynamic> && x.isNotEmpty)
-          .map((x) => Addon.fromMap(x as Map<String, dynamic>, currentLanguage: lang))
-          .toList();
-    }
-
-  
-
-    return FoodItem(
-      id: map['_id']?.toString() ?? map['id']?.toString() ?? '',
-      name: parsedName,
-      description: parsedDescription,
-      price: (map['price'] is num ? map['price'].toDouble() : 0.0),
-      imageUrl: map['imageUrl']?.toString() ?? '',
-      category: categoryId,
-      isVeg: map['isVeg'] ?? false,
-      isFeatured: map['isFeatured'] ?? false,
-      isPopular: map['isPopular'] ?? false,
-      rating: ratingValue,
-      reviewCount: reviewCountValue,
-            offer: offerData, // ✅ CRITICAL: Include the parsed offer
-
-      tags: parsedTags,
-      mealSizes: parsedMealSizes,
-      extras: parsedExtras,
-      addons: parsedAddons,
-      availabilityStatus: map['availabilityStatus']?.toString() ?? 'in-stock',
-    );
-  } catch (e, stackTrace) {
-    rethrow;
   }
-}}
+}
 
-/// ✅ FIXED: MealSize, Extra, Addon with proper English support
+// MealSize, Extra, Addon remain the same
 class MealSize extends Equatable {
   final String id;
   final String name;
@@ -336,7 +348,6 @@ class MealSize extends Equatable {
       if (value is String) return value.isNotEmpty ? value : fallback;
       if (value is Map) {
         final lang = currentLanguage ?? LanguageService.english;
-        // ✅ Try current language → English → Spanish → any
         return value[lang]?.toString() ?? 
                value[LanguageService.english]?.toString() ?? 
                value[LanguageService.spanish]?.toString() ?? 

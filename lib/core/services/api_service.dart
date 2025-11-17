@@ -87,7 +87,6 @@ Future<ApiResponse<String>> refreshToken() async {
       return ApiResponse.error('No token available for refresh');
     }
 
-    if (kDebugMode) print('🔄 Calling refresh-token endpoint...');
 
     final response = await _dio.post(
       ApiConstants.refreshToken,
@@ -100,9 +99,7 @@ Future<ApiResponse<String>> refreshToken() async {
       if (newToken != null && newToken.isNotEmpty) {
         setAuthToken(newToken);
         
-        if (kDebugMode) {
-          print('✅ Token refreshed - new token received');
-        }
+      
         
         return ApiResponse.success(newToken, statusCode: response.statusCode);
       }
@@ -116,25 +113,21 @@ Future<ApiResponse<String>> refreshToken() async {
     );
   } on DioException catch (e) {
     if (e.response?.statusCode == 401) {
-      if (kDebugMode) print('❌ Token invalid - user needs to login');
       return ApiResponse.error('Token invalid - login required', statusCode: 401);
     }
     
-    if (kDebugMode) print('❌ Refresh error: ${e.message}');
     
     return ApiResponse.error(
       _handleDioError(e),
       statusCode: e.response?.statusCode,
     );
   } catch (e) {
-    if (kDebugMode) print('❌ Unexpected refresh error: $e');
     return ApiResponse.error('Unexpected error during refresh: $e');
   }
 }
 
   /// ✅ FIXED: Get categories with current language
   Future<ApiResponse<List<FoodCategory>>> getCategories() async {
-    debugPrint('🌐 Fetching categories with language: $_currentLanguage');
     try {
     
       
@@ -155,7 +148,6 @@ Future<ApiResponse<String>> refreshToken() async {
             .map((json) => FoodCategory.fromMap(json, currentLanguage: _currentLanguage))
             .toList();
         
-     debugPrint('✅ Fetched ${categories} categories');
         
         return ApiResponse.success(categories, statusCode: response.statusCode);
       }
@@ -289,35 +281,19 @@ Future<ApiResponse<List<FoodItem>>> getFoodItems({
     if (popular != null) queryParams['popular'] = popular;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
-    if (kDebugMode) {
-      print('🔍 Fetching food items with params: $queryParams');
-    }
+  
 
     final response = await _dio.get(
       ApiConstants.foodItems,
       queryParameters: queryParams,
     );
 
-    if (kDebugMode) {
-      print('📦 Response status: ${response.statusCode}');
-      print('📦 Response data keys: ${response.data?.keys}');
-    }
+  
 
     if (response.statusCode == 200) {
       final List<dynamic> data = response.data['items'] ?? [];
       
-      if (kDebugMode) {
-        print('📦 Total items received: ${data.length}');
-        
-        // Check if items have offers
-        final itemsWithOffers = data.where((item) => item['offer'] != null).length;
-        print('💰 Items with offers: $itemsWithOffers');
-        
-        // Sample first item to verify offer structure
-        if (data.isNotEmpty && data[0]['offer'] != null) {
-          print('💰 Sample offer data: ${data[0]['offer']}');
-        }
-      }
+   
       
       final items = data
           .map((json) => FoodItem.fromMap(json, currentLanguage: _currentLanguage))
@@ -328,16 +304,10 @@ Future<ApiResponse<List<FoodItem>>> getFoodItems({
     }
     return ApiResponse.error('Failed to fetch food items', statusCode: response.statusCode);
   } on DioException catch (e) {
-    if (kDebugMode) {
-      print('❌ DioException: ${e.message}');
-      print('❌ Response: ${e.response?.data}');
-    }
+ 
     return ApiResponse.error(_handleDioError(e), statusCode: e.response?.statusCode);
   } catch (e, stackTrace) {
-    if (kDebugMode) {
-      print('❌ Unexpected error: $e');
-      print('❌ Stack trace: $stackTrace');
-    }
+ 
     return ApiResponse.error('Unexpected error occurred: $e');
   }
 }
@@ -355,13 +325,7 @@ Future<ApiResponse<List<FoodItem>>> getFoodItems({
     if (response.statusCode == 200) {
       final itemData = response.data['item'];
       
-      if (kDebugMode) {
-        print('📦 Single item data: ${itemData['name']}');
-        print('📦 Has offer: ${itemData['offer'] != null}');
-        if (itemData['offer'] != null) {
-          print('📦 Offer details: ${itemData['offer']}');
-        }
-      }
+   
       
       final item = FoodItem.fromMap(
         itemData,
@@ -850,7 +814,7 @@ Future<ApiResponse<void>> resendResetOTP(String email) async {
 //       statusCode: e.response?.statusCode,
 //     );
 //   } catch (e) {
-//     debugPrint('Request password reset error: $e');
+//     ('Request password reset error: $e');
 //     return ApiResponse.error('Unexpected error occurred');
 //   }
 // }

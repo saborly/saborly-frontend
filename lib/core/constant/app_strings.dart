@@ -416,6 +416,11 @@ class AppStrings {
       'companyAddress': 'C/ de Pere IV, 208, Sant Martí, 08005 Barcelona, Spain',
       'close': 'Close',
       'save': 'Save',
+      "restaurantClosed": "Restaurant Closed",
+  "restaurantClosedDescription": "Sorry, we're not accepting orders right now",
+  "checkOurHours": "Check Our Hours",
+  "closingSoon": "Closing Soon",
+  "orderBeforeClosing": "Order before we close",
       'areYouSureSignOut': 'Are you sure you want to sign out?',
          'imageNotAvailable': 'Image not available',
       'addedToCart': '{itemName} added to cart',
@@ -826,7 +831,11 @@ class AppStrings {
       'offers': 'Ofertas',
       'profile': 'Perfil',
       'back': 'Atrás',
-      
+        "restaurantClosed": "Restaurante cerrado",
+  "restaurantClosedDescription": "Lo sentimos, no estamos aceptando pedidos en este momento",
+  "checkOurHours": "Consulta nuestro horario",
+  "closingSoon": "Cerrando pronto",
+  "orderBeforeClosing": "Haz tu pedido antes de que cerremos",
       // Authentication
       'signIn': 'Iniciar Sesión',
       'signUp': 'Registrarse',
@@ -2233,7 +2242,14 @@ class AppStrings {
   "clearAllNotifications": "Esborra totes les notificacions",
   "areYouSureYouWantToClearAllNotifications": "Estàs segur que vols esborrar totes les notificacions?",
   "allNotificationsCleared": "Totes les notificacions esborrades",
-  "noNotificationsInThisCategory": "No hi ha notificacions en aquesta categoria"
+  "noNotificationsInThisCategory": "No hi ha notificacions en aquesta categoria",
+
+
+    "restaurantClosed": "Restaurante cerrado",
+  "restaurantClosedDescription": "Lo sentimos, no estamos aceptando pedidos en este momento",
+  "checkOurHours": "Consulta nuestro horario",
+  "closingSoon": "Cerrando pronto",
+  "orderBeforeClosing": "Haz tu pedido antes de que cerremos",
    },
     
     // ==================== ARABIC ====================
@@ -2915,7 +2931,11 @@ class AppStrings {
       'faq_account_incorrect_answer': 'إذا كان هناك أي مشكلة مع طلبك، يرجى التواصل معنا على الفور من خلال التطبيق أو دعم العملاء. التقط صورًا للمشكلة إن أمكن. سنعمل مع المطعم لحل المشكلة وتقديم استرداد، أو استبدال، أو رصيد لحسابك.',
       'faq_account_dietary_question': 'هل لديكم فلاتر غذائية؟',
       'faq_account_dietary_answer': 'نعم! يمكنك تصفية عناصر القائمة حسب التفضيلات الغذائية، بما في ذلك النباتي، والنباتي الصرف، وخالي من الغلوتين، وخالي من الألبان، وخالي من المكسرات، والحلال، والكوشر. نحن نقدم أيضًا معلومات مفصلة عن المواد المسببة للحساسية لكل طبق. ابحث عن أيقونة الفلتر في قائمة التطبيق.',
-   
+     "restaurantClosed": "المطعم مغلق",
+  "restaurantClosedDescription": "عذرًا، لا نقبل الطلبات في الوقت الحالي",
+  "checkOurHours": "تحقق من ساعات عملنا",
+  "closingSoon": "سيغلق قريبًا",
+  "orderBeforeClosing": "اطلب قبل أن نغلق",
     },
 
     // ==================== FRENCH ====================
@@ -2925,6 +2945,12 @@ class AppStrings {
       'appSlogan': 'Nourriture Délicieuse Livrée Rapidement',
   "driverPickup": "Ramassage du conducteur",
       // General
+      "@@locale": "fr",
+  "restaurantClosed": "Restaurant fermé",
+  "restaurantClosedDescription": "Désolé, nous n'acceptons pas de commandes pour le moment",
+  "checkOurHours": "Consultez nos horaires",
+  "closingSoon": "Fermeture imminente",
+  "orderBeforeClosing": "Commandez avant la fermeture",
       'search': 'Rechercher',
       'viewAll': 'Voir Tout',
       'add': 'Ajouter',
@@ -4119,6 +4145,17 @@ class AppStrings {
   static String get passionDescription => get('passionDescription');
   static String get ourMission => get('ourMission');
   static String get missionDescription => get('missionDescription');
+
+
+  static String get restaurantClosed => get('restaurantClosed') ?? 'Restaurant Closed';
+  static String get restaurantClosedDescription => 
+     get('restaurantClosedDescription') ?? 
+    'Sorry, we\'re not accepting orders right now';
+  static String get checkOurHours =>  get('checkOurHours') ?? 'Check Our Hours';
+  static String get closingSoon =>  get('closingSoon') ?? 'Closing Soon';
+  static String get orderBeforeClosing =>  get('orderBeforeClosing') ?? 'Order before we close';
+
+
    static String _getTranslation(String key, String language) {
     if (_translations.containsKey(key)) {
       final translations = _translations[key]!;

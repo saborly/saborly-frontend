@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
 import 'package:Saborly/core/services/language_service.dart';
 
-// Main Offer Model
 class OfferModel extends Equatable {
   final String id;
   final String title;
@@ -18,6 +17,7 @@ class OfferModel extends Equatable {
   final String? couponCode;
   final bool isActive;
   final bool isFeatured;
+  final List<String> platforms; 
 
   const OfferModel({
     required this.id,
@@ -34,24 +34,20 @@ class OfferModel extends Equatable {
     this.couponCode,
     this.isActive = true,
     this.isFeatured = false,
+    this.platforms = const ['all'], // NEW: Default to all platforms
   });
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        description,
-        badge,
-        imageUrl,
-        expiryDate,
-        category,
-        type,
-        value,
-        minOrderAmount,
-        couponCode,
-        isActive,
-        isFeatured,
+        id, title, description, badge, imageUrl, expiryDate, category,
+        type, value, minOrderAmount, couponCode, isActive, isFeatured, platforms,
       ];
+
+  // NEW: Check if offer is valid for a specific platform
+  bool isValidForPlatform(String platform) {
+    if (platforms.isEmpty || platforms.contains('all')) return true;
+    return platforms.contains(platform);
+  }
 
   factory OfferModel.fromJson(Map<String, dynamic> json) {
     final type = json['type'] as String;
@@ -88,6 +84,14 @@ class OfferModel extends Equatable {
       type,
     );
 
+    // NEW: Parse platforms array
+    List<String> platforms = ['all'];
+    if (json['platforms'] != null && json['platforms'] is List) {
+      platforms = (json['platforms'] as List)
+          .map((p) => p.toString())
+          .toList();
+    }
+
     return OfferModel(
       id: json['_id'] as String,
       title: json['title'] as String,
@@ -105,9 +109,9 @@ class OfferModel extends Equatable {
       couponCode: json['couponCode'] as String?,
       isActive: json['isActive'] as bool? ?? true,
       isFeatured: json['isFeatured'] as bool? ?? false,
+      platforms: platforms, // NEW
     );
   }
-  
 
   Map<String, dynamic> toJson() {
     return {
@@ -124,6 +128,7 @@ class OfferModel extends Equatable {
       'couponCode': couponCode,
       'isActive': isActive,
       'isFeatured': isFeatured,
+      'platforms': platforms, // NEW
     };
   }
 
@@ -131,10 +136,7 @@ class OfferModel extends Equatable {
     if (bannerColor != null && bannerColor.isNotEmpty) {
       try {
         final baseColor = _hexToColor(bannerColor);
-        return [
-          baseColor,
-          baseColor.withOpacity(0.7),
-        ];
+        return [baseColor, baseColor.withOpacity(0.7)];
       } catch (e) {
         // Fall back to default colors
       }
@@ -204,6 +206,7 @@ class OfferModel extends Equatable {
     String? couponCode,
     bool? isActive,
     bool? isFeatured,
+    List<String>? platforms, // NEW
   }) {
     return OfferModel(
       id: id ?? this.id,
@@ -220,17 +223,19 @@ class OfferModel extends Equatable {
       couponCode: couponCode ?? this.couponCode,
       isActive: isActive ?? this.isActive,
       isFeatured: isFeatured ?? this.isFeatured,
+      platforms: platforms ?? this.platforms, // NEW
     );
   }
 }
 
-// Simple Offer Info (used in FoodItem)
+// Simple Offer Info (used in FoodItem) with Platform Support
 class SimpleOffer extends Equatable {
   final String id;
   final String title;
   final String type;
   final double value;
   final String badge;
+  final List<String> platforms; // NEW
 
   const SimpleOffer({
     required this.id,
@@ -238,18 +243,34 @@ class SimpleOffer extends Equatable {
     required this.type,
     required this.value,
     required this.badge,
+    this.platforms = const ['all'], // NEW
   });
 
   @override
-  List<Object?> get props => [id, title, type, value, badge];
+  List<Object?> get props => [id, title, type, value, badge, platforms];
+
+  // NEW: Check if offer is valid for a specific platform
+  bool isValidForPlatform(String platform) {
+    if (platforms.isEmpty || platforms.contains('all')) return true;
+    return platforms.contains(platform);
+  }
 
   factory SimpleOffer.fromJson(Map<String, dynamic> json) {
+    // Parse platforms
+    List<String> platforms = ['all'];
+    if (json['platforms'] != null && json['platforms'] is List) {
+      platforms = (json['platforms'] as List)
+          .map((p) => p.toString())
+          .toList();
+    }
+
     return SimpleOffer(
       id: json['id'] as String,
       title: json['title'] as String,
       type: json['type'] as String,
       value: (json['value'] as num).toDouble(),
       badge: json['badge'] as String,
+      platforms: platforms, // NEW
     );
   }
 
@@ -260,6 +281,7 @@ class SimpleOffer extends Equatable {
       'type': type,
       'value': value,
       'badge': badge,
+      'platforms': platforms, // NEW
     };
   }
 
@@ -269,6 +291,7 @@ class SimpleOffer extends Equatable {
     String? type,
     double? value,
     String? badge,
+    List<String>? platforms, // NEW
   }) {
     return SimpleOffer(
       id: id ?? this.id,
@@ -276,12 +299,12 @@ class SimpleOffer extends Equatable {
       type: type ?? this.type,
       value: value ?? this.value,
       badge: badge ?? this.badge,
+      platforms: platforms ?? this.platforms, // NEW
     );
   }
 }
 
 // Category Info (used in FoodItemWithOffer)
-
 class CategoryInfo extends Equatable {
   final String id;
   final String name;
@@ -303,7 +326,6 @@ class CategoryInfo extends Equatable {
     try {
       final language = currentLanguage ?? LanguageService.spanish;
 
-      // ✅ Handle multilingual category name
       String categoryName = '';
       if (json['name'] is Map) {
         categoryName = FoodItemWithOffer._getTextInLanguage(
@@ -349,7 +371,6 @@ class CategoryInfo extends Equatable {
   }
 }
 
-// ... SimpleOffer class remains same ...
 // Food Item with Offer (from items-with-offers endpoint)
 class FoodItemWithOffer extends Equatable {
   final String id;
@@ -380,48 +401,29 @@ class FoodItemWithOffer extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        price,
-        imageUrl,
-        category,
-        isActive,
-        offer,
-        discountedPrice,
-        savings,
-        discountPercentage,
+        id, name, description, price, imageUrl, category,
+        isActive, offer, discountedPrice, savings, discountPercentage,
       ];
 
-  /// ✅ CRITICAL: Get text in specific language
   static String _getTextInLanguage(
     dynamic value,
     String targetLanguage, {
     String fallback = '',
   }) {
     if (value == null) return fallback;
-
-    // If it's already a string, use it
     if (value is String) return value.isNotEmpty ? value : fallback;
 
-    // If it's a multilingual Map
     if (value is Map) {
-      // Try target language first
       if (value[targetLanguage] != null) {
         final text = value[targetLanguage].toString().trim();
-        if (text.isNotEmpty) {
-          return text;
-        }
+        if (text.isNotEmpty) return text;
       }
 
-      // Fallback chain
       const fallbackChain = ['en', 'es', 'ca', 'ar', 'fr'];
       for (final lang in fallbackChain) {
         if (value[lang] != null) {
           final text = value[lang].toString().trim();
-          if (text.isNotEmpty) {
-            return text;
-          }
+          if (text.isNotEmpty) return text;
         }
       }
     }
@@ -434,25 +436,20 @@ class FoodItemWithOffer extends Equatable {
     String? currentLanguage,
   }) {
     try {
-      // ✅ CRITICAL: Get language from parameter or LanguageService
       final language = currentLanguage ?? LanguageService.spanish;
 
-
-      // ✅ Parse name with language
       final name = _getTextInLanguage(
         json['name'],
         language,
         fallback: 'Unknown Item',
       );
 
-      // ✅ Parse description with language
       final description = _getTextInLanguage(
         json['description'],
         language,
         fallback: '',
       );
 
-      // Parse category
       final categoryJson = json['category'];
       CategoryInfo category;
 
@@ -468,13 +465,12 @@ class FoodItemWithOffer extends Equatable {
         );
       }
 
-      // Parse offer
       SimpleOffer? offerData;
       if (json['offer'] != null && json['offer'] is Map) {
         offerData = SimpleOffer.fromJson(json['offer'] as Map<String, dynamic>);
       }
 
-      final result = FoodItemWithOffer(
+      return FoodItemWithOffer(
         id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
         name: name,
         description: description,
@@ -489,13 +485,8 @@ class FoodItemWithOffer extends Equatable {
         savings: (json['savings'] as num?)?.toDouble() ?? 0.0,
         discountPercentage: json['discountPercentage'] as int? ?? 0,
       );
-
-      return result;
     } catch (e, stackTrace) {
-   
       rethrow;
     }
   }
-
 }
-
