@@ -70,31 +70,5 @@ extension AppDelegate: MessagingDelegate {
   }
 }
 
-// MARK: - UNUserNotificationCenterDelegate
-extension AppDelegate: UNUserNotificationCenterDelegate {
-  // Handle notification when app is in foreground
-  func userNotificationCenter(_ center: UNUserNotificationCenter,
-                              willPresent notification: UNNotification,
-                              withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-    let userInfo = notification.request.content.userInfo
-    print("Foreground notification: \(userInfo)")
-    
-    // Show notification banner, badge, and play sound even when app is in foreground
-    if #available(iOS 14.0, *) {
-      completionHandler([[.banner, .badge, .sound]])
-    } else {
-      completionHandler([[.alert, .badge, .sound]])
-    }
-  }
 
-  // Handle notification tap
-  func userNotificationCenter(_ center: UNUserNotificationCenter,
-                              didReceive response: UNNotificationResponse,
-                              withCompletionHandler completionHandler: @escaping () -> Void) {
-    let userInfo = response.notification.request.content.userInfo
-    print("Notification tapped: \(userInfo)")
-    
-    // The Flutter app will handle navigation
-    completionHandler()
-  }
-}
+

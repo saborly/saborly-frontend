@@ -23,20 +23,11 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -48,22 +39,55 @@ class DefaultFirebaseOptions {
         );
     }
   }
-  
+
   static const FirebaseOptions web = FirebaseOptions(
- apiKey: "AIzaSyBnwI2qJNDW3CVNdf1_NidUMUrYTepqAxg",
-  authDomain: "saborly-397b6.firebaseapp.com",
-  projectId: "saborly-397b6",
-  storageBucket: "saborly-397b6.firebasestorage.app",
-  messagingSenderId: "420029681993",
-  appId: "1:420029681993:web:4c0228b4b3c3efe1d68a98",
-  measurementId: "G-6EWPX5Z5J9"
+    apiKey: 'AIzaSyB8lm-4t0Ox8OkZODqLgnj_AKYfd8iyIGI',
+    appId: '1:361344460853:web:0af229c865dfe6c77c697c',
+    messagingSenderId: '361344460853',
+    projectId: 'saborly',
+    authDomain: 'saborly.firebaseapp.com',
+    storageBucket: 'saborly.firebasestorage.app',
+    measurementId: 'G-L33VF07B93',
   );
- 
+
+  
+
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDu3clMHcTEFgq1a5tcrESS705RUK1kYd4',
-    appId: '1:420029681993:android:d09494f75ec913d5d68a98',
-    messagingSenderId: '420029681993',
-    projectId: 'saborly-397b6',
-    storageBucket: 'saborly-397b6.firebasestorage.app',
+    apiKey: 'AIzaSyBRIokAyUDhvVYwhT1crAbS0d0bb3mkw1U',
+    appId: '1:361344460853:android:12d431cf23c7109e7c697c',
+    messagingSenderId: '361344460853',
+    projectId: 'saborly',
+    storageBucket: 'saborly.firebasestorage.app',
   );
+
+ 
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyAcM_iGJlHFw8c9NPaZLaf24MsNfcqctfs',
+    appId: '1:361344460853:ios:0dba3748e07688e57c697c',
+    messagingSenderId: '361344460853',
+    projectId: 'saborly',
+    storageBucket: 'saborly.firebasestorage.app',
+    iosBundleId: 'com.example.soely',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyAcM_iGJlHFw8c9NPaZLaf24MsNfcqctfs',
+    appId: '1:361344460853:ios:0dba3748e07688e57c697c',
+    messagingSenderId: '361344460853',
+    projectId: 'saborly',
+    storageBucket: 'saborly.firebasestorage.app',
+    iosBundleId: 'com.example.soely',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyB8lm-4t0Ox8OkZODqLgnj_AKYfd8iyIGI',
+    appId: '1:361344460853:web:0af229c865dfe6c77c697c',
+    messagingSenderId: '361344460853',
+    projectId: 'saborly',
+    authDomain: 'saborly.firebaseapp.com',
+    storageBucket: 'saborly.firebasestorage.app',
+    measurementId: 'G-L33VF07B93',
+  );
+
 }

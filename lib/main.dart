@@ -377,7 +377,7 @@ ChangeNotifierProvider<NotificationProvider>.value(
           fontSize: 14.sp,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 4,
         shadowColor: Colors.black.withOpacity(0.1),
@@ -385,6 +385,7 @@ ChangeNotifierProvider<NotificationProvider>.value(
           borderRadius: BorderRadius.circular(16.r),
         ),
       ),
+
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
         selectedItemColor: AppColors.primary,
