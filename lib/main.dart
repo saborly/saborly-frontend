@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/core/services/notification_service.dart';
@@ -32,36 +33,125 @@ import 'core/services/api_service.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (!kIsWeb) {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    // Initialize local notifications in background isolate
+    final FlutterLocalNotificationsPlugin localNotifications =
+        FlutterLocalNotificationsPlugin();
+
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    await localNotifications.initialize(
+      const InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      ),
+    );
+
+    // Create notification channel for Android
+    const androidChannel = AndroidNotificationChannel(
+      'order_updates',
+      'Order Updates',
+      description: 'Notifications about your order status',
+      importance: Importance.high,
+      enableVibration: true,
+      playSound: true,
+    );
+
+    final androidPlugin =
+        localNotifications.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    if (androidPlugin != null) {
+      await androidPlugin.createNotificationChannel(androidChannel);
+    }
+
+    // Show notification - handle both notification field and data-only messages
+    final notification = message.notification;
+    final data = message.data;
+
+    String title;
+    String body;
+
+    if (notification != null) {
+      title = notification.title ?? data['title'] ?? 'New Notification';
+      body = notification.body ?? data['body'] ?? 'You have a new notification';
+    } else if (data.isNotEmpty) {
+      // Handle data-only messages
+      title = data['title'] ?? data['notificationTitle'] ?? 'New Notification';
+      body = data['body'] ??
+          data['notificationBody'] ??
+          data['message'] ??
+          'You have a new notification';
+    } else {
+      return; // No notification or data to show
+    }
+
+    const androidDetails = AndroidNotificationDetails(
+      'order_updates',
+      'Order Updates',
+      channelDescription: 'Notifications about your order status',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+      enableVibration: true,
+      playSound: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    await localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      const NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      ),
+      payload: data.toString(),
+    );
   }
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+
+  // CRITICAL: Register background handler BEFORE Firebase initialization
   if (!kIsWeb) {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   }
-  
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   final prefs = await SharedPreferences.getInstance();
-  
+
   // Initialize API Service first
   ApiService().initialize();
-  
+
   // Initialize Language Service and sync everything
   final languageService = LanguageService(prefs);
   final currentLang = languageService.currentLanguage;
-  
+
   // Sync AppStrings with saved language
   AppStrings.setLanguage(currentLang);
-  
+
   // Sync API service with saved language
   ApiService().setLanguage(currentLang);
-  
+
   final cartProvider = CartProvider();
   await cartProvider.initialize();
 
@@ -70,7 +160,7 @@ void main() async {
 
   // 6. Notification Service (singleton) – bind the provider **now**
   final notificationService = NotificationService();
-  await notificationService.initialize();               // no permission request
+  await notificationService.initialize(); // no permission request
   NotificationService.instance.attachProvider(notificationProvider);
 
   // 7. UI orientation (mobile only)
@@ -93,7 +183,7 @@ void main() async {
     cartProvider: cartProvider,
     notificationService: notificationService,
     languageService: languageService,
-    notificationProvider: notificationProvider,   // <-- pass it
+    notificationProvider: notificationProvider, // <-- pass it
   ));
 }
 
@@ -102,8 +192,8 @@ class FoodKingApp extends StatefulWidget {
   final CartProvider cartProvider;
   final NotificationService notificationService;
   final LanguageService languageService;
-  final NotificationProvider notificationProvider;   
-   const FoodKingApp({
+  final NotificationProvider notificationProvider;
+  const FoodKingApp({
     super.key,
     required this.prefs,
     required this.cartProvider,
@@ -125,7 +215,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
   void initState() {
     super.initState();
     widget.languageService.addListener(_onLanguageChanged);
-    
+
     // Schedule notification dialog
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduleNotificationDialog();
@@ -135,33 +225,35 @@ class _FoodKingAppState extends State<FoodKingApp> {
   Future<void> _scheduleNotificationDialog() async {
     if (_notificationDialogScheduled) return;
     _notificationDialogScheduled = true;
-    
+
     // Wait a bit for the app to load
     await Future.delayed(const Duration(seconds: 3));
-    
+
     final notificationService = NotificationService();
     final shouldShow = await notificationService.shouldShowPermissionDialog();
-    
+
     if (!shouldShow || !mounted) return;
-    
+
     final navigatorState = navigatorKey.currentState;
     if (navigatorState == null) return;
-    
+
     final navigatorContext = navigatorKey.currentContext;
     if (navigatorContext == null || !navigatorContext.mounted) return;
-    
+
     final route = DialogRoute<void>(
       context: navigatorContext,
       builder: (BuildContext dialogContext) => NotificationPermissionDialog(
         onAllow: () async {
           Navigator.of(dialogContext).pop();
-          
-          final granted = await notificationService.requestPermissionWithDialog();
-          
+
+          final granted =
+              await notificationService.requestPermissionWithDialog();
+
           if (granted && navigatorContext.mounted) {
             ScaffoldMessenger.of(navigatorContext).showSnackBar(
               const SnackBar(
-                content: Text('✅ Notifications enabled! You\'ll receive order updates.'),
+                content: Text(
+                    '✅ Notifications enabled! You\'ll receive order updates.'),
                 backgroundColor: Colors.green,
                 duration: Duration(seconds: 3),
               ),
@@ -170,11 +262,12 @@ class _FoodKingAppState extends State<FoodKingApp> {
         },
         onDeny: () {
           Navigator.of(dialogContext).pop();
-          
+
           if (navigatorContext.mounted) {
             ScaffoldMessenger.of(navigatorContext).showSnackBar(
               const SnackBar(
-                content: Text('You can enable notifications later in settings.'),
+                content:
+                    Text('You can enable notifications later in settings.'),
                 duration: Duration(seconds: 2),
               ),
             );
@@ -186,7 +279,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
       barrierLabel: 'Dismiss',
       settings: const RouteSettings(name: 'notification_permission_dialog'),
     );
-    
+
     navigatorState.push<void>(route);
   }
 
@@ -204,7 +297,6 @@ class _FoodKingAppState extends State<FoodKingApp> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -221,7 +313,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
         } else {
           designSize = const Size(390, 844);
         }
-        
+
         return ScreenUtilInit(
           designSize: designSize,
           minTextAdapt: true,
@@ -238,16 +330,18 @@ class _FoodKingAppState extends State<FoodKingApp> {
                 ChangeNotifierProvider<LanguageService>.value(
                   value: widget.languageService,
                 ),
-            // Inside FoodKingApp.build() – replace the whole NotificationProvider entry:
+                // Inside FoodKingApp.build() – replace the whole NotificationProvider entry:
 
-ChangeNotifierProvider<NotificationProvider>.value(
-  value: widget.notificationProvider,   // <-- use the one from main()
-),
+                ChangeNotifierProvider<NotificationProvider>.value(
+                  value: widget
+                      .notificationProvider, // <-- use the one from main()
+                ),
                 ChangeNotifierProxyProvider<LanguageService, HomeProvider>(
                   create: (_) {
                     final homeProvider = HomeProvider();
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      homeProvider.initializeIfNeeded(widget.languageService.currentLanguage);
+                      homeProvider.initializeIfNeeded(
+                          widget.languageService.currentLanguage);
                     });
                     return homeProvider;
                   },
@@ -266,7 +360,8 @@ ChangeNotifierProvider<NotificationProvider>.value(
                 ChangeNotifierProxyProvider<LanguageService, OffersProvider>(
                   create: (_) => OffersProvider(),
                   update: (_, languageService, offersProvider) {
-                    offersProvider?.setLanguage(languageService.currentLanguage);
+                    offersProvider
+                        ?.setLanguage(languageService.currentLanguage);
                     return offersProvider ?? OffersProvider();
                   },
                 ),
@@ -297,7 +392,8 @@ ChangeNotifierProvider<NotificationProvider>.value(
                     localeResolutionCallback: (deviceLocale, supportedLocales) {
                       final userLocale = languageService.locale;
                       for (var supportedLocale in supportedLocales) {
-                        if (supportedLocale.languageCode == userLocale.languageCode) {
+                        if (supportedLocale.languageCode ==
+                            userLocale.languageCode) {
                           return userLocale;
                         }
                       }
@@ -321,7 +417,7 @@ ChangeNotifierProvider<NotificationProvider>.value(
       },
     );
   }
-  
+
   ThemeData _buildThemeData() {
     return ThemeData(
       primarySwatch: Colors.pink,
@@ -385,7 +481,6 @@ ChangeNotifierProvider<NotificationProvider>.value(
           borderRadius: BorderRadius.circular(16.r),
         ),
       ),
-
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
         selectedItemColor: AppColors.primary,
@@ -408,7 +503,7 @@ ChangeNotifierProvider<NotificationProvider>.value(
 
 class AppBackButtonHandler extends StatelessWidget {
   final Widget child;
-  
+
   const AppBackButtonHandler({super.key, required this.child});
 
   @override

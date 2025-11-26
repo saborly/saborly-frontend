@@ -4,9 +4,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.2' // Updated
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.0' // Align with app/build.gradle
-        classpath 'com.google.gms:google-services:4.4.3' // Latest
+        classpath 'com.android.tools.build:gradle:8.6.0' // Updated to match settings.gradle
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0' // Updated
+        classpath 'com.google.gms:google-services:4.4.0' // Updated
     }
 }
 

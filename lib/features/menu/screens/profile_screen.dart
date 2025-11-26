@@ -219,11 +219,21 @@ class ProfileScreen extends StatelessWidget {
           Divider(height: 24.h, color: Colors.grey[200]),
           Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
-              return _buildQuickLink(
-                AppStrings.get('signOut'),
-                Icons.logout,
-                () => _showSignOutDialog(context, authProvider),
-                isDestructive: true,
+              return Column(
+                children: [
+                  _buildQuickLink(
+                    AppStrings.get('deleteAccount'),
+                    Icons.delete_outline,
+                    () => _showDeleteAccountDialog(context, authProvider),
+                    isDestructive: true,
+                  ),
+                  _buildQuickLink(
+                    AppStrings.get('signOut'),
+                    Icons.logout,
+                    () => _showSignOutDialog(context, authProvider),
+                    isDestructive: true,
+                  ),
+                ],
               );
             },
           ),
@@ -322,6 +332,15 @@ class ProfileScreen extends StatelessWidget {
               _buildSettingCard(AppStrings.get('about'), Icons.info_outline, () {
                 context.go(AppRoutes.about);
               }),
+              Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  return _buildSettingCard(
+                    AppStrings.deleteAccount,
+                    Icons.delete_outline,
+                    () => _showDeleteAccountDialog(context, authProvider),
+                  );
+                },
+              ),
             ],
           ),
         ],
@@ -995,11 +1014,22 @@ class ProfileScreen extends StatelessWidget {
           SizedBox(height: 16.h),
           Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
-              return CustomButton(
-                text: AppStrings.signOut,
-                isOutlined: true,
-                textColor: AppColors.error,
-                onPressed: () => _showSignOutDialog(context, authProvider),
+              return Column(
+                children: [
+                  CustomButton(
+                    text: AppStrings.deleteAccount,
+                    isOutlined: true,
+                    textColor: AppColors.error,
+                    onPressed: () => _showDeleteAccountDialog(context, authProvider),
+                  ),
+                  SizedBox(height: 12.h),
+                  CustomButton(
+                    text: AppStrings.signOut,
+                    isOutlined: true,
+                    textColor: AppColors.error,
+                    onPressed: () => _showSignOutDialog(context, authProvider),
+                  ),
+                ],
               );
             },
           ),
@@ -1287,6 +1317,125 @@ class ProfileScreen extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, AuthProvider authProvider) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 24.sp),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  AppStrings.deleteAccount,
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            AppStrings.areYouSureDeleteAccount,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: AppColors.textMedium,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
+                AppStrings.cancel,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: AppColors.textLight,
+                ),
+              ),
+            ),
+            Consumer<AuthProvider>(
+              builder: (context, provider, child) {
+                return ElevatedButton(
+                  onPressed: provider.isLoading
+                      ? null
+                      : () async {
+                          final success = await provider.deleteAccount();
+                          if (dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                            if (success) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(AppStrings.accountDeletedSuccessfully),
+                                    backgroundColor: AppColors.success,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10.r),
+                                    ),
+                                    margin: EdgeInsets.all(16.w),
+                                  ),
+                                );
+                                context.go(AppRoutes.home);
+                              }
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(AppStrings.failedToDeleteAccount),
+                                    backgroundColor: AppColors.error,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10.r),
+                                    ),
+                                    margin: EdgeInsets.all(16.w),
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      vertical: 12.h,
+                      horizontal: 24.w,
+                    ),
+                  ),
+                  child: provider.isLoading
+                      ? SizedBox(
+                          width: 16.w,
+                          height: 16.h,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          AppStrings.deleteAccount,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                );
+              },
             ),
           ],
         );

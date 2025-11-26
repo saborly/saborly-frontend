@@ -422,6 +422,10 @@ class AppStrings {
   "closingSoon": "Closing Soon",
   "orderBeforeClosing": "Order before we close",
       'areYouSureSignOut': 'Are you sure you want to sign out?',
+      'deleteAccount': 'Delete Account',
+      'areYouSureDeleteAccount': 'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.',
+      'accountDeletedSuccessfully': 'Your account has been deleted successfully',
+      'failedToDeleteAccount': 'Failed to delete account. Please try again.',
          'imageNotAvailable': 'Image not available',
       'addedToCart': '{itemName} added to cart',
       'undo': 'Undo',
@@ -1286,6 +1290,10 @@ class AppStrings {
       'close': 'Cerrar',
       'save': 'Guardar',
       'areYouSureSignOut': '¿Estás seguro de que quieres cerrar sesión?',
+      'deleteAccount': 'Eliminar Cuenta',
+      'areYouSureDeleteAccount': '¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer y todos tus datos se eliminarán permanentemente.',
+      'accountDeletedSuccessfully': 'Tu cuenta ha sido eliminada exitosamente',
+      'failedToDeleteAccount': 'Error al eliminar la cuenta. Por favor, inténtalo de nuevo.',
 
       'loadingMenu': 'Cargando menú delicioso...',
       'noCategoriesAvailable': 'No hay categorías disponibles',
@@ -1843,6 +1851,10 @@ class AppStrings {
       'close': 'Tancar',
       'save': 'Desar',
       'areYouSureSignOut': 'Estàs segur que vols tancar sessió?',
+      'deleteAccount': 'Eliminar Compte',
+      'areYouSureDeleteAccount': 'Estàs segur que vols eliminar el teu compte? Aquesta acció no es pot desfer i totes les teves dades s\'eliminaran permanentment.',
+      'accountDeletedSuccessfully': 'El teu compte ha estat eliminat amb èxit',
+      'failedToDeleteAccount': 'Error en eliminar el compte. Si us plau, torna-ho a intentar.',
         // New translations
       'imageNotAvailable': 'Imatge no disponible',
       'addedToCart': '{itemName} afegit al carret',
@@ -2545,6 +2557,10 @@ class AppStrings {
       'close': 'إغلاق',
       'save': 'حفظ',
       'areYouSureSignOut': 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+      'deleteAccount': 'حذف الحساب',
+      'areYouSureDeleteAccount': 'هل أنت متأكد أنك تريد حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء وستتم إزالة جميع بياناتك بشكل دائم.',
+      'accountDeletedSuccessfully': 'تم حذف حسابك بنجاح',
+      'failedToDeleteAccount': 'فشل في حذف الحساب. يرجى المحاولة مرة أخرى.',
          'imageNotAvailable': 'الصورة غير متوفرة',
       'addedToCart': 'تم إضافة {itemName} إلى السلة',
       'undo': 'تراجع',
@@ -3332,6 +3348,10 @@ class AppStrings {
       'close': 'Fermer',
       'save': 'Enregistrer',
       'areYouSureSignOut': 'Êtes-vous sûr de vouloir vous déconnecter ?',
+      'deleteAccount': 'Supprimer le Compte',
+      'areYouSureDeleteAccount': 'Êtes-vous sûr de vouloir supprimer votre compte ? Cette action ne peut pas être annulée et toutes vos données seront définitivement supprimées.',
+      'accountDeletedSuccessfully': 'Votre compte a été supprimé avec succès',
+      'failedToDeleteAccount': 'Échec de la suppression du compte. Veuillez réessayer.',
       'imageNotAvailable': 'Image non disponible',
       'addedToCart': '{itemName} ajouté au panier',
       'undo': 'Annuler',
@@ -3939,6 +3959,10 @@ class AppStrings {
   static String get close => get('close');
   static String get save => get('save');
   static String get areYouSureSignOut => get('areYouSureSignOut');
+  static String get deleteAccount => get('deleteAccount');
+  static String get areYouSureDeleteAccount => get('areYouSureDeleteAccount');
+  static String get accountDeletedSuccessfully => get('accountDeletedSuccessfully');
+  static String get failedToDeleteAccount => get('failedToDeleteAccount');
   static String get imageNotAvailable => get('imageNotAvailable');
   static String get addedToCart => get('addedToCart');
   static String get undo => get('undo');

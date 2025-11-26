@@ -1,0 +1,11 @@
+{
+  "name": "saborly-frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "flutter build web --release"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

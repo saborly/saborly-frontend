@@ -12,14 +12,17 @@ import '../../../core/services/api_service.dart';
 class AuthProvider extends ChangeNotifier {
   final SharedPreferences _prefs;
   final ApiService _apiService = ApiService();
-  
+
   // ✅ FIXED: Configure Google Sign-In with proper client IDs
   late final GoogleSignIn _googleSignIn;
-  
+
   // Add your mobile client IDs here
-  static const String _androidClientId = '130218217091-1fl1m5mplj0rqmv4mjl3f5blncbi66u8.apps.googleusercontent.com';
-  static const String _iosClientId = '130218217091-5e9j8a43lnhcuo6fai5dlne5e5fprq86.apps.googleusercontent.com'; // Add if you have iOS
-  static const String _webClientId = '130218217091-ta95bq5pq3b38aqdlr158m6q6umug720.apps.googleusercontent.com';
+  static const String _androidClientId =
+      '130218217091-1fl1m5mplj0rqmv4mjl3f5blncbi66u8.apps.googleusercontent.com';
+  static const String _iosClientId =
+      '130218217091-5e9j8a43lnhcuo6fai5dlne5e5fprq86.apps.googleusercontent.com'; // Add if you have iOS
+  static const String _webClientId =
+      '130218217091-ta95bq5pq3b38aqdlr158m6q6umug720.apps.googleusercontent.com';
 
   String? _resetToken;
   Timer? _tokenExpiryTimer;
@@ -44,7 +47,7 @@ class AuthProvider extends ChangeNotifier {
 
   void _initializeGoogleSignIn() {
     String? clientId;
-    
+
     if (kIsWeb) {
       clientId = _webClientId;
     } else if (Platform.isAndroid) {
@@ -53,7 +56,6 @@ class AuthProvider extends ChangeNotifier {
       clientId = _iosClientId;
     }
 
-   
     _googleSignIn = GoogleSignIn(
       scopes: [
         'email',
@@ -108,146 +110,137 @@ class AuthProvider extends ChangeNotifier {
 
   // CRITICAL FIX: Updated signInWithGoogle method in AuthProvider
 
-Future<bool> signInWithGoogle() async {
-  _setSocialLoading(true);
-  _setError(null);
+  Future<bool> signInWithGoogle() async {
+    _setSocialLoading(true);
+    _setError(null);
 
-  try {
- 
-
-    // Sign out first to ensure clean state
     try {
-      await _googleSignIn.signOut();
-    } catch (e) {
-    }
-
-    // Trigger Google Sign-In flow
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
-    if (googleUser == null) {
-      _setSocialLoading(false);
-      return false;
-    }
-
-  
-
-    // Get authentication details
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-    
-
-    // ✅ CRITICAL FIX: Handle both web and mobile flows properly
-    String? idToken = googleAuth.idToken;
-    String? accessToken = googleAuth.accessToken;
-
-    // Check if we have either token
-    if (idToken == null && accessToken == null) {
-      _setError('Failed to get Google credentials');
-      _setSocialLoading(false);
-      return false;
-    }
-
-    // ✅ FIX: Use web flow for both web AND when ID token is missing
-    if (kIsWeb || (idToken == null && accessToken != null)) {
-     
+      // Sign out first to ensure clean state
       try {
-        // Get user info from Google using access token
-        final userInfoResponse = await http.get(
-          Uri.parse('https://www.googleapis.com/oauth2/v2/userinfo'),
-          headers: {
-            'Authorization': 'Bearer ${accessToken!}',
-          },
-        );
+        await _googleSignIn.signOut();
+      } catch (e) {}
 
-        if (userInfoResponse.statusCode == 200) {
-          final userInfo = json.decode(userInfoResponse.body);
-          
-        
+      // Trigger Google Sign-In flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
-          // Send user info directly to backend
-          final response = await _apiService.googleSignInWeb(
-            email: userInfo['email'],
-            firstName: userInfo['given_name'] ?? userInfo['name']?.split(' ').first ?? 'User',
-            lastName: userInfo['family_name'] ?? userInfo['name']?.split(' ').last ?? '',
-            googleId: userInfo['id'],
-            accessToken: accessToken,
-          );
-
-          if (response.isSuccess && response.data != null) {
-            _user = response.data!;
-            await _saveUserData();
-            _setupTokenExpiryTimer();
-            await _registerFCMToken();
-
-          
-            
-            _setSocialLoading(false);
-            return true;
-          } else {
-            _setError(response.error ?? 'Google sign-in failed on server');
-            _setSocialLoading(false);
-            return false;
-          }
-        } else {
-          throw Exception('Failed to get user info: ${userInfoResponse.statusCode}');
-        }
-      } catch (e) {
-        _setError('Failed to get user information from Google');
+      if (googleUser == null) {
         _setSocialLoading(false);
         return false;
       }
-    }
 
-    // Mobile flow with ID token (only if we have ID token)
-    
-    final response = await _apiService.googleSignIn(idToken!);
+      // Get authentication details
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
-    if (response.isSuccess && response.data != null) {
-      _user = response.data!;
-      await _saveUserData();
-      _setupTokenExpiryTimer();
-      await _registerFCMToken();
+      // ✅ CRITICAL FIX: Handle both web and mobile flows properly
+      String? idToken = googleAuth.idToken;
+      String? accessToken = googleAuth.accessToken;
 
-     
-      
-      _setSocialLoading(false);
-      return true;
-    } else {
-      _setError(response.error ?? 'Google sign-in failed on server');
+      // Check if we have either token
+      if (idToken == null && accessToken == null) {
+        _setError('Failed to get Google credentials');
+        _setSocialLoading(false);
+        return false;
+      }
+
+      // ✅ FIX: Use web flow for both web AND when ID token is missing
+      if (kIsWeb || (idToken == null && accessToken != null)) {
+        try {
+          // Get user info from Google using access token
+          final userInfoResponse = await http.get(
+            Uri.parse('https://www.googleapis.com/oauth2/v2/userinfo'),
+            headers: {
+              'Authorization': 'Bearer ${accessToken!}',
+            },
+          );
+
+          if (userInfoResponse.statusCode == 200) {
+            final userInfo = json.decode(userInfoResponse.body);
+
+            // Send user info directly to backend
+            final response = await _apiService.googleSignInWeb(
+              email: userInfo['email'],
+              firstName: userInfo['given_name'] ??
+                  userInfo['name']?.split(' ').first ??
+                  'User',
+              lastName: userInfo['family_name'] ??
+                  userInfo['name']?.split(' ').last ??
+                  '',
+              googleId: userInfo['id'],
+              accessToken: accessToken,
+            );
+
+            if (response.isSuccess && response.data != null) {
+              _user = response.data!;
+              await _saveUserData();
+              _setupTokenExpiryTimer();
+              await _registerFCMToken();
+
+              _setSocialLoading(false);
+              return true;
+            } else {
+              _setError(response.error ?? 'Google sign-in failed on server');
+              _setSocialLoading(false);
+              return false;
+            }
+          } else {
+            throw Exception(
+                'Failed to get user info: ${userInfoResponse.statusCode}');
+          }
+        } catch (e) {
+          _setError('Failed to get user information from Google');
+          _setSocialLoading(false);
+          return false;
+        }
+      }
+
+      // Mobile flow with ID token (only if we have ID token)
+
+      final response = await _apiService.googleSignIn(idToken!);
+
+      if (response.isSuccess && response.data != null) {
+        _user = response.data!;
+        await _saveUserData();
+        _setupTokenExpiryTimer();
+        await _registerFCMToken();
+
+        _setSocialLoading(false);
+        return true;
+      } else {
+        _setError(response.error ?? 'Google sign-in failed on server');
+        _setSocialLoading(false);
+        return false;
+      }
+    } catch (e) {
+      String errorMessage = 'Google sign-in error occurred';
+      if (e.toString().contains('SIGN_IN_REQUIRED')) {
+        errorMessage = 'Please try signing in again';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your connection';
+      } else if (e.toString().contains('PERMISSION_DENIED')) {
+        errorMessage = 'Please enable People API in Google Cloud Console';
+      } else if (e.toString().contains('PlatformException')) {
+        errorMessage =
+            'Google Sign-In not properly configured. Check your Google Cloud Console setup.';
+      }
+
+      _setError(errorMessage);
       _setSocialLoading(false);
       return false;
     }
-  } catch (e, stackTrace) {
-   
-    
-    String errorMessage = 'Google sign-in error occurred';
-    if (e.toString().contains('SIGN_IN_REQUIRED')) {
-      errorMessage = 'Please try signing in again';
-    } else if (e.toString().contains('network')) {
-      errorMessage = 'Network error. Please check your connection';
-    } else if (e.toString().contains('PERMISSION_DENIED')) {
-      errorMessage = 'Please enable People API in Google Cloud Console';
-    } else if (e.toString().contains('PlatformException')) {
-      errorMessage = 'Google Sign-In not properly configured. Check your Google Cloud Console setup.';
-    }
-    
-    _setError(errorMessage);
-    _setSocialLoading(false);
-    return false;
   }
-}
+
   Future<void> _signOutFromGoogle() async {
     try {
       await _googleSignIn.signOut();
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   // Token management methods
   void _setupTokenExpiryTimer() {
     _tokenExpiryTimer?.cancel();
     _tokenValidationTimer?.cancel();
-    
+
     final tokenExpiry = _prefs.getInt('token_expiry');
     if (tokenExpiry == null) {
       return;
@@ -255,23 +248,21 @@ Future<bool> signInWithGoogle() async {
 
     final expiryTime = DateTime.fromMillisecondsSinceEpoch(tokenExpiry);
     final now = DateTime.now();
-   
-    
+
     if (expiryTime.isBefore(now)) {
       _handleTokenExpiry();
       return;
     }
-    
+
     final duration = expiryTime.difference(now);
     final refreshDuration = duration - _tokenRefreshBuffer;
-    
-    
+
     if (refreshDuration.isNegative) {
       _refreshToken();
     } else {
       _tokenExpiryTimer = Timer(refreshDuration, _refreshToken);
     }
-    
+
     _tokenValidationTimer = Timer.periodic(
       _tokenValidationInterval,
       (_) => validateToken(),
@@ -280,16 +271,14 @@ Future<bool> signInWithGoogle() async {
 
   Future<void> _refreshToken() async {
     if (_user == null) return;
-    
+
     try {
-      
       final response = await _apiService.refreshToken();
-      
+
       if (response.isSuccess && response.data != null) {
         _user = _user!.copyWith(token: response.data);
         await _saveUserData();
         _setupTokenExpiryTimer();
-        
       } else {
         await _handleTokenExpiry();
       }
@@ -299,68 +288,88 @@ Future<bool> signInWithGoogle() async {
   }
 
   Future<void> _handleTokenExpiry() async {
-    
     _setError('Your session has expired. Please login again.');
     await _clearUserData();
     _user = null;
     _setRequiresVerification(false);
-    
+
     _tokenExpiryTimer?.cancel();
     _tokenValidationTimer?.cancel();
-    
+
     notifyListeners();
   }
 
   Future<void> validateToken() async {
     final tokenExpiry = _prefs.getInt('token_expiry');
-    
+
     if (tokenExpiry == null) {
       return;
     }
 
     final expiryTime = DateTime.fromMillisecondsSinceEpoch(tokenExpiry);
     final now = DateTime.now();
-   
-    
+
     if (now.add(_tokenRefreshBuffer).isAfter(expiryTime)) {
       await _refreshToken();
       return;
     }
-    
+
     if (expiryTime.isBefore(now)) {
       await _handleTokenExpiry();
-    } else {
-      final remaining = expiryTime.difference(now);
     }
   }
 
   Future<void> checkAuthStatus() async {
     _setLoading(true);
-    
+
     try {
       final token = _prefs.getString('auth_token');
       if (token != null) {
+        // Check for 7-day inactivity
+        final lastActivityTimestamp = _prefs.getInt('last_activity');
+        if (lastActivityTimestamp != null) {
+          final lastActivity =
+              DateTime.fromMillisecondsSinceEpoch(lastActivityTimestamp);
+          final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
+
+          if (lastActivity.isBefore(sevenDaysAgo)) {
+            // User inactive for 7 days, logout
+            await _clearUserData();
+            _user = null;
+            _setError('Session expired due to inactivity. Please login again.');
+            _setLoading(false);
+            return;
+          }
+        }
+
+        // Update last activity
+        await _prefs.setInt(
+            'last_activity', DateTime.now().millisecondsSinceEpoch);
+
         final tokenExpiry = _prefs.getInt('token_expiry');
         if (tokenExpiry != null) {
           final expiryTime = DateTime.fromMillisecondsSinceEpoch(tokenExpiry);
-          
+
           if (DateTime.now().isAfter(expiryTime)) {
             await _refreshToken();
             _setLoading(false);
             return;
           }
         }
-        
+
         _apiService.setAuthToken(token);
-        
+
         final userId = _prefs.getString('user_id');
         final firstName = _prefs.getString('firstName');
         final lastName = _prefs.getString('lastName');
         final email = _prefs.getString('email');
         final phone = _prefs.getString('phone');
-        
-        if (userId != null && firstName != null && lastName != null && 
-            email != null && phone != null) {
+
+        if (userId != null &&
+            firstName != null &&
+            lastName != null &&
+            email != null &&
+            phone != null) {
           _user = User(
             id: userId,
             firstName: firstName,
@@ -369,7 +378,7 @@ Future<bool> signInWithGoogle() async {
             phone: phone,
             token: token,
           );
-          
+
           _setupTokenExpiryTimer();
         }
       }
@@ -384,16 +393,19 @@ Future<bool> signInWithGoogle() async {
     _setLoading(true);
     _setError(null);
     _setRequiresVerification(false);
-    
+
     try {
       final response = await _apiService.login(email, password);
-      
+
       if (response.isSuccess && response.data != null) {
         _user = response.data!;
         await _saveUserData();
         _setupTokenExpiryTimer();
         await _registerFCMToken();
-        
+
+        // Clear cache on login to get fresh data
+        _apiService.clearCache();
+
         _setLoading(false);
         return true;
       } else {
@@ -408,11 +420,11 @@ Future<bool> signInWithGoogle() async {
     }
   }
 
-  Future<bool> signUp(String firstName, String lastName, String email, 
-                      String phone, String password) async {
+  Future<bool> signUp(String firstName, String lastName, String email,
+      String phone, String password) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       final response = await _apiService.register(
         firstName: firstName,
@@ -421,10 +433,11 @@ Future<bool> signInWithGoogle() async {
         phone: phone,
         password: password,
       );
-      
+
       if (response.isSuccess) {
-        final requiresVerification = response.rawData?['requiresVerification'] ?? false;
-        
+        final requiresVerification =
+            response.rawData?['requiresVerification'] ?? false;
+
         if (requiresVerification) {
           _setRequiresVerification(true, email);
         } else if (response.data != null) {
@@ -449,17 +462,17 @@ Future<bool> signInWithGoogle() async {
   Future<bool> verifyOTP(String email, String otp) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       final response = await _apiService.verifyOTP(email, otp);
-      
+
       if (response.isSuccess && response.data != null) {
         _user = response.data!;
         await _saveUserData();
         _setupTokenExpiryTimer();
         await _registerFCMToken();
         _setRequiresVerification(false);
-        
+
         _setLoading(false);
         return true;
       } else {
@@ -476,24 +489,61 @@ Future<bool> signInWithGoogle() async {
 
   Future<void> signOut() async {
     _setLoading(true);
-    
+
     try {
       _tokenExpiryTimer?.cancel();
       _tokenValidationTimer?.cancel();
-      
+
       await _apiService.removeFCMToken();
       await _apiService.logout();
       await _signOutFromGoogle();
       await _clearUserData();
       _user = null;
       _setRequiresVerification(false);
-      
+
+      // Clear API cache on logout
+      _apiService.clearCache();
     } catch (e) {
       await _clearUserData();
       _user = null;
       _setRequiresVerification(false);
+      _apiService.clearCache();
     } finally {
       _setLoading(false);
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    _setLoading(true);
+    _setError(null);
+
+    try {
+      final response = await _apiService.deleteAccount();
+
+      if (response.isSuccess) {
+        _tokenExpiryTimer?.cancel();
+        _tokenValidationTimer?.cancel();
+
+        await _apiService.removeFCMToken();
+        await _signOutFromGoogle();
+        await _clearUserData();
+        _user = null;
+        _setRequiresVerification(false);
+
+        // Clear API cache
+        _apiService.clearCache();
+
+        _setLoading(false);
+        return true;
+      } else {
+        _setError(response.error ?? 'Failed to delete account');
+        _setLoading(false);
+        return false;
+      }
+    } catch (e) {
+      _setError('Account deletion error');
+      _setLoading(false);
+      return false;
     }
   }
 
@@ -505,7 +555,7 @@ Future<bool> signInWithGoogle() async {
 
       final notificationService = NotificationService();
       final fcmToken = notificationService.fcmToken;
-      
+
       if (fcmToken != null) {
         await _apiService.updateFCMToken(
           fcmToken: fcmToken,
@@ -513,8 +563,7 @@ Future<bool> signInWithGoogle() async {
           platform: _getPlatform(),
         );
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   Future<bool> changePassword({
@@ -524,7 +573,7 @@ Future<bool> signInWithGoogle() async {
   }) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       if (newPassword != confirmPassword) {
         _setError('Passwords do not match');
@@ -543,7 +592,7 @@ Future<bool> signInWithGoogle() async {
         newPassword: newPassword,
         confirmPassword: confirmPassword,
       );
-      
+
       if (response.isSuccess) {
         final newToken = _apiService.getAuthToken();
         if (newToken != null && _user != null) {
@@ -565,17 +614,18 @@ Future<bool> signInWithGoogle() async {
     }
   }
 
-  Future<bool> updateProfile(String firstName, String lastName, String phone) async {
+  Future<bool> updateProfile(
+      String firstName, String lastName, String phone) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       final response = await _apiService.updateProfile({
         'firstName': firstName,
         'lastName': lastName,
         'phone': phone,
       });
- 
+
       if (response.isSuccess && response.data != null) {
         _user = response.data!;
         await _saveUserData();
@@ -596,7 +646,7 @@ Future<bool> signInWithGoogle() async {
   Future<bool> requestPasswordReset(String email) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       final response = await _apiService.requestPasswordReset(email);
       _setLoading(false);
@@ -611,10 +661,10 @@ Future<bool> signInWithGoogle() async {
   Future<bool> verifyPasswordResetOTP(String email, String otp) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       final response = await _apiService.verifyResetOTP(email, otp);
-      
+
       if (response.isSuccess && response.data != null) {
         _resetToken = response.data!;
         _setLoading(false);
@@ -638,7 +688,7 @@ Future<bool> signInWithGoogle() async {
   }) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       if (_resetToken == null) {
         _setError('Verify OTP first');
@@ -664,7 +714,7 @@ Future<bool> signInWithGoogle() async {
         newPassword: newPassword,
         confirmPassword: confirmPassword,
       );
-      
+
       if (response.isSuccess && response.data != null) {
         _user = response.data!;
         await _saveUserData();
@@ -692,22 +742,25 @@ Future<bool> signInWithGoogle() async {
       await _prefs.setString('email', _user!.email);
       await _prefs.setString('phone', _user!.phone);
       await _prefs.setString('auth_token', _user!.token ?? '');
-      
+
+      // Update last activity timestamp
+      await _prefs.setInt(
+          'last_activity', DateTime.now().millisecondsSinceEpoch);
+
       final expiryTime = DateTime.now().add(const Duration(hours: 24));
       await _prefs.setInt('token_expiry', expiryTime.millisecondsSinceEpoch);
-      
-      if (kDebugMode) {
-      }
+
+      if (kDebugMode) {}
     }
   }
 
   Future<bool> resendOTP(String email) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       final response = await _apiService.resendOTP(email);
-      
+
       if (response.isSuccess) {
         _setLoading(false);
         return true;
@@ -726,10 +779,10 @@ Future<bool> signInWithGoogle() async {
   Future<bool> resendPasswordResetOTP(String email) async {
     _setLoading(true);
     _setError(null);
-    
+
     try {
       final response = await _apiService.resendResetOTP(email);
-      
+
       if (response.isSuccess) {
         _setLoading(false);
         return true;
@@ -753,8 +806,8 @@ Future<bool> signInWithGoogle() async {
     await _prefs.remove('phone');
     await _prefs.remove('auth_token');
     await _prefs.remove('token_expiry');
+    await _prefs.remove('last_activity');
     _apiService.clearAuthToken();
-    
   }
 
   void clearError() => _setError(null);

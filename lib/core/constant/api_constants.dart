@@ -16,6 +16,7 @@ static const String googleSignInWeb = '/auth/google-signin-web';
   static const String resendVerification = '/auth/resend-verification';
   static const String verifyEmail = '/auth/verify-email';
   static const String logout = '/auth/logout';
+  static const String deleteAccount = '/auth/account';
   static const String refreshToken = '/auth/refresh';
   static const String forgotPassword = '/auth/forgot-password';
   static const String resetPassword = '/auth/reset-password';
