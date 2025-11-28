@@ -33,6 +33,8 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   static const double tabletBreakpoint = 900;
   static const double desktopBreakpoint = 1200;
 
+  Order? _lastOrder;
+
   @override
   void initState() {
     super.initState();
@@ -40,11 +42,36 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
       _loadOrder();
       _startPolling();
       _startClock();
+      _setupOrderListener();
     });
+  }
+
+  void _setupOrderListener() {
+    // Listen to provider changes
+    final provider = context.read<OrderProvider>();
+    provider.addListener(_onProviderChanged);
+  }
+
+  void _onProviderChanged() {
+    final provider = context.read<OrderProvider>();
+    final currentOrder = provider.currentOrder;
+
+    // Check if order actually changed
+    if (currentOrder != null && currentOrder != _lastOrder) {
+      debugPrint('🔔 Provider changed - Order status: ${currentOrder.status}');
+      _lastOrder = currentOrder;
+      if (mounted) {
+        setState(() {
+          // Force rebuild
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
+    final provider = context.read<OrderProvider>();
+    provider.removeListener(_onProviderChanged);
     _pollingTimer?.cancel();
     _clockTimer?.cancel();
     super.dispose();
@@ -57,17 +84,45 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   }
 
   void _startPolling() {
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (mounted) {
-        final provider = context.read<OrderProvider>();
-        if (provider.currentOrder != null &&
-            provider.currentOrder!.status != OrderStatus.delivered &&
-            provider.currentOrder!.status != OrderStatus.cancelled &&
-            provider.currentOrder!.status != OrderStatus.refunded) {
-          provider.loadOrder(widget.orderId, silent: true);
-        } else {
-          timer.cancel();
-        }
+    _pollingTimer?.cancel(); // Cancel any existing timer
+    debugPrint('🔄 Starting order status polling (every 5 seconds)');
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!mounted) {
+        debugPrint('⚠️ Widget not mounted, stopping polling');
+        timer.cancel();
+        return;
+      }
+
+      final provider = context.read<OrderProvider>();
+      final currentOrder = provider.currentOrder;
+
+      debugPrint('⏰ Polling check - Current status: ${currentOrder?.status}');
+
+      // Continue polling if order is active (not delivered/cancelled/refunded)
+      if (currentOrder != null &&
+          currentOrder.status != OrderStatus.delivered &&
+          currentOrder.status != OrderStatus.cancelled &&
+          currentOrder.status != OrderStatus.refunded) {
+        // Load order in silent mode (won't show loading indicator)
+        debugPrint('📡 Polling: Fetching order ${widget.orderId}...');
+        provider.loadOrder(widget.orderId, silent: true).then((_) {
+          debugPrint('✅ Polling: Order fetched successfully');
+          // Force a rebuild after loading
+          if (mounted) {
+            setState(() {
+              debugPrint('🔄 Polling: setState() called to force rebuild');
+              // Trigger rebuild to show updated status
+            });
+          }
+        }).catchError((error) {
+          // Log error but don't stop polling
+          debugPrint('⚠️ Error polling order status: $error');
+        });
+      } else {
+        // Stop polling if order is in final state
+        debugPrint(
+            '✅ Order in final state (${currentOrder?.status}), stopping polling');
+        timer.cancel();
       }
     });
   }
@@ -181,6 +236,9 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
         appBar: null,
         body: Consumer<OrderProvider>(
           builder: (context, provider, child) {
+            debugPrint(
+                '🎨 Consumer rebuild - Status: ${provider.currentOrder?.status}, Loading: ${provider.isLoading}');
+
             if (provider.isLoading && provider.currentOrder == null) {
               return const Center(
                 child: CircularProgressIndicator(),
@@ -193,15 +251,21 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
             }
 
             final order = provider.currentOrder!;
+            debugPrint(
+                '📦 Building UI for order: ${order.id}, Status: ${order.status}');
 
+            // Use order status and updatedAt as key to force rebuild when they change
             return RefreshIndicator(
               onRefresh: () async {
+                debugPrint('🔄 Manual refresh triggered');
                 await provider.loadOrder(widget.orderId);
               },
               child: Center(
                 child: Container(
                   constraints: BoxConstraints(maxWidth: contentMaxWidth),
                   child: SingleChildScrollView(
+                    key: ValueKey(
+                        '${order.id}_${order.status}_${order.updatedAt.millisecondsSinceEpoch}'),
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: EdgeInsets.symmetric(
                       horizontal: horizontalPadding,
@@ -382,373 +446,411 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
       ),
     );
   }
-Widget _buildDeliveryTime(Order order) {
-  final bool isPickupOrder = order.deliveryType == DeliveryType.pickup;
-  final timeRemaining = _calculateTimeRemaining(order);
-  final isDelivered = order.status == OrderStatus.delivered;
-  final isPickedUp = (order.status == OrderStatus.pickup || 
-                       order.status == OrderStatus.driverpickup ||
-                       order.status == OrderStatus.shop) && isPickupOrder;
-  final isCancelled = order.status == OrderStatus.cancelled;
-  final isOutForDelivery = order.status == OrderStatus.outForDelivery;
 
-  return Container(
-    padding: EdgeInsets.all(isDesktop ? 48 : (isTablet ? 40 : 32)),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: isDelivered
-            ? [Colors.green, Colors.green.shade700]
-            : isCancelled
-                ? [const Color(0xFFC62828), const Color(0xFFB71C1C)]
-                : isPickedUp
-                    ? [const Color(0xFF388E3C), const Color(0xFF2E7D32)]
-                    : isOutForDelivery
-                        ? [const Color(0xFF303F9F), const Color(0xFF1A237E)]
-                        : [AppColors.primary, AppColors.primaryDark],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.circular(24),
-      boxShadow: [
-        BoxShadow(
-          color: (isDelivered
-                  ? Colors.green
-                  : isCancelled
-                      ? const Color(0xFFC62828)
-                      : isOutForDelivery
-                          ? const Color(0xFF303F9F)
-                          : AppColors.primary)
-              .withOpacity(0.4),
-          blurRadius: 24,
-          offset: const Offset(0, 8),
-        ),
-      ],
-    ),
-    child: Column(
-      children: [
-        Text(
-          isDelivered
-              ? AppStrings.get('delivered')
+  Widget _buildDeliveryTime(Order order) {
+    final bool isPickupOrder = order.deliveryType == DeliveryType.pickup;
+    final timeRemaining = _calculateTimeRemaining(order);
+    final isDelivered = order.status == OrderStatus.delivered;
+    final isPickedUp = (order.status == OrderStatus.pickup ||
+            order.status == OrderStatus.driverpickup ||
+            order.status == OrderStatus.shop) &&
+        isPickupOrder;
+    final isCancelled = order.status == OrderStatus.cancelled;
+    final isOutForDelivery = order.status == OrderStatus.outForDelivery;
+    final isReadyForPickup = isPickupOrder && order.status == OrderStatus.ready;
+
+    return Container(
+      padding: EdgeInsets.all(isDesktop ? 48 : (isTablet ? 40 : 32)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDelivered
+              ? [Colors.green, Colors.green.shade700]
               : isCancelled
-                  ? AppStrings.get('cancelled')
+                  ? [const Color(0xFFC62828), const Color(0xFFB71C1C)]
                   : isPickedUp
-                      ? AppStrings.get('pickedUp')
+                      ? [const Color(0xFF388E3C), const Color(0xFF2E7D32)]
                       : isOutForDelivery
-                          ? AppStrings.get('outForDelivery')
-                          : (isPickupOrder
-                              ? AppStrings.get("readyIn")
-                              : AppStrings.estimatedDelivery),
-          style: TextStyle(
-            fontSize: isDesktop ? 18 : 16,
-            color: Colors.white.withOpacity(0.95),
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
+                          ? [const Color(0xFF303F9F), const Color(0xFF1A237E)]
+                          : [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        const SizedBox(height: 16),
-        Text(
-          (isDelivered || isPickedUp)
-              ? '✓'
-              : isCancelled
-                  ? '✗'
-                  : isOutForDelivery
-                      ? '🚚'
-                      : '$timeRemaining min',
-          style: TextStyle(
-            fontSize: isDesktop ? 64 : (isTablet ? 56 : 48),
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-            letterSpacing: -2,
-            height: 1,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 12,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                (isDelivered || isPickedUp)
-                    ? Icons.check_circle_rounded
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: (isDelivered
+                    ? Colors.green
                     : isCancelled
-                        ? Icons.cancel_rounded
+                        ? const Color(0xFFC62828)
                         : isOutForDelivery
-                            ? Icons.local_shipping_rounded
-                            : (isPickupOrder
-                                ? Icons.shopping_bag_rounded
-                                : Icons.schedule_rounded),
-                color: Colors.white,
-                size: isDesktop ? 20 : 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                (isDelivered)
-                    ? AppStrings.get('orderCompleted')
-                    : isCancelled
-                        ? AppStrings.get('orderCancelled')
-                        : isOutForDelivery
-                            ? AppStrings.get('driverOnTheWay')
-                            : (isPickupOrder
-                                ? AppStrings.get("readyIn")
-                                : AppStrings.getYourOrder),
-                style: TextStyle(
-                  fontSize: isDesktop ? 15 : 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-
-Widget _buildCancelledProgress(Order order) {
-  return Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: const Color(0xFFC62828).withOpacity(0.1),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: const Color(0xFFC62828).withOpacity(0.3),
-        width: 1.5,
-      ),
-    ),
-    child: Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFC62828),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.cancel_rounded,
-            color: Colors.white,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppStrings.get('orderCancelled'),
-                style: TextStyle(
-                  fontSize: isDesktop ? 18 : 16,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFC62828),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                AppStrings.get('orderCancelledMessage'),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textLight,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
- Widget _buildOrderProgress(Order order) {
-  final bool isPickupOrder = order.deliveryType == DeliveryType.pickup;
-  final bool isCancelled = order.status == OrderStatus.cancelled;
-
-  return Container(
-    padding: EdgeInsets.all(isDesktop ? 36 : (isTablet ? 32 : 28)),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.06),
-          blurRadius: 24,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isCancelled
-                    ? const Color(0xFFC62828).withOpacity(0.1)
-                    : AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                isCancelled
-                    ? Icons.cancel_rounded
-                    : (isPickupOrder
-                        ? Icons.shopping_bag_rounded
-                        : Icons.local_shipping_rounded),
-                color: isCancelled ? const Color(0xFFC62828) : AppColors.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              AppStrings.get('orderProgress'),
-              style: TextStyle(
-                fontSize: isDesktop ? 22 : (isTablet ? 20 : 18),
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: isDesktop ? 36 : 32),
-        
-        if (isCancelled) ...[
-          // Show cancelled status
-          _buildCancelledProgress(order),
-        ] else if (isPickupOrder) ...[
-          // Pickup order flow: pending → confirmed → preparing → ready → delivered
-          _buildProgressStep(
-            AppStrings.orderPlaced,
-            const Color(0xFFFF6F00),
-            _isStatusCompleted(order.status, OrderStatus.pending),
-            isFirst: true,
-          ),
-          _buildProgressStep(
-            AppStrings.get('orderConfirmed'),
-            const Color(0xFF1976D2),
-            _isStatusCompleted(order.status, OrderStatus.confirmed),
-          ),
-          _buildProgressStep(
-            AppStrings.get('preparing'),
-            const Color(0xFF7B1FA2),
-            _isStatusCompleted(order.status, OrderStatus.preparing),
-          ),
-          _buildProgressStep(
-            AppStrings.ready,
-            const Color(0xFF0097A7),
-            _isStatusCompleted(order.status, OrderStatus.ready),
-          ),
-          _buildProgressStep(
-            AppStrings.get('pickedUp'),
-            const Color(0xFF388E3C),
-            order.status == OrderStatus.delivered || order.status == OrderStatus.shop,
-            isLast: true,
-          ),
-        ] else ...[
-          // Delivery order flow: pending → confirmed → preparing → ready → pickup → out-for-delivery → delivered
-          _buildProgressStep(
-            AppStrings.orderPlaced,
-            const Color(0xFFFF6F00),
-            _isStatusCompleted(order.status, OrderStatus.pending),
-            isFirst: true,
-          ),
-          _buildProgressStep(
-            AppStrings.get('orderConfirmed'),
-            const Color(0xFF1976D2),
-            _isStatusCompleted(order.status, OrderStatus.confirmed),
-          ),
-          _buildProgressStep(
-            AppStrings.preparing,
-            const Color(0xFF7B1FA2),
-            _isStatusCompleted(order.status, OrderStatus.preparing),
-          ),
-          _buildProgressStep(
-            AppStrings.ready,
-            const Color(0xFF0097A7),
-            _isStatusCompleted(order.status, OrderStatus.ready),
-          ),
-          _buildProgressStep(
-            AppStrings.get('driverPickup'),
-            const Color(0xFFFF6F00),
-            _isStatusCompleted(order.status, OrderStatus.pickup) ||
-            _isStatusCompleted(order.status, OrderStatus.driverpickup),
-          ),
-          _buildProgressStep(
-            AppStrings.get('outForDelivery'),
-            const Color(0xFF303F9F),
-            _isStatusCompleted(order.status, OrderStatus.outForDelivery),
-          ),
-          _buildProgressStep(
-            AppStrings.get('delivered'),
-            const Color(0xFF2E7D32),
-            order.status == OrderStatus.delivered,
-            isLast: true,
+                            ? const Color(0xFF303F9F)
+                            : AppColors.primary)
+                .withOpacity(0.4),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
-      ],
-    ),
-  );
-}
+      ),
+      child: Column(
+        children: [
+          Text(
+            isDelivered
+                ? AppStrings.get('delivered')
+                : isCancelled
+                    ? AppStrings.get('cancelled')
+                    : isPickedUp
+                        ? AppStrings.get('pickedUp')
+                        : isOutForDelivery
+                            ? AppStrings.get('outForDelivery')
+                            : isReadyForPickup
+                                ? AppStrings.get('readyForPickup')
+                                : (isPickupOrder
+                                    ? AppStrings.get("readyIn")
+                                    : AppStrings.estimatedDelivery),
+            style: TextStyle(
+              fontSize: isDesktop ? 18 : 16,
+              color: Colors.white.withOpacity(0.95),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            (isDelivered || isPickedUp)
+                ? '✓'
+                : isCancelled
+                    ? '✗'
+                    : isOutForDelivery
+                        ? '🚚'
+                        : '$timeRemaining min',
+            style: TextStyle(
+              fontSize: isDesktop ? 64 : (isTablet ? 56 : 48),
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: -2,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 12,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  (isDelivered || isPickedUp)
+                      ? Icons.check_circle_rounded
+                      : isCancelled
+                          ? Icons.cancel_rounded
+                          : isOutForDelivery
+                              ? Icons.local_shipping_rounded
+                              : (isPickupOrder
+                                  ? Icons.shopping_bag_rounded
+                                  : Icons.schedule_rounded),
+                  color: Colors.white,
+                  size: isDesktop ? 20 : 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  (isDelivered)
+                      ? AppStrings.get('orderCompleted')
+                      : isCancelled
+                          ? AppStrings.get('orderCancelled')
+                          : isOutForDelivery
+                              ? AppStrings.get('driverOnTheWay')
+                              : (isPickupOrder
+                                  ? AppStrings.get("readyIn")
+                                  : AppStrings.getYourOrder),
+                  style: TextStyle(
+                    fontSize: isDesktop ? 15 : 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCancelledProgress(Order order) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFC62828).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFC62828).withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFC62828),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.cancel_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppStrings.get('orderCancelled'),
+                  style: TextStyle(
+                    fontSize: isDesktop ? 18 : 16,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFC62828),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  AppStrings.get('orderCancelledMessage'),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textLight,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderProgress(Order order) {
+    final bool isPickupOrder = order.deliveryType == DeliveryType.pickup;
+    final bool isCancelled = order.status == OrderStatus.cancelled;
+
+    return Container(
+      padding: EdgeInsets.all(isDesktop ? 36 : (isTablet ? 32 : 28)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isCancelled
+                      ? const Color(0xFFC62828).withOpacity(0.1)
+                      : AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isCancelled
+                      ? Icons.cancel_rounded
+                      : (isPickupOrder
+                          ? Icons.shopping_bag_rounded
+                          : Icons.local_shipping_rounded),
+                  color:
+                      isCancelled ? const Color(0xFFC62828) : AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                AppStrings.get('orderProgress'),
+                style: TextStyle(
+                  fontSize: isDesktop ? 22 : (isTablet ? 20 : 18),
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isDesktop ? 36 : 32),
+          if (isCancelled) ...[
+            // Show cancelled status
+            _buildCancelledProgress(order),
+          ] else if (isPickupOrder) ...[
+            // Pickup order flow: pending → confirmed → preparing → ready → delivered
+            _buildProgressStep(
+              AppStrings.orderPlaced,
+              const Color(0xFFFF6F00),
+              _isStatusCompleted(order.status, OrderStatus.pending),
+              isFirst: true,
+            ),
+            _buildProgressStep(
+              AppStrings.get('orderConfirmed'),
+              const Color(0xFF1976D2),
+              _isStatusCompleted(order.status, OrderStatus.confirmed),
+            ),
+            _buildProgressStep(
+              AppStrings.get('preparing'),
+              const Color(0xFF7B1FA2),
+              _isStatusCompleted(order.status, OrderStatus.preparing),
+            ),
+            _buildProgressStep(
+              isPickupOrder
+                  ? AppStrings.get('readyForPickup')
+                  : AppStrings.ready,
+              const Color(0xFF0097A7),
+              _isStatusCompleted(order.status, OrderStatus.ready),
+            ),
+            _buildProgressStep(
+              AppStrings.get('pickedUp'),
+              const Color(0xFF388E3C),
+              order.status == OrderStatus.delivered ||
+                  order.status == OrderStatus.shop ||
+                  order.status == OrderStatus.pickup,
+              isLast: true,
+            ),
+          ] else ...[
+            // Delivery order flow: pending → confirmed → preparing → ready → pickup → out-for-delivery → delivered
+            _buildProgressStep(
+              AppStrings.orderPlaced,
+              const Color(0xFFFF6F00),
+              _isStatusCompleted(order.status, OrderStatus.pending),
+              isFirst: true,
+            ),
+            _buildProgressStep(
+              AppStrings.get('orderConfirmed'),
+              const Color(0xFF1976D2),
+              _isStatusCompleted(order.status, OrderStatus.confirmed),
+            ),
+            _buildProgressStep(
+              AppStrings.preparing,
+              const Color(0xFF7B1FA2),
+              _isStatusCompleted(order.status, OrderStatus.preparing),
+            ),
+            _buildProgressStep(
+              AppStrings.ready,
+              const Color(0xFF0097A7),
+              _isStatusCompleted(order.status, OrderStatus.ready),
+            ),
+            _buildProgressStep(
+              AppStrings.get('driverPickup'),
+              const Color(0xFFFF6F00),
+              _isStatusCompleted(order.status, OrderStatus.pickup) ||
+                  _isStatusCompleted(order.status, OrderStatus.driverpickup),
+            ),
+            _buildProgressStep(
+              AppStrings.get('outForDelivery'),
+              const Color(0xFF303F9F),
+              _isStatusCompleted(order.status, OrderStatus.outForDelivery),
+            ),
+            _buildProgressStep(
+              AppStrings.get('delivered'),
+              const Color(0xFF2E7D32),
+              order.status == OrderStatus.delivered,
+              isLast: true,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
 // Add this helper method to check if a status is completed
-bool _isStatusCompleted(OrderStatus currentStatus, OrderStatus checkStatus) {
-  // Define the order of statuses for delivery
-  const deliveryFlow = [
-    OrderStatus.pending,
-    OrderStatus.confirmed,
-    OrderStatus.preparing,
-    OrderStatus.ready,
-    OrderStatus.pickup, // or driverpickup
-    OrderStatus.driverpickup,
-    OrderStatus.outForDelivery,
-    OrderStatus.delivered,
-  ];
+  bool _isStatusCompleted(OrderStatus currentStatus, OrderStatus checkStatus) {
+    // Define the order of statuses for delivery
+    const deliveryFlow = [
+      OrderStatus.pending,
+      OrderStatus.confirmed,
+      OrderStatus.preparing,
+      OrderStatus.ready,
+      OrderStatus.pickup, // or driverpickup
+      OrderStatus.driverpickup,
+      OrderStatus.outForDelivery,
+      OrderStatus.delivered,
+    ];
 
-  // Define the order of statuses for pickup
-  const pickupFlow = [
-    OrderStatus.pending,
-    OrderStatus.confirmed,
-    OrderStatus.preparing,
-    OrderStatus.ready,
-    OrderStatus.delivered,
-  ];
+    // Define the order of statuses for pickup
+    const pickupFlow = [
+      OrderStatus.pending,
+      OrderStatus.confirmed,
+      OrderStatus.preparing,
+      OrderStatus.ready,
+      OrderStatus.pickup,
+      OrderStatus.shop,
+      OrderStatus.delivered,
+    ];
 
-  // Get the index of current status and check status
-  int currentIndex = deliveryFlow.indexOf(currentStatus);
-  int checkIndex = deliveryFlow.indexOf(checkStatus);
+    // Get the index of current status and check status
+    int currentIndex = deliveryFlow.indexOf(currentStatus);
+    int checkIndex = deliveryFlow.indexOf(checkStatus);
 
-  // If not found in delivery flow, try pickup flow
-  if (currentIndex == -1) {
-    currentIndex = pickupFlow.indexOf(currentStatus);
-    checkIndex = pickupFlow.indexOf(checkStatus);
+    // If not found in delivery flow, try pickup flow
+    if (currentIndex == -1) {
+      currentIndex = pickupFlow.indexOf(currentStatus);
+      checkIndex = pickupFlow.indexOf(checkStatus);
+    }
+
+    // Special handling for pickup/driverpickup equivalence
+    if (checkStatus == OrderStatus.pickup &&
+        (currentStatus == OrderStatus.driverpickup ||
+            currentStatus == OrderStatus.shop ||
+            currentStatus == OrderStatus.outForDelivery ||
+            currentStatus == OrderStatus.delivered)) {
+      return true;
+    }
+    if (checkStatus == OrderStatus.driverpickup &&
+        (currentStatus == OrderStatus.pickup ||
+            currentStatus == OrderStatus.outForDelivery ||
+            currentStatus == OrderStatus.delivered)) {
+      return true;
+    }
+    // Special handling for shop status (pickup orders)
+    if (checkStatus == OrderStatus.shop &&
+        (currentStatus == OrderStatus.pickup ||
+            currentStatus == OrderStatus.delivered)) {
+      return true;
+    }
+    // Special handling for ready status - if current is pickup/shop, ready is completed
+    if (checkStatus == OrderStatus.ready &&
+        (currentStatus == OrderStatus.pickup ||
+            currentStatus == OrderStatus.shop ||
+            currentStatus == OrderStatus.driverpickup ||
+            currentStatus == OrderStatus.outForDelivery ||
+            currentStatus == OrderStatus.delivered)) {
+      return true;
+    }
+
+    // If status not found in either flow, return false
+    if (currentIndex == -1 || checkIndex == -1) {
+      return false;
+    }
+
+    return currentIndex >= checkIndex;
   }
 
-  // Special handling for pickup/driverpickup equivalence
-  if (checkStatus == OrderStatus.pickup && currentStatus == OrderStatus.driverpickup) {
-    return true;
-  }
-  if (checkStatus == OrderStatus.driverpickup && currentStatus == OrderStatus.pickup) {
-    return true;
-  }
-
-  return currentIndex >= checkIndex;
-}
   Widget _buildProgressStep(String title, Color statusColor, bool isCompleted,
       {bool isFirst = false, bool isLast = false}) {
     const double iconSize = 32;
@@ -966,104 +1068,105 @@ bool _isStatusCompleted(OrderStatus currentStatus, OrderStatus checkStatus) {
     );
   }
 
- Widget _buildPaymentInfo(Order order) {
-  final bool isCancelled = order.status == OrderStatus.cancelled;
-  
-  return Container(
-    padding: EdgeInsets.all(isDesktop ? 24 : (isTablet ? 22 : 20)),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.06),
-          blurRadius: 24,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+  Widget _buildPaymentInfo(Order order) {
+    final bool isCancelled = order.status == OrderStatus.cancelled;
+
+    return Container(
+      padding: EdgeInsets.all(isDesktop ? 24 : (isTablet ? 22 : 20)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.payment_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ),
-              child: Icon(
-                Icons.payment_rounded,
-                color: AppColors.primary,
-                size: 20,
+              const SizedBox(width: 12),
+              Text(
+                AppStrings.get('paymentInfo'),
+                style: TextStyle(
+                  fontSize: isDesktop ? 18 : 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                  letterSpacing: -0.3,
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildInfoRow(
+            AppStrings.get('paymentMethod'),
+            _getPaymentMethodText(order.paymentMethod),
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow(
+            AppStrings.get('paymentStatus'),
+            _getPaymentStatusText(
+              order.status == OrderStatus.delivered
+                  ? PaymentStatus.paid
+                  : isCancelled
+                      ? PaymentStatus.refunded
+                      : order.paymentStatus,
             ),
-            const SizedBox(width: 12),
-            Text(
-              AppStrings.get('paymentInfo'),
-              style: TextStyle(
-                fontSize: isDesktop ? 18 : 17,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-                letterSpacing: -0.3,
+          ),
+          if (isCancelled) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFFFF6F00).withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: const Color(0xFFFF6F00),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      AppStrings.get('refundProcessing'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: const Color(0xFFE65100),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 20),
-        _buildInfoRow(
-          AppStrings.get('paymentMethod'),
-          _getPaymentMethodText(order.paymentMethod),
-        ),
-        const SizedBox(height: 12),
-        _buildInfoRow(
-          AppStrings.get('paymentStatus'),
-          _getPaymentStatusText(
-            order.status == OrderStatus.delivered
-                ? PaymentStatus.paid
-                : isCancelled
-                    ? PaymentStatus.refunded
-                    : order.paymentStatus,
-          ),
-        ),
-        if (isCancelled) ...[
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF3E0),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: const Color(0xFFFF6F00).withOpacity(0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  color: const Color(0xFFFF6F00),
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    AppStrings.get('refundProcessing'),
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: const Color(0xFFE65100),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
-      ],
-    ),
-  );
- }
+      ),
+    );
+  }
+
   Widget _buildOrderDetails(Order order) {
     return Container(
       padding: EdgeInsets.all(isDesktop ? 24 : (isTablet ? 22 : 20)),
@@ -1293,8 +1396,8 @@ bool _isStatusCompleted(OrderStatus currentStatus, OrderStatus checkStatus) {
         return const Color(0xFF689F38); // Olive Green - Shop/Collected
       case OrderStatus.outForDelivery:
         return const Color(0xFF303F9F); // Dark Indigo - Out for Delivery
-     case OrderStatus.driverpickup:
-        return const Color.fromARGB(255, 48, 159, 159); 
+      case OrderStatus.driverpickup:
+        return const Color.fromARGB(255, 48, 159, 159);
       case OrderStatus.delivered:
         return const Color(0xFF2E7D32); // Forest Green - Delivered
       case OrderStatus.cancelled:
@@ -1319,7 +1422,7 @@ bool _isStatusCompleted(OrderStatus currentStatus, OrderStatus checkStatus) {
         return Icons.shopping_bag_rounded;
       case OrderStatus.outForDelivery:
         return Icons.local_shipping_rounded;
-         case OrderStatus.driverpickup:
+      case OrderStatus.driverpickup:
         return Icons.drive_eta_outlined;
       case OrderStatus.delivered:
         return Icons.check_circle_rounded;

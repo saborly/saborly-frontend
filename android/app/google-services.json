@@ -1,32 +1,13 @@
 {
   "project_info": {
-    "project_number": "361344460853",
-    "project_id": "saborly",
-    "storage_bucket": "saborly.firebasestorage.app"
+    "project_number": "420029681993",
+    "project_id": "saborly-397b6",
+    "storage_bucket": "saborly-397b6.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:361344460853:android:e2b3302fee15cce47c697c",
-        "android_client_info": {
-          "package_name": "com.example.soely"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBRIokAyUDhvVYwhT1crAbS0d0bb3mkw1U"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:361344460853:android:12d431cf23c7109e7c697c",
+        "mobilesdk_app_id": "1:420029681993:android:d09494f75ec913d5d68a98",
         "android_client_info": {
           "package_name": "com.saborly.soely"
         }
@@ -34,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBRIokAyUDhvVYwhT1crAbS0d0bb3mkw1U"
+          "current_key": "AIzaSyDu3clMHcTEFgq1a5tcrESS705RUK1kYd4"
         }
       ],
       "services": {

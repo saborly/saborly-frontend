@@ -868,7 +868,9 @@ class ApiService {
 
   Future<ApiResponse<Order>> getOrder(String id) async {
     try {
-      final url = '${ApiConstants.orders}/$id';
+      // Add timestamp to prevent caching
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final url = '${ApiConstants.orders}/$id?_t=$timestamp';
       final response = await _dio.get(url);
 
       if (response.statusCode == 200) {
@@ -876,7 +878,12 @@ class ApiService {
           return ApiResponse.error('No order found in response',
               statusCode: response.statusCode);
         }
+        // Log raw API response for debugging
+        print(
+            '📡 API Response - Raw status: ${response.data['order']['status']}, UpdatedAt: ${response.data['order']['updatedAt']}');
         final order = Order.fromMap(response.data['order']);
+        print(
+            '📡 API Response - Parsed status: ${order.status}, UpdatedAt: ${order.updatedAt}');
         return ApiResponse.success(order, statusCode: response.statusCode);
       }
       final errorMessage = response.data?['message'] ?? 'Unknown error';

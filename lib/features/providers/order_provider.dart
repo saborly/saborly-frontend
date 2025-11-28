@@ -10,7 +10,7 @@ class OrderProvider extends ChangeNotifier {
   Order? _currentOrder;
   bool _isLoading = false;
   String? _error;
-  
+
   // Pagination
   int _currentPage = 1;
   int _totalPages = 1;
@@ -53,10 +53,10 @@ class OrderProvider extends ChangeNotifier {
         page: _currentPage,
         limit: limit,
       );
-      
+
       if (response.isSuccess && response.data != null) {
         _orders = response.data!;
-        
+
         // Update pagination info if available from API
         _totalPages = 1; // Default, update if API provides this
         _hasMoreOrders = _orders.length >= limit;
@@ -86,7 +86,7 @@ class OrderProvider extends ChangeNotifier {
 
       if (response.isSuccess && response.data != null) {
         final newOrders = response.data!;
-        
+
         if (newOrders.isNotEmpty) {
           _orders.addAll(newOrders);
           _currentPage = nextPage;
@@ -112,37 +112,64 @@ class OrderProvider extends ChangeNotifier {
     }
 
     try {
+      debugPrint('📡 Loading order: $orderId (silent: $silent)');
       final response = await _apiService.getOrder(orderId);
+
       if (response.isSuccess && response.data != null) {
         final newOrder = response.data!;
-        
-        // Check if order actually changed before updating
-        final hasChanged = _currentOrder == null || 
-                          _currentOrder!.status != newOrder.status ||
-                          _currentOrder!.updatedAt != newOrder.updatedAt;
-        
-        if (hasChanged) {
-          _currentOrder = newOrder;
-          
-          // Also update in orders list if it exists
-          final index = _orders.indexWhere((o) => o.id == orderId);
-          if (index != -1) {
-            _orders[index] = newOrder;
-          }
-          
-        
-          notifyListeners();
+        debugPrint(
+            '✅ Order loaded - Status: ${newOrder.status}, Updated: ${newOrder.updatedAt}');
+
+        // Always update the order to ensure UI reflects latest state
+        final previousStatus = _currentOrder?.status;
+        final previousUpdatedAt =
+            _currentOrder?.updatedAt?.millisecondsSinceEpoch ?? 0;
+        final newUpdatedAt = newOrder.updatedAt?.millisecondsSinceEpoch ?? 0;
+
+        final statusChanged =
+            _currentOrder == null || previousStatus != newOrder.status;
+        final timeChanged = previousUpdatedAt != newUpdatedAt;
+
+        debugPrint(
+            '📊 Previous: status=$previousStatus, updatedAt=$previousUpdatedAt');
+        debugPrint(
+            '📊 New: status=${newOrder.status}, updatedAt=$newUpdatedAt');
+        debugPrint('📊 Changed: status=$statusChanged, time=$timeChanged');
+
+        // Always update the order object - create new instance to force rebuild
+        _currentOrder = newOrder;
+
+        // Also update in orders list if it exists
+        final index = _orders.indexWhere((o) => o.id == orderId);
+        if (index != -1) {
+          _orders[index] = newOrder;
+        }
+
+        // Always notify listeners - this should trigger Consumer rebuild
+        debugPrint('🔔 Calling notifyListeners()...');
+        notifyListeners();
+        debugPrint('✅ notifyListeners() called');
+
+        // Log changes for debugging
+        if (statusChanged) {
+          debugPrint(
+              '🔄 Order status updated: $previousStatus → ${newOrder.status}');
+        } else if (timeChanged) {
+          debugPrint('🔄 Order updatedAt changed (status: ${newOrder.status})');
+        } else {
+          debugPrint('ℹ️ Order data unchanged (status: ${newOrder.status})');
         }
       } else {
+        debugPrint('❌ Failed to load order: ${response.error}');
         if (!silent) {
           _setError(response.error ?? 'Order not found');
         }
       }
     } catch (e) {
+      debugPrint('❌ Error loading order: $e');
       if (!silent) {
         _setError('Error loading order: ${e.toString()}');
       }
-  
     } finally {
       if (!silent) {
         _setLoading(false);
@@ -182,16 +209,16 @@ class OrderProvider extends ChangeNotifier {
         'paymentStatus': PaymentStatus.pending.name,
         'branchId': branchId,
         'specialInstructions': specialInstructions,
-        'estimatedDeliveryTime': DateTime.now()
-            .add(const Duration(minutes: 40))
-            .toIso8601String(),
-        
+        'estimatedDeliveryTime':
+            DateTime.now().add(const Duration(minutes: 40)).toIso8601String(),
+
         // Only include deliveryAddress for delivery orders
         if (deliveryType == DeliveryType.delivery && deliveryAddress != null)
           'deliveryAddress': deliveryAddress.toMap(),
-        
+
         // Only include codPaymentType for cash-on-delivery orders
-        if (paymentMethod == PaymentMethod.cashOnDelivery && codPaymentType != null)
+        if (paymentMethod == PaymentMethod.cashOnDelivery &&
+            codPaymentType != null)
           'codPaymentType': codPaymentType.name,
       };
 
@@ -237,8 +264,6 @@ class OrderProvider extends ChangeNotifier {
         updatedAt: DateTime.now(),
       );
       notifyListeners();
-      
-  
     }
 
     // Also update in orders list
