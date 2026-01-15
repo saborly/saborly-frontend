@@ -139,6 +139,11 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
 
+  // FOR TESTING: Clear permission flag to ensure dialog shows
+  // prefs.remove('notification_permission_asked');
+  
+  print('🔍 DEBUG: permission_asked flag: ${prefs.getBool('notification_permission_asked')}');
+
   // Initialize API Service first
   ApiService().initialize();
 
@@ -207,14 +212,18 @@ class FoodKingApp extends StatefulWidget {
 }
 
 class _FoodKingAppState extends State<FoodKingApp> {
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  NotificationProvider? _notificationProvider;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _notificationDialogScheduled = false;
+  bool _isDialogShowing = false;
+  late BuildContext _dialogContext;
 
   @override
   void initState() {
     super.initState();
     widget.languageService.addListener(_onLanguageChanged);
+
+    // Initialize Firebase Messaging
+    _initializeFirebaseMessaging();
 
     // Schedule notification dialog
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -222,65 +231,231 @@ class _FoodKingAppState extends State<FoodKingApp> {
     });
   }
 
+  Future<void> _initializeFirebaseMessaging() async {
+    if (!kIsWeb) {
+      print('🔍 DEBUG: Initializing Firebase Messaging...');
+      
+      // Configure Firebase Messaging
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      
+      // Check current permission status
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      print('🔍 DEBUG: Current notification status: ${settings.authorizationStatus}');
+      
+      // Save permission status
+      final isAuthorized = settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+      widget.prefs.setBool('notification_permission_asked', isAuthorized);
+      
+      print('🔍 DEBUG: Saved permission_asked as: $isAuthorized');
+    }
+  }
+
   Future<void> _scheduleNotificationDialog() async {
-    if (_notificationDialogScheduled) return;
+    print('🔍 DEBUG: Schedule notification dialog called');
+    
+    if (_notificationDialogScheduled || _isDialogShowing) {
+      print('🔍 DEBUG: Dialog already scheduled or showing');
+      return;
+    }
+    
     _notificationDialogScheduled = true;
 
-    // Wait a bit for the app to load
-    await Future.delayed(const Duration(seconds: 3));
+    // Wait for app to be fully loaded - increased delay
+    await Future.delayed(const Duration(seconds: 5));
 
-    final notificationService = NotificationService();
-    final shouldShow = await notificationService.shouldShowPermissionDialog();
+    if (!mounted) {
+      print('🔍 DEBUG: Widget not mounted');
+      return;
+    }
 
-    if (!shouldShow || !mounted) return;
+    // Check if we should show the dialog
+    final shouldShow = await _shouldShowPermissionDialog();
+    print('🔍 DEBUG: Should show dialog: $shouldShow');
+    
+    if (!shouldShow) {
+      print('🔍 DEBUG: Not showing dialog - checking why...');
+      final permissionAsked = widget.prefs.getBool('notification_permission_asked') ?? false;
+      print('🔍 DEBUG: permission_asked in prefs: $permissionAsked');
+      
+      if (!kIsWeb) {
+        final settings = await FirebaseMessaging.instance.getNotificationSettings();
+        print('🔍 DEBUG: Current permission status: ${settings.authorizationStatus}');
+      }
+      return;
+    }
 
-    final navigatorState = navigatorKey.currentState;
-    if (navigatorState == null) return;
+    // Set flag to prevent multiple dialogs
+    _isDialogShowing = true;
 
-    final navigatorContext = navigatorKey.currentContext;
-    if (navigatorContext == null || !navigatorContext.mounted) return;
+    // Show the dialog
+    print('🔍 DEBUG: Showing notification permission dialog...');
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
+      // Use the navigator key's context
+      final context = _navigatorKey.currentContext;
+      if (context == null) {
+        print('🔍 DEBUG: Navigator context is null');
+        _isDialogShowing = false;
+        return;
+      }
 
-    final route = DialogRoute<void>(
-      context: navigatorContext,
-      builder: (BuildContext dialogContext) => NotificationPermissionDialog(
-        onAllow: () async {
-          Navigator.of(dialogContext).pop();
-
-          final granted =
-              await notificationService.requestPermissionWithDialog();
-
-          if (granted && navigatorContext.mounted) {
-            ScaffoldMessenger.of(navigatorContext).showSnackBar(
-              const SnackBar(
-                content: Text(
-                    '✅ Notifications enabled! You\'ll receive order updates.'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          _dialogContext = dialogContext;
+          return NotificationPermissionDialog(
+            onAllow: () async {
+              print('🔍 DEBUG: User clicked Allow');
+              Navigator.of(dialogContext).pop();
+              _isDialogShowing = false;
+              await _requestNotificationPermission();
+            },
+            onDeny: () {
+              print('🔍 DEBUG: User clicked Not Now');
+              Navigator.of(dialogContext).pop();
+              _isDialogShowing = false;
+              _savePermissionDenied();
+            },
+          );
         },
-        onDeny: () {
-          Navigator.of(dialogContext).pop();
+      ).then((_) {
+        _isDialogShowing = false;
+        print('🔍 DEBUG: Dialog closed');
+      });
+    });
+  }
 
-          if (navigatorContext.mounted) {
-            ScaffoldMessenger.of(navigatorContext).showSnackBar(
-              const SnackBar(
-                content:
-                    Text('You can enable notifications later in settings.'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
-        },
-      ),
-      barrierDismissible: false,
-      barrierColor: const Color(0x80000000),
-      barrierLabel: 'Dismiss',
-      settings: const RouteSettings(name: 'notification_permission_dialog'),
-    );
+  Future<bool> _shouldShowPermissionDialog() async {
+    print('🔍 DEBUG: Checking if should show dialog...');
+    
+    // TESTING: Force show dialog - uncomment this line for testing
+    return true;
+    
+    // Check if user has already been asked
+    final permissionAsked = widget.prefs.getBool('notification_permission_asked') ?? false;
+    print('🔍 DEBUG: permission_asked from prefs: $permissionAsked');
+    
+    if (permissionAsked) {
+      print('🔍 DEBUG: Already asked for permission');
+      return false;
+    }
 
-    navigatorState.push<void>(route);
+    // Check current permission status
+    if (!kIsWeb) {
+      try {
+        final settings = await FirebaseMessaging.instance.getNotificationSettings();
+        final status = settings.authorizationStatus;
+        print('🔍 DEBUG: Firebase permission status: $status');
+        
+        // Show dialog if not determined or denied
+        final shouldShow = status == AuthorizationStatus.notDetermined ||
+                           status == AuthorizationStatus.denied;
+        print('🔍 DEBUG: Should show based on Firebase: $shouldShow');
+        return shouldShow;
+      } catch (e) {
+        print('🔍 DEBUG: Error checking Firebase permissions: $e');
+        return true; // Show dialog if error
+      }
+    }
+    
+    print('🔍 DEBUG: Web platform, returning true');
+    return true; // For web or other platforms
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    try {
+      print('🔍 DEBUG: Requesting notification permission...');
+      
+      // Request permission
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+
+      print('🔍 DEBUG: Permission result: ${settings.authorizationStatus}');
+      
+      // Save that we asked for permission
+      widget.prefs.setBool('notification_permission_asked', true);
+      print('🔍 DEBUG: Saved permission_asked as true');
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        // Get FCM token
+        final token = await FirebaseMessaging.instance.getToken();
+        print('🔍 DEBUG: FCM Token: $token');
+
+        // Save token to preferences
+        if (token != null) {
+          widget.prefs.setString('fcm_token', token);
+          print('🔍 DEBUG: Saved FCM token to prefs');
+        }
+
+        // Show success message
+        final context = _navigatorKey.currentContext;
+        if (mounted && context != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Notifications enabled successfully!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        // Permission denied
+        print('🔍 DEBUG: Permission denied or provisional');
+        final context = _navigatorKey.currentContext;
+        if (mounted && context != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Notification permission denied. You can enable it in settings.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('🔍 DEBUG: Error requesting notification permission: $e');
+      final context = _navigatorKey.currentContext;
+      if (mounted && context != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to request notification permission'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  void _savePermissionDenied() {
+    print('🔍 DEBUG: Saving permission denied state');
+    widget.prefs.setBool('notification_permission_asked', true);
+    print('🔍 DEBUG: Saved permission_asked as true (denied)');
+    
+    final context = _navigatorKey.currentContext;
+    if (mounted && context != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You can enable notifications later in app settings.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -330,11 +505,8 @@ class _FoodKingAppState extends State<FoodKingApp> {
                 ChangeNotifierProvider<LanguageService>.value(
                   value: widget.languageService,
                 ),
-                // Inside FoodKingApp.build() – replace the whole NotificationProvider entry:
-
                 ChangeNotifierProvider<NotificationProvider>.value(
-                  value: widget
-                      .notificationProvider, // <-- use the one from main()
+                  value: widget.notificationProvider,
                 ),
                 ChangeNotifierProxyProvider<LanguageService, HomeProvider>(
                   create: (_) {
@@ -401,11 +573,19 @@ class _FoodKingAppState extends State<FoodKingApp> {
                     },
                     routerConfig: AppRoutes.router,
                     builder: (context, child) {
-                      return Directionality(
-                        textDirection: languageService.textDirection,
-                        child: AppBackButtonHandler(
-                          child: child ?? const SizedBox(),
-                        ),
+                      // Store the navigator key in a Navigator widget
+                      return Navigator(
+                        key: _navigatorKey,
+                        onGenerateRoute: (settings) {
+                          return MaterialPageRoute(
+                            builder: (context) => Directionality(
+                              textDirection: languageService.textDirection,
+                              child: AppBackButtonHandler(
+                                child: child ?? const SizedBox(),
+                              ),
+                            ),
+                          );
+                        },
                       );
                     },
                   );
@@ -476,6 +656,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
       cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 4,
+        // ignore: deprecated_member_use
         shadowColor: Colors.black.withOpacity(0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
