@@ -29,6 +29,7 @@ import 'package:Saborly/firebase_options.dart';
 import 'package:Saborly/shared/models/notification_model.dart';
 import 'core/routes/app_routes.dart';
 import 'core/services/api_service.dart';
+import 'package:Saborly/shared/screens/maintenance_screen.dart'; // Add this import
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -225,10 +226,12 @@ class _FoodKingAppState extends State<FoodKingApp> {
     // Initialize Firebase Messaging
     _initializeFirebaseMessaging();
 
-    // Schedule notification dialog
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scheduleNotificationDialog();
-    });
+    // Schedule notification dialog only for mobile
+    if (!kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scheduleNotificationDialog();
+      });
+    }
   }
 
   Future<void> _initializeFirebaseMessaging() async {
@@ -494,6 +497,17 @@ class _FoodKingAppState extends State<FoodKingApp> {
           minTextAdapt: true,
           splitScreenMode: true,
           builder: (context, child) {
+            // Check if web and show maintenance screen
+            if (kIsWeb) {
+              return MaterialApp(
+                title: AppStrings.appName,
+                debugShowCheckedModeBanner: false,
+                theme: _buildThemeData(),
+                home: const MaintenanceScreen(), // Web gets maintenance screen
+              );
+            }
+            
+            // Mobile continues with normal app
             return MultiProvider(
               providers: [
                 ChangeNotifierProvider(
