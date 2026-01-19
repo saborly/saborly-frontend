@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Order delicious food online from Saborly - Fast delivery, great taste!">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  
+  <!-- Preconnect to improve performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com">
+  
+  <!-- ✅ Preload logo for instant display -->
+  <link rel="preload" href="assets/assets/images/logo3.png" as="image">
+  
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Saborly">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Saborly - Order Food Online</title>
+  <link rel="manifest" href="manifest.json">
+  
+  <style>
+    /* ✅ Optimized loading screen */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+      overflow: hidden;
+    }
+    
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.3s ease-out;
+    }
+    
+    #loading.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    /* ✅ Use img tag for faster logo rendering */
+    .logo-container {
+      width: 160px;
+      height: 80px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .logo-container img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    /* ✅ Smaller, faster loader */
+    .loader {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #FF1744;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    .loading-text {
+      margin-top: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* ✅ Smooth Flutter app appearance */
+    flutter-view {
+      opacity: 0;
+      transition: opacity 0.2s ease-in;
+    }
+    
+    flutter-view.loaded {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <!-- ✅ Optimized Loading Screen -->
+  <div id="loading">
+    <div class="logo-container">
+      <!-- ✅ Direct img tag for faster loading -->
+      <img src="assets/assets/images/logo3.png" alt="Saborly Logo" onerror="this.style.display='none'">
+    </div>
+    <div class="loader"></div>
+    <div class="loading-text">Loading...</div>
+  </div>
+
+  <!-- Flutter App -->
+  <script src="flutter_bootstrap.js" async></script>
+  
+  <script>
+    // ✅ Fast loading screen removal
+    window.addEventListener('flutter-first-frame', function() {
+      const loading = document.getElementById('loading');
+      const flutterView = document.querySelector('flutter-view');
+      
+      if (loading) {
+        loading.classList.add('fade-out');
+        setTimeout(() => {
+          loading.remove();
+          document.body.style.overflow = 'auto';
+        }, 300);
+      }
+      
+      if (flutterView) {
+        flutterView.classList.add('loaded');
+      }
+    });
+    
+    // ✅ Reduced fallback timeout to 5 seconds
+    setTimeout(function() {
+      const loading = document.getElementById('loading');
+      if (loading && loading.parentNode) {
+        loading.classList.add('fade-out');
+        setTimeout(() => {
+          if (loading.parentNode) {
+            loading.remove();
+            document.body.style.overflow = 'auto';
+          }
+        }, 300);
+      }
+    }, 5000);
+    
+    // ✅ Service Worker registration (non-blocking)
+    // Register FCM Service Worker (non-blocking)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then(reg => console.log('FCM SW registered:', reg.scope))
+          .catch(err => console.warn('SW registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
