@@ -1,8 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "flutter build web --release",
-  "installCommand": "flutter pub get",
+  "buildCommand": "curl -L https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.25.1-stable.tar.xz -o flutter.tar.xz && tar xf flutter.tar.xz && export PATH=\"$PWD/flutter/bin:$PATH\" && flutter config --enable-web && flutter doctor && flutter pub get && flutter build web --release --web-renderer html --no-tree-shake-icons",
+  "installCommand": "echo 'Installing Flutter during build...'",
   "outputDirectory": "build/web",
+  "framework": null,
   "cleanUrls": true,
   "rewrites": [
     {
@@ -152,5 +153,9 @@
         }
       ]
     }
-  ]
+  ],
+  "env": {
+    "FLUTTER_WEB_USE_SKIA": "false",
+    "FLUTTER_WEB_CANVASKIT_URL": "/canvaskit/"
+  }
 }
