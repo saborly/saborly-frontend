@@ -29,7 +29,8 @@ import 'package:Saborly/firebase_options.dart';
 import 'package:Saborly/shared/models/notification_model.dart';
 import 'core/routes/app_routes.dart';
 import 'core/services/api_service.dart';
-import 'package:Saborly/shared/screens/maintenance_screen.dart'; // Add this import
+// REMOVE the maintenance screen import
+// import 'package:Saborly/shared/screens/maintenance_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -129,14 +130,28 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // CRITICAL: Register background handler BEFORE Firebase initialization
-  if (!kIsWeb) {
+  // Enable web support
+  // flutter config --enable-web
+  if (kIsWeb) {
+    // Web-specific initialization
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "YOUR_WEB_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID",
+        measurementId: "YOUR_MEASUREMENT_ID",
+      ),
+    );
+  } else {
+    // Mobile-specific initialization
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   }
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
   final prefs = await SharedPreferences.getInstance();
 
@@ -497,17 +512,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
           minTextAdapt: true,
           splitScreenMode: true,
           builder: (context, child) {
-            // Check if web and show maintenance screen
-            if (kIsWeb) {
-              return MaterialApp(
-                title: AppStrings.appName,
-                debugShowCheckedModeBanner: false,
-                theme: _buildThemeData(),
-                home: const MaintenanceScreen(), // Web gets maintenance screen
-              );
-            }
-            
-            // Mobile continues with normal app
+            // REMOVED the maintenance screen check - web will use the same app structure
             return MultiProvider(
               providers: [
                 ChangeNotifierProvider(
