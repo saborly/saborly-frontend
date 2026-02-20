@@ -95,11 +95,11 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
       _currentIndex = 0;
     }
     
-    _pageController.jumpToPage(_currentIndex);
-    
-    if (mounted) {
-      setState(() {});
-    }
+    _pageController.animateToPage(
+      _currentIndex,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _previousSlide() {
@@ -111,11 +111,11 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
       _currentIndex = _banners.length - 1;
     }
     
-    _pageController.jumpToPage(_currentIndex);
-    
-    if (mounted) {
-      setState(() {});
-    }
+    _pageController.animateToPage(
+      _currentIndex,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -212,6 +212,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
     );
   }
 
+  // Helper widgets remain the same except _buildImageSlide which is fixed below
 
   Widget _buildLoadingWidget() {
     return Container(
@@ -267,11 +268,11 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
     );
   }
 
+  // FIXED: Removed the CORS proxy - now using direct image URL
   Widget _buildImageSlide(BannerModel banner, double bannerHeight) {
-    final imageUrlWithProxy = "https://corsproxy.io/?" + Uri.encodeComponent(banner.imageUrl);
-
     return GestureDetector(
       onTap: banner.link != null ? () {
+        // Handle navigation if needed
       } : null,
       child: Container(
         width: double.infinity,
@@ -279,18 +280,34 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // DIRECT IMAGE LOADING - NO PROXY
             Image.network(
-              imageUrlWithProxy,
+              banner.imageUrl,  // ← Direct URL, no proxy wrapper
               fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  color: Colors.grey[300],
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / 
+                            loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  ),
+                );
+              },
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  color: Colors.grey,
+                  color: Colors.grey[300],
                   child: const Center(
                     child: Icon(Icons.broken_image, size: 64, color: Colors.white),
                   ),
                 );
               },
             ),
+            // Optional overlay gradient
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -378,7 +395,8 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
           ),
         ),
       ),
-    );}
+    );
+  }
 
   double _calculateHeight(double screenWidth) {
     if (screenWidth >= 1440) return 433;
@@ -393,4 +411,6 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
   @override
   void dispose() {
     _pageController.dispose();
-    super.dispose();}}
+    super.dispose();
+  }
+}
