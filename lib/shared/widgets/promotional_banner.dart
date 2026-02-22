@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:Saborly/core/services/banner_service.dart';
 
@@ -9,9 +12,10 @@ class DynamicPromotionalBanner extends StatefulWidget {
   final VoidCallback? onSlideChanged;
   final BorderRadius? borderRadius;
   final List<BoxShadow>? boxShadow;
+  final Function(String? link)? onBannerTap;
 
   const DynamicPromotionalBanner({
-    Key? key,
+    super.key,
     this.category,
     this.height,
     this.autoPlayDuration = const Duration(seconds: 4),
@@ -19,7 +23,8 @@ class DynamicPromotionalBanner extends StatefulWidget {
     this.onSlideChanged,
     this.borderRadius,
     this.boxShadow,
-  }) : super(key: key);
+    this.onBannerTap,
+  });
 
   @override
   State<DynamicPromotionalBanner> createState() => _DynamicPromotionalBannerState();
@@ -31,6 +36,24 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
   List<BannerModel> _banners = [];
   bool _isLoading = true;
   String? _errorMessage;
+  Timer? _autoPlayTimer;
+
+  // Your deployed API endpoint
+  static const String _proxyBaseUrl = 'https://saborly-backend.vercel.app/api/proxy'; // Update with your actual API URL
+  
+  final Map<int, bool> _imageLoadErrors = {};
+  final Map<int, int> _imageRetryCount = {};
+  static const int _maxRetries = 2;
+
+  // Transparent 1x1 pixel PNG as Uint8List
+  static final Uint8List _kTransparentImage = Uint8List.fromList([
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+    0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+    0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+    0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+    0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+    0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+  ]);
 
   @override
   void initState() {
@@ -39,19 +62,31 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
     _loadBanners();
   }
 
+  @override
+  void didUpdateWidget(DynamicPromotionalBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.category != widget.category) {
+      _loadBanners();
+    }
+  }
+
   Future<void> _loadBanners() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _imageLoadErrors.clear();
+      _imageRetryCount.clear();
     });
+
+    _stopAutoPlay();
 
     try {
       final banners = await BannerService.getActiveBanners(category: widget.category);
-      
+
       if (!mounted) return;
-      
+
       if (banners.isEmpty) {
         setState(() {
           _errorMessage = 'No banners available';
@@ -65,10 +100,11 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
         _isLoading = false;
       });
 
-      if (widget.autoPlay && mounted) {
+      if (widget.autoPlay && mounted && _banners.length > 1) {
         _startAutoPlay();
       }
     } catch (e) {
+      debugPrint('Banner load error: $e');
       if (!mounted) return;
       setState(() {
         _errorMessage = 'Failed to load banners';
@@ -78,141 +114,182 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
   }
 
   void _startAutoPlay() {
-    Future.delayed(widget.autoPlayDuration, () {
-      if (mounted && widget.autoPlay && _banners.isNotEmpty) {
-        _nextSlide();
-        _startAutoPlay();
-      }
+    _stopAutoPlay();
+    _autoPlayTimer = Timer.periodic(widget.autoPlayDuration, (timer) {
+      if (!mounted || !widget.autoPlay || _banners.isEmpty) return;
+      _nextSlide();
     });
   }
 
+  void _stopAutoPlay() {
+    _autoPlayTimer?.cancel();
+    _autoPlayTimer = null;
+  }
+
   void _nextSlide() {
-    if (!mounted) return;
-    
-    if (_currentIndex < _banners.length - 1) {
-      _currentIndex++;
-    } else {
-      _currentIndex = 0;
-    }
-    
+    if (!mounted || _banners.isEmpty) return;
+
+    final nextIndex = (_currentIndex + 1) % _banners.length;
     _pageController.animateToPage(
-      _currentIndex,
+      nextIndex,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
 
   void _previousSlide() {
-    if (!mounted) return;
-    
-    if (_currentIndex > 0) {
-      _currentIndex--;
-    } else {
-      _currentIndex = _banners.length - 1;
-    }
-    
+    if (!mounted || _banners.isEmpty) return;
+
+    final prevIndex = (_currentIndex - 1 + _banners.length) % _banners.length;
     _pageController.animateToPage(
-      _currentIndex,
+      prevIndex,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
 
+  // Use the proxy for ALL platforms (both mobile and web)
+  String _getProxiedUrl(String originalUrl) {
+    // For Vercel Blob URLs, always use the proxy
+    if (originalUrl.contains('vercel-storage.com') || originalUrl.contains('blob.vercel-storage.com')) {
+      return '$_proxyBaseUrl/image?url=${Uri.encodeComponent(originalUrl)}';
+    }
+    
+    // For other URLs, you can still use them directly
+    return originalUrl;
+  }
+
+  void _handleImageError(int index, dynamic error) {
+    debugPrint('Image load failed for index $index: $error');
+    
+    if (!mounted) return;
+
+    final retryCount = _imageRetryCount[index] ?? 0;
+    
+    if (retryCount < _maxRetries) {
+      // Simple retry without changing proxy since we're using our own
+      setState(() {
+        _imageRetryCount[index] = retryCount + 1;
+        debugPrint('Retrying image $index (attempt ${retryCount + 1})');
+      });
+    } else {
+      // Mark as failed after max retries
+      setState(() {
+        _imageLoadErrors[index] = true;
+      });
+    }
+  }
+
+  void _resetForIndex(int index) {
+    setState(() {
+      _imageLoadErrors.remove(index);
+      _imageRetryCount.remove(index);
+    });
+  }
+
+  void _resetAll() {
+    setState(() {
+      _imageLoadErrors.clear();
+      _imageRetryCount.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return _buildLoadingWidget();
-    }
-
-    if (_errorMessage != null) {
-      return _buildErrorWidget();
-    }
-
-    if (_banners.isEmpty) {
-      return _buildEmptyWidget();
-    }
+    if (_isLoading) return _buildLoadingWidget();
+    if (_errorMessage != null) return _buildErrorWidget();
+    if (_banners.isEmpty) return _buildEmptyWidget();
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = constraints.maxWidth;
+
         final isLargeDesktop = screenWidth >= 1440;
         final isDesktop = screenWidth >= 1024;
         final isTablet = screenWidth >= 600 && screenWidth < 1024;
         final isMobile = screenWidth < 600;
-        
-        double bannerHeight = widget.height ?? _calculateHeight(screenWidth);
-        
+
+        final bannerHeight = widget.height ?? _calculateHeight(screenWidth);
+
         return Container(
           height: bannerHeight,
           margin: EdgeInsets.symmetric(
-            horizontal: isLargeDesktop ? 40 : (isDesktop ? 30 : (isTablet ? 20 : 4)),
+            horizontal: isLargeDesktop
+                ? 40
+                : isDesktop
+                    ? 30
+                    : isTablet
+                        ? 20
+                        : 4,
             vertical: isDesktop ? 16 : 12,
           ),
           child: Stack(
             children: [
-              // Main image slider
+              // Main slider container
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: widget.borderRadius ?? 
-                    BorderRadius.circular(isLargeDesktop ? 32 : (isDesktop ? 28 : 24)),
-                  boxShadow: widget.boxShadow ?? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                  borderRadius: widget.borderRadius ??
+                      BorderRadius.circular(isLargeDesktop ? 32 : isDesktop ? 28 : 24),
+                  boxShadow: widget.boxShadow ??
+                      [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                 ),
                 child: ClipRRect(
-                  borderRadius: widget.borderRadius ?? 
-                    BorderRadius.circular(isLargeDesktop ? 32 : (isDesktop ? 28 : 24)),
+                  borderRadius: widget.borderRadius ??
+                      BorderRadius.circular(isLargeDesktop ? 32 : isDesktop ? 28 : 24),
                   child: PageView.builder(
                     controller: _pageController,
                     onPageChanged: (index) {
-                      if (mounted) {
-                        setState(() {
-                          _currentIndex = index;
-                        });
-                        widget.onSlideChanged?.call();
-                      }
+                      if (!mounted) return;
+                      setState(() => _currentIndex = index);
+                      widget.onSlideChanged?.call();
                     },
                     itemCount: _banners.length,
                     itemBuilder: (context, index) {
-                      return _buildImageSlide(
-                        _banners[index],
-                        bannerHeight,
-                      );
+                      return _buildImageSlide(_banners[index], index, bannerHeight);
                     },
                   ),
                 ),
               ),
-              
-              // Navigation arrows (hidden on mobile)
-              if (!isMobile) ...[
-                _buildNavigationArrow(
-                  isLeft: true,
-                  onTap: _previousSlide,
-                  isDesktop: isDesktop,
-                  isLargeDesktop: isLargeDesktop,
-                ),
-                _buildNavigationArrow(
-                  isLeft: false,
-                  onTap: _nextSlide,
-                  isDesktop: isDesktop,
-                  isLargeDesktop: isLargeDesktop,
-                ),
+
+              // Navigation arrows
+              if (!isMobile && _banners.length > 1) ...[
+                _buildNavigationArrow(true, _previousSlide, isDesktop, isLargeDesktop),
+                _buildNavigationArrow(false, _nextSlide, isDesktop, isLargeDesktop),
               ],
-              
-              // Page indicators
-              _buildPageIndicators(bannerHeight, isDesktop, isTablet, isLargeDesktop),
+
+              // Dots / indicators
+              if (_banners.length > 1)
+                _buildPageIndicators(bannerHeight, isDesktop, isTablet, isLargeDesktop),
+
+              // Reset button (show on all platforms when there are errors)
+              if (_imageLoadErrors.isNotEmpty)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
+                      onPressed: _resetAll,
+                      tooltip: 'Retry loading images',
+                    ),
+                  ),
+                ),
             ],
           ),
         );
       },
     );
   }
-
-  // Helper widgets remain the same except _buildImageSlide which is fixed below
 
   Widget _buildLoadingWidget() {
     return Container(
@@ -222,9 +299,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Center(
-        child: CircularProgressIndicator(),
-      ),
+      child: const Center(child: CircularProgressIndicator()),
     );
   }
 
@@ -243,7 +318,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
             Icon(Icons.error_outline, size: 48, color: Colors.grey[600]),
             const SizedBox(height: 8),
             Text(_errorMessage ?? 'Error loading banners'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadBanners,
               child: const Text('Retry'),
@@ -262,63 +337,93 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Center(
-        child: Text('No banners available'),
+      child: const Center(child: Text('No banners available')),
+    );
+  }
+
+  Widget _buildImageSlide(BannerModel banner, int index, double bannerHeight) {
+    if (_imageLoadErrors.containsKey(index)) {
+      return _buildErrorImageSlide(index);
+    }
+
+    return GestureDetector(
+      onTap: () {
+        if (widget.onBannerTap != null) {
+          widget.onBannerTap!(banner.link);
+        } else if (banner.link != null) {
+          debugPrint('Banner tapped: ${banner.link}');
+        }
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Use FadeInImage for better loading experience
+          FadeInImage(
+            placeholder: MemoryImage(_kTransparentImage),
+            image: NetworkImage(_getProxiedUrl(banner.imageUrl)),
+            fit: BoxFit.cover,
+            imageErrorBuilder: (context, error, stackTrace) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _handleImageError(index, error);
+              });
+              return _buildErrorImageSlide(index);
+            },
+            placeholderErrorBuilder: (context, error, stackTrace) => 
+                const SizedBox.shrink(),
+          ),
+
+          // Loading indicator (shown while image loads)
+          Positioned.fill(
+            child: _ImageLoadingBuilder(
+              imageUrl: _getProxiedUrl(banner.imageUrl),
+            ),
+          ),
+
+          // Banner content overlay
+          if (banner.title != null || banner.description != null)
+            _buildBannerContent(banner),
+
+          // Gradient overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.3),
+                ],
+                stops: const [0.7, 1.0],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // FIXED: Removed the CORS proxy - now using direct image URL
-  Widget _buildImageSlide(BannerModel banner, double bannerHeight) {
-    return GestureDetector(
-      onTap: banner.link != null ? () {
-        // Handle navigation if needed
-      } : null,
-      child: Container(
-        width: double.infinity,
-        height: bannerHeight,
-        child: Stack(
-          fit: StackFit.expand,
+  Widget _buildErrorImageSlide(int index) {
+    return Container(
+      color: Colors.grey[300],
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // DIRECT IMAGE LOADING - NO PROXY
-            Image.network(
-              banner.imageUrl,  // ← Direct URL, no proxy wrapper
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Container(
-                  color: Colors.grey[300],
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded / 
-                            loadingProgress.expectedTotalBytes!
-                          : null,
-                    ),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[300],
-                  child: const Center(
-                    child: Icon(Icons.broken_image, size: 64, color: Colors.white),
-                  ),
-                );
-              },
+            Icon(Icons.broken_image, size: 64, color: Colors.grey[600]),
+            const SizedBox(height: 12),
+            Text(
+              'Image unavailable',
+              style: TextStyle(color: Colors.grey[700]),
             ),
-            // Optional overlay gradient
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.1),
-                  ],
-                ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _resetForIndex(index),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                elevation: 0,
               ),
+              child: const Text('Retry'),
             ),
           ],
         ),
@@ -326,12 +431,59 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
     );
   }
 
-  Widget _buildNavigationArrow({
-    required bool isLeft,
-    required VoidCallback onTap,
-    required bool isDesktop,
-    required bool isLargeDesktop,
-  }) {
+  Widget _buildBannerContent(BannerModel banner) {
+    return Positioned(
+      bottom: 40,
+      left: 20,
+      right: 20,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (banner.title != null)
+            Text(
+              banner.title!,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: Colors.black45,
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          if (banner.description != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                banner.description!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black45,
+                      blurRadius: 8,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavigationArrow(
+    bool isLeft,
+    VoidCallback onTap,
+    bool isDesktop,
+    bool isLargeDesktop,
+  ) {
     return Positioned(
       left: isLeft ? (isLargeDesktop ? 30 : 20) : null,
       right: isLeft ? null : (isLargeDesktop ? 30 : 20),
@@ -340,23 +492,26 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
       child: Center(
         child: GestureDetector(
           onTap: onTap,
-          child: Container(
-            padding: EdgeInsets.all(isLargeDesktop ? 20 : (isDesktop ? 16 : 12)),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(
-              isLeft ? Icons.chevron_left : Icons.chevron_right,
-              color: Colors.grey[700],
-              size: isLargeDesktop ? 32 : (isDesktop ? 28 : 24),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Container(
+              padding: EdgeInsets.all(isLargeDesktop ? 20 : isDesktop ? 16 : 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                isLeft ? Icons.chevron_left : Icons.chevron_right,
+                color: Colors.grey[800],
+                size: isLargeDesktop ? 32 : isDesktop ? 28 : 24,
+              ),
             ),
           ),
         ),
@@ -364,25 +519,29 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
     );
   }
 
-  Widget _buildPageIndicators(double bannerHeight, bool isDesktop, bool isTablet, bool isLargeDesktop) {
+  Widget _buildPageIndicators(
+    double bannerHeight,
+    bool isDesktop,
+    bool isTablet,
+    bool isLargeDesktop,
+  ) {
     return Positioned(
-      bottom: isLargeDesktop ? 30 : (isDesktop ? 25 : 15),
+      bottom: isLargeDesktop ? 30 : isDesktop ? 25 : 15,
       left: 0,
       right: 0,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(
-          _banners.length,
-          (index) => Container(
+        children: List.generate(_banners.length, (index) {
+          final isActive = _currentIndex == index;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             margin: EdgeInsets.symmetric(horizontal: isLargeDesktop ? 6 : 4),
-            width: _currentIndex == index ? (isLargeDesktop ? 32 : 24) : (isLargeDesktop ? 12 : 8),
+            width: isActive ? (isLargeDesktop ? 32 : 24) : (isLargeDesktop ? 12 : 8),
             height: isLargeDesktop ? 12 : 8,
             decoration: BoxDecoration(
-              color: _currentIndex == index
-                  ? Colors.white
-                  : Colors.white.withOpacity(0.5),
+              color: isActive ? Colors.white : Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(isLargeDesktop ? 6 : 4),
-              boxShadow: _currentIndex == index
+              boxShadow: isActive
                   ? [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.3),
@@ -392,8 +551,8 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
                     ]
                   : null,
             ),
-          ),
-        ),
+          );
+        }),
       ),
     );
   }
@@ -410,7 +569,49 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
 
   @override
   void dispose() {
+    _stopAutoPlay();
     _pageController.dispose();
     super.dispose();
+  }
+}
+
+// Custom loading builder to show/hide loading indicator
+class _ImageLoadingBuilder extends StatefulWidget {
+  final String imageUrl;
+
+  const _ImageLoadingBuilder({required this.imageUrl});
+
+  @override
+  State<_ImageLoadingBuilder> createState() => _ImageLoadingBuilderState();
+}
+
+class _ImageLoadingBuilderState extends State<_ImageLoadingBuilder> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _startLoading();
+  }
+
+  void _startLoading() async {
+    // Simulate loading - in reality, the FadeInImage handles this
+    // This is just a fallback
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoading
+        ? Container(
+            color: Colors.grey[300],
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          )
+        : const SizedBox.shrink();
   }
 }
