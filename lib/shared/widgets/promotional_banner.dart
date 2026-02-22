@@ -39,7 +39,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
   Timer? _autoPlayTimer;
 
   // Your deployed API endpoint
-  static const String _proxyBaseUrl = 'https://saborly-backend.vercel.app/api/proxy'; // Update with your actual API URL
+  static const String _proxyBaseUrl = 'https://saborly-backend.vercel.app/api/proxy';
   
   final Map<int, bool> _imageLoadErrors = {};
   final Map<int, int> _imageRetryCount = {};
@@ -251,7 +251,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
                     },
                     itemCount: _banners.length,
                     itemBuilder: (context, index) {
-                      return _buildImageSlide(_banners[index], index, bannerHeight);
+                      return _buildImageSlide(_banners[index], index);
                     },
                   ),
                 ),
@@ -341,7 +341,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
     );
   }
 
-  Widget _buildImageSlide(BannerModel banner, int index, double bannerHeight) {
+  Widget _buildImageSlide(BannerModel banner, int index) {
     if (_imageLoadErrors.containsKey(index)) {
       return _buildErrorImageSlide(index);
     }
@@ -357,7 +357,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Use FadeInImage for better loading experience
+          // Use FadeInImage for better loading experience - NO TEXT OVERLAY
           FadeInImage(
             placeholder: MemoryImage(_kTransparentImage),
             image: NetworkImage(_getProxiedUrl(banner.imageUrl)),
@@ -379,24 +379,8 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
             ),
           ),
 
-          // Banner content overlay
-          if (banner.title != null || banner.description != null)
-            _buildBannerContent(banner),
-
-          // Gradient overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.3),
-                ],
-                stops: const [0.7, 1.0],
-              ),
-            ),
-          ),
+          // NO BANNER CONTENT OVERLAY - REMOVED
+          // The text overlay has been completely removed
         ],
       ),
     );
@@ -427,53 +411,6 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBannerContent(BannerModel banner) {
-    return Positioned(
-      bottom: 40,
-      left: 20,
-      right: 20,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (banner.title != null)
-            Text(
-              banner.title!,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                shadows: [
-                  Shadow(
-                    color: Colors.black45,
-                    blurRadius: 10,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-            ),
-          if (banner.description != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                banner.description!,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black45,
-                      blurRadius: 8,
-                      offset: Offset(0, 1),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
