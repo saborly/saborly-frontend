@@ -16,6 +16,14 @@ This guide will help you deploy the Saborly Flutter web application to your VPS 
 2. Domain DNS configured to point to the server IP (161.97.151.182)
 3. Root or sudo access on the server
 
+## Important Notes
+
+⚠️ **Port Information**: 
+- Ports 3000 and 3001 are already in use by other services (Meerabs applications)
+- Saborly deployment uses **ports 80 (HTTP) and 443 (HTTPS)** via Nginx
+- No port conflicts will occur as Nginx handles standard web ports
+- Multiple domains can be served on the same server using Nginx virtual hosts
+
 ## Step 1: Initial Server Setup
 
 ### 1.1 Connect to Your Server
@@ -23,6 +31,18 @@ This guide will help you deploy the Saborly Flutter web application to your VPS 
 ```bash
 ssh root@161.97.151.182
 ```
+
+### 1.2 Check Port Availability (Optional)
+
+Before setup, you can check port availability:
+
+```bash
+cd /root/saborly-frontend/deployment/scripts
+chmod +x check-ports.sh
+./check-ports.sh
+```
+
+**Note**: Ports 3000 and 3001 are already in use by other services (Meerabs). This is fine - Saborly uses ports 80/443 via Nginx, which won't conflict.
 
 ### 1.2 Upload Deployment Files
 

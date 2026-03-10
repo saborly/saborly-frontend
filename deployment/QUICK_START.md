@@ -38,6 +38,7 @@ Visit: **https://saborly.es**
 - [ ] SSH access to server working
 - [ ] Root/sudo access available
 - [ ] Email address for SSL certificate notifications
+- [ ] Note: Ports 3000/3001 are used by other services (OK - Saborly uses 80/443)
 
 ---
 

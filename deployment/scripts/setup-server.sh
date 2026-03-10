@@ -45,6 +45,26 @@ log_info "Starting Saborly VPS server setup..."
 log_info "Domain: $DOMAIN"
 log_info "Project directory: $PROJECT_DIR"
 
+# Check for port conflicts
+log_step "Checking port availability..."
+if command -v netstat &> /dev/null || command -v ss &> /dev/null; then
+    if command -v ss &> /dev/null; then
+        PORT_80=$(ss -tuln | grep ':80 ' || true)
+        PORT_443=$(ss -tuln | grep ':443 ' || true)
+    else
+        PORT_80=$(netstat -tuln | grep ':80 ' || true)
+        PORT_443=$(netstat -tuln | grep ':443 ' || true)
+    fi
+    
+    if [ -n "$PORT_80" ] && ! echo "$PORT_80" | grep -q nginx; then
+        log_warn "Port 80 is already in use. Nginx will handle this."
+    fi
+    if [ -n "$PORT_443" ] && ! echo "$PORT_443" | grep -q nginx; then
+        log_warn "Port 443 is already in use. Nginx will handle this."
+    fi
+    log_info "Ports 80 and 443 will be used by Nginx for saborly.es"
+fi
+
 # Update system
 log_step "Updating system packages..."
 apt-get update

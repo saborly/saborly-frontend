@@ -79,6 +79,12 @@ Deploys the Flutter web application:
 - Domain DNS configured to point to server IP
 - SSH access to the server
 
+## Port Information
+
+- **Saborly uses**: Ports 80 (HTTP) and 443 (HTTPS) via Nginx
+- **Other services**: Ports 3000, 3001, etc. are used by other applications (e.g., Meerabs)
+- **No conflicts**: Multiple domains can coexist on the same server using Nginx virtual hosts
+
 ## Documentation
 
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed step-by-step instructions.
