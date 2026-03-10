@@ -129,6 +129,29 @@ chmod +x deploy.sh
 sudo ./deploy.sh
 ```
 
+**If you encounter "Flutter is not installed" error:**
+
+The deploy script will now automatically detect and use Flutter from `/opt/flutter/bin`. However, if you still get this error:
+
+**Option 1: Reload PATH (Recommended)**
+```bash
+source /etc/profile
+sudo ./deploy.sh
+```
+
+**Option 2: Use fix script**
+```bash
+chmod +x fix-flutter-path.sh
+./fix-flutter-path.sh
+sudo ./deploy.sh
+```
+
+**Option 3: Use full path**
+```bash
+# The deploy script should handle this automatically, but if needed:
+/opt/flutter/bin/flutter --version
+```
+
 Or if you installed it system-wide:
 
 ```bash

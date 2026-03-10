@@ -68,13 +68,55 @@ else
     git checkout $BRANCH
 fi
 
-# Check Flutter installation
+# Check Flutter installation and add to PATH if needed
 log_info "Checking Flutter installation..."
+
+# Add Flutter to PATH if it exists in /opt/flutter
+if [ -d "/opt/flutter/bin" ]; then
+    export PATH="$PATH:/opt/flutter/bin"
+    log_info "Added /opt/flutter/bin to PATH"
+fi
+
+# Check if Flutter is now available
 if ! command -v flutter &> /dev/null; then
-    log_error "Flutter is not installed. Please install Flutter first."
-    log_info "Run: ./setup-server.sh to install Flutter"
+    # Try to find Flutter in common locations
+    if [ -f "/opt/flutter/bin/flutter" ]; then
+        export PATH="$PATH:/opt/flutter/bin"
+        log_info "Using Flutter from /opt/flutter/bin"
+    elif [ -f "$HOME/flutter/bin/flutter" ]; then
+        export PATH="$PATH:$HOME/flutter/bin"
+        log_info "Using Flutter from $HOME/flutter/bin"
+    else
+        log_error "Flutter is not installed or not in PATH."
+        log_info "Attempting to install Flutter..."
+        
+        # Try to install Flutter
+        FLUTTER_VERSION="3.25.1"
+        if [ ! -d "/opt/flutter" ]; then
+            log_info "Downloading Flutter..."
+            cd /opt
+            wget -q "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+            tar xf "flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+            rm "flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+            export PATH="$PATH:/opt/flutter/bin"
+            echo 'export PATH="$PATH:/opt/flutter/bin"' >> /etc/profile
+            /opt/flutter/bin/flutter config --enable-web
+            log_info "Flutter installed successfully"
+        else
+            export PATH="$PATH:/opt/flutter/bin"
+        fi
+    fi
+fi
+
+# Verify Flutter is working
+if ! command -v flutter &> /dev/null; then
+    log_error "Flutter is still not available. Please run setup-server.sh first."
     exit 1
 fi
+
+# Show Flutter version
+FLUTTER_VERSION_OUTPUT=$(flutter --version 2>&1 | head -n 1 || echo "Unknown")
+log_info "Flutter found: $FLUTTER_VERSION_OUTPUT"
 
 # Get Flutter dependencies
 log_info "Getting Flutter dependencies..."

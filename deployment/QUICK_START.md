@@ -27,6 +27,18 @@ chmod +x deploy.sh
 sudo ./deploy.sh
 ```
 
+**If you get "Flutter is not installed" error:**
+```bash
+# Option 1: Source the profile (recommended)
+source /etc/profile
+sudo ./deploy.sh
+
+# Option 2: Use the fix script
+chmod +x fix-flutter-path.sh
+./fix-flutter-path.sh
+sudo ./deploy.sh
+```
+
 ### Step 5: Verify
 Visit: **https://saborly.es**
 
