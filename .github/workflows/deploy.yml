@@ -1,0 +1,78 @@
+name: 🚀 Deploy Saborly Web → saborly.es
+
+on:
+  push:
+    branches:
+      - main          # auto-deploy on every push to main
+  workflow_dispatch:  # allow manual trigger from GitHub UI
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false   # never cancel an in-flight deploy
+
+jobs:
+  build-and-deploy:
+    name: Build Flutter Web & Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Flutter Setup ──────────────────────────────────────
+      - name: 🐦 Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.0'   # pin to match your local version
+          channel: 'stable'
+          cache: true
+
+      # ── 3. Install Dependencies ───────────────────────────────
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      # ── 4. Build Flutter Web ──────────────────────────────────
+      - name: 🏗️ Build Flutter Web (release)
+        run: |
+          flutter build web --release \
+            --web-renderer canvaskit \
+            --dart-define=FLUTTER_WEB_CANVASKIT_URL=canvaskit/
+
+      # ── 5. Setup SSH ──────────────────────────────────────────
+      - name: 🔑 Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_IP }} >> ~/.ssh/known_hosts
+
+      # ── 6. Deploy to VPS ──────────────────────────────────────
+      - name: 📤 Deploy via rsync
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='vercel.json' \
+            --checksum \
+            build/web/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_IP }}:/var/www/saborly/
+
+      # ── 7. Reload Nginx ───────────────────────────────────────
+      - name: 🔄 Reload Nginx
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_IP }} \
+            "sudo systemctl reload nginx"
+
+      # ── 8. Notify Success ─────────────────────────────────────
+      - name: ✅ Deployment summary
+        if: success()
+        run: |
+          echo "### 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| | |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **URL** | https://saborly.es |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
