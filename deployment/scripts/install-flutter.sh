@@ -34,10 +34,9 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-FLUTTER_VERSION="3.25.1"
 FLUTTER_DIR="/opt/flutter"
 
-log_step "Installing Flutter ${FLUTTER_VERSION}..."
+log_step "Detecting latest Flutter stable version..."
 
 # Check if already installed
 if [ -d "$FLUTTER_DIR/bin" ] && [ -f "$FLUTTER_DIR/bin/flutter" ]; then
@@ -53,7 +52,7 @@ fi
 # Install required packages
 log_step "Installing required packages..."
 apt-get update
-apt-get install -y curl wget tar xz-utils
+apt-get install -y curl wget tar xz-utils jq
 
 # Create directory
 mkdir -p /opt
@@ -65,24 +64,66 @@ if [ -d "$FLUTTER_DIR" ]; then
     rm -rf "$FLUTTER_DIR"
 fi
 
-# Download Flutter
-log_step "Downloading Flutter (this may take several minutes)..."
-FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+# Get latest stable Flutter version
+log_step "Fetching latest stable Flutter version..."
+RELEASES_JSON=$(curl -s "https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json")
 
-if wget --progress=bar:force "$FLUTTER_URL" -O flutter.tar.xz 2>&1 | grep -q "saved"; then
-    log_info "Download completed"
+if [ -z "$RELEASES_JSON" ]; then
+    log_error "Failed to fetch Flutter releases information"
+    exit 1
+fi
+
+# Extract latest stable version URL
+FLUTTER_URL=$(echo "$RELEASES_JSON" | grep -o '"archive_url":"[^"]*stable[^"]*\.tar\.xz"' | head -n 1 | sed 's/"archive_url":"//;s/"//')
+
+if [ -z "$FLUTTER_URL" ]; then
+    # Fallback: try to parse JSON properly if jq is available
+    if command -v jq &> /dev/null; then
+        FLUTTER_URL=$(echo "$RELEASES_JSON" | jq -r '.releases[] | select(.channel=="stable") | .archive_url' | head -n 1)
+    fi
+fi
+
+if [ -z "$FLUTTER_URL" ]; then
+    log_error "Could not determine Flutter download URL"
+    log_info "Trying alternative method..."
+    # Alternative: use git to clone Flutter (slower but more reliable)
+    log_info "Cloning Flutter from GitHub (this will take longer)..."
+    cd /opt
+    git clone https://github.com/flutter/flutter.git -b stable
+    if [ -d "flutter/bin" ] && [ -f "flutter/bin/flutter" ]; then
+        export PATH="$PATH:/opt/flutter/bin"
+        echo 'export PATH="$PATH:/opt/flutter/bin"' >> /etc/profile
+        /opt/flutter/bin/flutter config --enable-web
+        log_info "Flutter installed successfully via Git"
+        exit 0
+    else
+        log_error "Git clone also failed"
+        exit 1
+    fi
+fi
+
+# Download Flutter
+log_step "Downloading Flutter from: $FLUTTER_URL"
+log_info "This may take several minutes (file is ~1GB)..."
+
+if wget --progress=bar:force "$FLUTTER_URL" -O flutter.tar.xz 2>&1 | tee /tmp/flutter_download.log | grep -q "saved\|100%"; then
+    log_info "Download completed (wget)"
 elif curl -L "$FLUTTER_URL" -o flutter.tar.xz --progress-bar; then
-    log_info "Download completed (using curl)"
+    log_info "Download completed (curl)"
 else
     log_error "Failed to download Flutter"
-    log_info "Trying to get latest stable version..."
-    # Try to get latest version
-    LATEST_URL=$(curl -s https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json | grep -o '"archive_url":"[^"]*stable[^"]*"' | head -n 1 | cut -d'"' -f4)
-    if [ -n "$LATEST_URL" ]; then
-        log_info "Downloading latest stable version..."
-        wget --progress=bar:force "$LATEST_URL" -O flutter.tar.xz || curl -L "$LATEST_URL" -o flutter.tar.xz --progress-bar
+    log_info "Trying Git clone as fallback..."
+    cd /opt
+    rm -f flutter.tar.xz
+    git clone https://github.com/flutter/flutter.git -b stable
+    if [ -d "flutter/bin" ] && [ -f "flutter/bin/flutter" ]; then
+        export PATH="$PATH:/opt/flutter/bin"
+        echo 'export PATH="$PATH:/opt/flutter/bin"' >> /etc/profile
+        /opt/flutter/bin/flutter config --enable-web
+        log_info "Flutter installed successfully via Git"
+        exit 0
     else
-        log_error "Could not determine Flutter download URL"
+        log_error "All download methods failed"
         exit 1
     fi
 fi

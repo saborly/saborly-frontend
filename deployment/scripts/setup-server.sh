@@ -16,7 +16,6 @@ NC='\033[0m' # No Color
 DOMAIN="saborly.es"
 EMAIL="admin@saborly.es"  # Change this to your email
 PROJECT_DIR="/var/www/saborly"
-FLUTTER_VERSION="3.25.1"
 
 # Functions
 log_info() {
@@ -93,56 +92,23 @@ apt-get install -y \
 log_step "Installing Flutter..."
 if ! command -v flutter &> /dev/null; then
     if [ ! -d "/opt/flutter" ]; then
-        log_info "Downloading Flutter ${FLUTTER_VERSION} (this may take a few minutes)..."
-        cd /opt
+        log_info "Flutter will be installed using the install-flutter.sh script"
+        log_info "If installation fails here, run: ./scripts/install-flutter.sh separately"
         
-        # Download Flutter with progress
-        if ! wget --progress=bar:force "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" -O flutter.tar.xz; then
-            log_error "Failed to download Flutter. Trying alternative method..."
-            # Try with curl as fallback
-            if ! curl -L "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" -o flutter.tar.xz; then
-                log_error "Failed to download Flutter with both wget and curl."
-                log_error "Please check your internet connection and try again."
-                exit 1
-            fi
+        # Try to use install-flutter.sh if available
+        if [ -f "./scripts/install-flutter.sh" ]; then
+            chmod +x ./scripts/install-flutter.sh
+            ./scripts/install-flutter.sh
+        else
+            log_warn "install-flutter.sh not found. Installing Flutter via Git (slower)..."
+            cd /opt
+            git clone https://github.com/flutter/flutter.git -b stable
+            export PATH="$PATH:/opt/flutter/bin"
+            echo 'export PATH="$PATH:/opt/flutter/bin"' >> /etc/profile
+            echo 'export PATH="$PATH:/opt/flutter/bin"' >> ~/.bashrc
+            /opt/flutter/bin/flutter config --enable-web
+            log_info "Flutter installed via Git"
         fi
-        
-        # Verify download
-        if [ ! -f "flutter.tar.xz" ] || [ ! -s "flutter.tar.xz" ]; then
-            log_error "Downloaded file is missing or empty"
-            exit 1
-        fi
-        
-        log_info "Extracting Flutter..."
-        if ! tar xf flutter.tar.xz; then
-            log_error "Failed to extract Flutter archive"
-            exit 1
-        fi
-        
-        # Verify extraction
-        if [ ! -d "flutter/bin" ] || [ ! -f "flutter/bin/flutter" ]; then
-            log_error "Flutter extraction failed or incomplete"
-            exit 1
-        fi
-        
-        rm -f flutter.tar.xz
-        
-        # Add Flutter to PATH
-        export PATH="$PATH:/opt/flutter/bin"
-        echo 'export PATH="$PATH:/opt/flutter/bin"' >> /etc/profile
-        echo 'export PATH="$PATH:/opt/flutter/bin"' >> ~/.bashrc
-        
-        # Verify Flutter works
-        log_info "Configuring Flutter..."
-        if ! /opt/flutter/bin/flutter config --enable-web; then
-            log_error "Failed to configure Flutter"
-            exit 1
-        fi
-        
-        # Accept Flutter licenses (non-blocking)
-        /opt/flutter/bin/flutter doctor --android-licenses || true
-        
-        log_info "Flutter installed successfully"
     else
         log_info "Flutter directory already exists in /opt/flutter"
         export PATH="$PATH:/opt/flutter/bin"
