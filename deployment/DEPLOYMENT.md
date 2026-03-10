@@ -133,23 +133,35 @@ sudo ./deploy.sh
 
 The deploy script will now automatically detect and use Flutter from `/opt/flutter/bin`. However, if you still get this error:
 
-**Option 1: Reload PATH (Recommended)**
+**Option 1: Install Flutter standalone (Recommended if setup failed)**
+```bash
+chmod +x install-flutter.sh
+sudo ./install-flutter.sh
+source /etc/profile
+sudo ./deploy.sh
+```
+
+**Option 2: Reload PATH**
 ```bash
 source /etc/profile
 sudo ./deploy.sh
 ```
 
-**Option 2: Use fix script**
+**Option 3: Use fix script**
 ```bash
 chmod +x fix-flutter-path.sh
 ./fix-flutter-path.sh
 sudo ./deploy.sh
 ```
 
-**Option 3: Use full path**
+**Option 4: Manual verification**
 ```bash
-# The deploy script should handle this automatically, but if needed:
-/opt/flutter/bin/flutter --version
+# Check if Flutter exists
+ls -la /opt/flutter/bin/flutter
+
+# If it exists, add to PATH manually
+export PATH="$PATH:/opt/flutter/bin"
+flutter --version
 ```
 
 Or if you installed it system-wide:

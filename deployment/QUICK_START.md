@@ -29,11 +29,17 @@ sudo ./deploy.sh
 
 **If you get "Flutter is not installed" error:**
 ```bash
-# Option 1: Source the profile (recommended)
+# Option 1: Install Flutter standalone (if setup failed)
+chmod +x install-flutter.sh
+sudo ./install-flutter.sh
 source /etc/profile
 sudo ./deploy.sh
 
-# Option 2: Use the fix script
+# Option 2: Source the profile
+source /etc/profile
+sudo ./deploy.sh
+
+# Option 3: Use the fix script
 chmod +x fix-flutter-path.sh
 ./fix-flutter-path.sh
 sudo ./deploy.sh

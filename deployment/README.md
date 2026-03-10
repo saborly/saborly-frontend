@@ -11,7 +11,10 @@ deployment/
 ├── scripts/
 │   ├── setup-server.sh       # Initial server setup script
 │   ├── setup-ssl.sh          # SSL certificate setup script
-│   └── deploy.sh             # Application deployment script
+│   ├── deploy.sh             # Application deployment script
+│   ├── install-flutter.sh    # Standalone Flutter installation
+│   ├── fix-flutter-path.sh   # Fix Flutter PATH issues
+│   └── check-ports.sh        # Check port availability
 └── DEPLOYMENT.md             # Detailed deployment guide
 ```
 
