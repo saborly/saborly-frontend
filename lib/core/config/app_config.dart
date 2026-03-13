@@ -1,8 +1,8 @@
 class AppConfig {
   static const String appName = 'Saborely';
   static const String appVersion = '1.0.0';
-  static const String baseUrl = 'https://saborly-backend.vercel.app/api/v1';
-  static const String imageBaseUrl = 'https://saborly-backend.vercel.app/api/v1';
+  static const String baseUrl = 'https://api.saborly.es/api/v1';
+  static const String imageBaseUrl = 'https://api.saborly.es/api/v1';
   static const Duration apiTimeout = Duration(seconds: 30);
   static const double deliveryFee = 0;
   static const double taxRate = 0;

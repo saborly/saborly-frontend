@@ -26,7 +26,7 @@ class OffersProvider extends ChangeNotifier {
   // Initialization flag
   bool _isInitialized = false;
 
-  static const String baseUrl = 'https://saborly-backend.vercel.app/api/v1';
+  static const String baseUrl = 'https://api.saborly.es/api/v1';
 
   // Getters
   List<OfferModel> get allOffers => _filterClaimedOffers(_allOffers);

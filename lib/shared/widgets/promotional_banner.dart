@@ -38,8 +38,8 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
   String? _errorMessage;
   Timer? _autoPlayTimer;
 
-  // Your deployed API endpoint
-  static const String _proxyBaseUrl = 'https://saborly-backend.vercel.app/api/proxy';
+  // Your deployed API endpoint (migrated from Vercel to api.saborly.es)
+  static const String _proxyBaseUrl = 'https://api.saborly.es/api/proxy';
   
   final Map<int, bool> _imageLoadErrors = {};
   final Map<int, int> _imageRetryCount = {};

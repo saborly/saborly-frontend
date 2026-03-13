@@ -39,7 +39,7 @@ class BannerModel {
 }
 
 class BannerService {
-  static const String baseUrl = 'https://saborly-backend.vercel.app/api/v1'; // Replace with your API URL
+  static const String baseUrl = 'https://api.saborly.es/api/v1'; // Replace with your API URL
   
   static Future<List<BannerModel>> getActiveBanners({String? category}) async {
     try {

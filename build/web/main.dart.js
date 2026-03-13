@@ -8241,7 +8241,7 @@ _.$ti=e},
 ahw(a){var s=0,r=A.y(t.AP),q,p=2,o=[],n,m,l,k,j,i,h
 var $async$ahw=A.u(function(b,c){if(b===1){o.push(c)
 s=p}for(;;)switch(s){case 0:p=4
-n="https://saborly-backend.vercel.app/api/v1/banners/active"
+n="https://api.saborly.es/api/v1/banners/active"
 s=7
 return A.n(A.afB(A.e5(n,0,null),null),$async$ahw)
 case 7:m=c
@@ -8273,7 +8273,7 @@ ajz(a,b,c,d,e){return A.biT(a,b,c,d,e)},
 biT(a,b,c,d,e){var s=0,r=A.y(t.a),q,p=2,o=[],n,m,l,k,j,i,h,g
 var $async$ajz=A.u(function(f,a0){if(f===1){o.push(a0)
 s=p}for(;;)switch(s){case 0:p=4
-n=A.e5("https://saborly-backend.vercel.app/api/v1/contact",0,null)
+n=A.e5("https://api.saborly.es/api/v1/contact",0,null)
 j=t.N
 i=A.ad(["Content-Type","application/json"],j,j)
 m=A.I(j,j)
@@ -51759,7 +51759,7 @@ return A.ep(s,s,A.bv(A.q("Page not found: "+b.c,s,s,s,s,s,s,s,s),s,s),s,s,s)},
 $S:366}
 A.nA.prototype={}
 A.agv.prototype={
-cj(a){var s,r=this,q="application/json",p=A.bi7("https://saborly-backend.vercel.app/api/v1",B.fJ,!0,A.ad(["Content-Type",q,"Accept",q,"X-Language",r.c,"Connection","keep-alive"],t.N,t.z),3,!0,B.Ta,B.fJ),o=new A.VQ(A.b([B.P3],t.i6))
+cj(a){var s,r=this,q="application/json",p=A.bi7("https://api.saborly.es/api/v1",B.fJ,!0,A.ad(["Content-Type",q,"Accept",q,"X-Language",r.c,"Connection","keep-alive"],t.N,t.z),3,!0,B.Ta,B.fJ),o=new A.VQ(A.b([B.P3],t.i6))
 o.L(o,B.a33)
 s=new A.akz($,o,$,new A.aoN(51200),!1)
 s.Pm$=p
@@ -62413,7 +62413,7 @@ m=c.b
 if(m==null){s=1
 break}c=t.N
 s=7
-return A.n(A.afB(A.e5("https://saborly-backend.vercel.app/api/v1/offer/device-claims?deviceId="+m,0,null),A.ad(["Content-Type","application/json"],c,c)).Al(0,B.fJ),$async$tO)
+return A.n(A.afB(A.e5("https://api.saborly.es/api/v1/offer/device-claims?deviceId="+m,0,null),A.ad(["Content-Type","application/json"],c,c)).Al(0,B.fJ),$async$tO)
 case 7:l=a0
 s=l.b===200?8:9
 break
@@ -62535,7 +62535,7 @@ h=i==null?null:i.b
 m=h==null?"":h
 i=t.N
 s=6
-return A.n(A.afB(A.e5("https://saborly-backend.vercel.app/api/v1/offer?platform="+A.C(n)+"&deviceId="+A.C(m),0,null),A.ad(["Content-Type","application/json","X-Language",o.e],i,i)).Al(0,B.fJ),$async$D1)
+return A.n(A.afB(A.e5("https://api.saborly.es/api/v1/offer?platform="+A.C(n)+"&deviceId="+A.C(m),0,null),A.ad(["Content-Type","application/json","X-Language",o.e],i,i)).Al(0,B.fJ),$async$D1)
 case 6:l=b
 if(l.b===200){i=l
 k=B.aK.dl(0,A.xq(A.xm(i.e)).dl(0,i.w))
@@ -62565,7 +62565,7 @@ n=o.Y2()
 h=o.f
 g=h==null?null:h.b
 m=g==null?"":g
-l="https://saborly-backend.vercel.app/api/v1/offer/items-with-offers?platform="+A.C(n)+"&deviceId="+A.C(m)+"&includeUnavailable=false"
+l="https://api.saborly.es/api/v1/offer/items-with-offers?platform="+A.C(n)+"&deviceId="+A.C(m)+"&includeUnavailable=false"
 h=t.N
 s=6
 return A.n(A.afB(A.e5(l,0,null),A.ad(["Content-Type","application/json","X-Language",o.e],h,h)).Al(0,B.fJ),$async$D0)
