@@ -36,8 +36,7 @@ if [ "$SKIP_BUILD" = false ]; then
     flutter clean
     flutter pub get
     flutter build web --release \
-        --web-renderer canvaskit \
-        --dart-define=FLUTTER_WEB_CANVASKIT_URL=canvaskit/
+        --no-web-resources-cdn
     echo "   ✅ Build complete → $BUILD_DIR/"
 else
     echo ""

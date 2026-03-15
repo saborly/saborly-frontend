@@ -43,7 +43,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final TextEditingController _searchController = TextEditingController();
   String _lastProcessedLanguage = '';
   bool _hasShownModal = false;
-  bool _isDataLoaded = false; // ✅ Track if initial data is loaded
 
   static final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
@@ -72,11 +71,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       context.read<OffersProvider>().loadOffers(),
     ]);
 
-    // Mark as loaded once data arrives
+    // Trigger rebuild when data arrives
     dataFuture.then((_) {
-      if (mounted) {
-        setState(() => _isDataLoaded = true);
-      }
+      if (mounted) setState(() {});
     });
 
     // Check modal timing in parallel (don't wait for data)
@@ -272,6 +269,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            // ── Full-width hero banner (SupperClub style) ──
+                            // Placed OUTSIDE the constrained/padded column so
+                            // it spans the entire screen width edge-to-edge.
+                            if (!homeProvider.isInSearchMode)
+                              const DynamicPromotionalBanner(),
+
+                            // ── Constrained content area ───────────────────
                             Center(
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(
@@ -284,17 +288,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      if (isWeb) SizedBox(height: 32.h) else SizedBox(height: 16.h),
-          
+                                      // Top spacing: generous after banner on web,
+                                      // compact on mobile
+                                      SizedBox(height: isWeb ? 44.h : 20.h),
+
+                                      // Mobile search bar (below banner)
                                       if (!isWeb) ...[
-                                        SizedBox(height: 16.h),
                                         SearchBarWidget(
                                           controller: _searchController,
                                           onSearch: _handleSearch,
                                         ),
                                         SizedBox(height: 16.h),
-                                        
-                                        if (homeProvider.isInSearchMode) 
+                                        if (homeProvider.isInSearchMode)
                                           _buildSearchStatusBanner(homeProvider),
                                       ],
 
@@ -307,9 +312,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           isDesktop,
                                         ),
                                       ] else ...[
-                                        DynamicPromotionalBanner(),
-                                        SizedBox(height: isWeb ? 40.h : 24.h),
-          
                                         _buildSectionHeader(
                                           AppStrings.get('ourMenu'),
                                           isWeb: isWeb,
@@ -321,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         SizedBox(height: isWeb ? 24.h : 16.h),
                                         _buildCategoriesSlider(homeProvider, context, isWeb),
                                         SizedBox(height: isWeb ? 48.h : 24.h),
-          
+
                                         _buildSectionHeader(
                                           AppStrings.get('featuredItems'),
                                           isWeb: isWeb,
@@ -330,13 +332,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         SizedBox(height: isWeb ? 24.h : 16.h),
                                         _buildFeaturedItems(homeProvider, isSmallScreen, isTablet, isDesktop),
                                         SizedBox(height: isWeb ? 48.h : 24.h),
-          
-                                        if (offersProvider.itemsWithOffers.isNotEmpty || 
+
+                                        if (offersProvider.itemsWithOffers.isNotEmpty ||
                                             offersProvider.allOffers.isNotEmpty) ...[
                                           const OffersSection(),
                                           SizedBox(height: isWeb ? 48.h : 24.h),
                                         ],
-          
+
                                         _buildSectionHeader(
                                           AppStrings.get('mostPopularItems'),
                                           isWeb: isWeb,
@@ -345,14 +347,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         SizedBox(height: isWeb ? 24.h : 16.h),
                                         _buildPopularItems(homeProvider, isSmallScreen, isTablet, isDesktop),
                                       ],
-                                      
+
                                       SizedBox(height: isWeb ? 64.h : 32.h),
                                     ],
                                   ),
                                 ),
                               ),
                             ),
-          
+
                             if (isWeb && !homeProvider.isInSearchMode)
                               Container(
                                 width: double.infinity,
