@@ -1,4 +1,5 @@
 // File: features/menu/screens/privacy_policy_screen.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -47,9 +48,9 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> with SingleTi
               DateTime? _lastPressedAt;
 
  return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
+      canPop: kIsWeb,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || kIsWeb) return;
         
         final now = DateTime.now();
         final maxDuration = const Duration(seconds: 2);

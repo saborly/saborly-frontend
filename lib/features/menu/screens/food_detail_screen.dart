@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -63,14 +62,11 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
     _animationController!.forward();
   }
 
-  // ✅ Platform detection method
+  // ✅ Platform detection method (web-safe, no dart:io)
   String _detectPlatform() {
-    if (kIsWeb) {
-      return 'web';
-    } else if (Platform.isAndroid || Platform.isIOS) {
-      return 'mobile';
-    }
-    return 'all';
+    if (kIsWeb) return 'web';
+    // On non-web platforms, default to mobile (Android/iOS)
+    return 'mobile';
   }
 
   @override

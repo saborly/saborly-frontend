@@ -31,7 +31,7 @@ class FoodCategoryCard extends StatelessWidget {
         HapticFeedback.lightImpact();
         context.go(AppRoutes.menu, extra: {
           'category': category.id,
-          'selectedIndex': 1, // Explicitly set Menu index
+          'selectedIndex': 1,
         });
       },
       child: Container(

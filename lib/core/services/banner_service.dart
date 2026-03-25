@@ -39,20 +39,51 @@ class BannerModel {
 }
 
 class BannerService {
-  static const String baseUrl = 'https://api.saborly.es/api/v1'; // Replace with your API URL
-  
-  static Future<List<BannerModel>> getActiveBanners({String? category}) async {
-    try {
-      String url = '$baseUrl/banners/active';
-      
+  static const String baseUrl = 'https://api.saborly.es/api/v1';
 
+  // ── Simple in-memory TTL cache ─────────────────────────────────────────────
+  // Banners rarely change; avoid a network round-trip on every screen mount.
+  static const Duration _cacheTtl = Duration(minutes: 5);
+
+  static final Map<String, List<BannerModel>> _cache = {};
+  static final Map<String, DateTime> _cacheTime = {};
+
+  static List<BannerModel>? _getCached(String key) {
+    final ts = _cacheTime[key];
+    if (ts != null && DateTime.now().difference(ts) < _cacheTtl) {
+      return _cache[key];
+    }
+    return null;
+  }
+
+  static void _setCache(String key, List<BannerModel> banners) {
+    _cache[key] = banners;
+    _cacheTime[key] = DateTime.now();
+  }
+
+  /// Call this when banners are updated from the admin panel so the next
+  /// getActiveBanners() call fetches fresh data.
+  static void invalidateCache() {
+    _cache.clear();
+    _cacheTime.clear();
+  }
+
+  static Future<List<BannerModel>> getActiveBanners({String? category}) async {
+    final cacheKey = category ?? '_all_';
+    final cached = _getCached(cacheKey);
+    if (cached != null) return cached;
+
+    try {
+      final url = '$baseUrl/banners/active';
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
-        List<dynamic> bannersJson = data['data'];
-        return bannersJson.map((json) => BannerModel.fromJson(json)).toList();
+        final List<dynamic> bannersJson = data['data'];
+        final banners =
+            bannersJson.map((j) => BannerModel.fromJson(j)).toList();
+        _setCache(cacheKey, banners);
+        return banners;
       } else {
         throw Exception('Failed to load banners');
       }

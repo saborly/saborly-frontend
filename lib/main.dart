@@ -173,15 +173,18 @@ void main() async {
   // Sync API service with saved language
   ApiService().setLanguage(currentLang);
 
-  final cartProvider = CartProvider();
-  await cartProvider.initialize();
-
   // 5. Notification Provider (create **once**)
   final notificationProvider = NotificationProvider()..initialize();
 
-  // 6. Notification Service (singleton) – bind the provider **now**
+  // 6. Notification Service (singleton)
   final notificationService = NotificationService();
-  await notificationService.initialize(); // no permission request
+
+  // ✅ Parallelize independent heavy initializations
+  final cartProvider = CartProvider();
+  await Future.wait([
+    cartProvider.initialize(),
+    notificationService.initialize(), // no permission request
+  ]);
   NotificationService.instance.attachProvider(notificationProvider);
 
   // 7. UI orientation (mobile only)

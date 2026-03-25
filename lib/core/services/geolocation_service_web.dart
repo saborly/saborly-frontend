@@ -11,8 +11,8 @@ Future<Map<String, double>?> detectUserLocation() async {
     final position =
         await html.window.navigator.geolocation.getCurrentPosition(
       enableHighAccuracy: false,
-      timeout: const Duration(seconds: 10),
-      maximumAge: const Duration(minutes: 5),
+      timeout: const Duration(seconds: 4), // ✅ Faster: fail fast instead of blocking for 10s
+      maximumAge: const Duration(hours: 1), // ✅ Reuse a cached GPS fix up to 1 hour old
     );
 
     final coords = position.coords;

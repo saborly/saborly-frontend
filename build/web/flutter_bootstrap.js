@@ -36,6 +36,11 @@ if (!window._flutter) {
 _flutter.buildConfig = {"engineRevision":"e4b8dca3f1b4ede4c30371002441c88c12187ed6","builds":[{"compileTarget":"dart2js","renderer":"canvaskit","mainJsPath":"main.dart.js"},{}]};
 
 
-// Flutter service worker disabled — prevents caching from blocking deployments.
+// Flutter service worker explicitly disabled — prevents caching from blocking deployments.
 // Push notifications still work via /firebase-messaging-sw.js registered in index.html.
-_flutter.loader.load({});
+// serviceWorkerVersion: null tells the Flutter loader to skip SW registration entirely.
+_flutter.loader.load({
+  serviceWorkerSettings: {
+    serviceWorkerVersion: null,
+  },
+});

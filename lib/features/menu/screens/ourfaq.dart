@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -120,9 +121,9 @@ class _FAQScreenState extends State<FAQScreen>
           DateTime? _lastPressedAt;
 
  return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
+      canPop: kIsWeb,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || kIsWeb) return;
         
         final now = DateTime.now();
         final maxDuration = const Duration(seconds: 2);

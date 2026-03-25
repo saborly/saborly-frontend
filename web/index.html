@@ -155,20 +155,9 @@
       }
     }, 5000);
     
-    // ✅ Unregister old Flutter service worker, keep only FCM SW
+    // ✅ Service Worker registration (non-blocking)
+    // Register FCM Service Worker (non-blocking)
     if ('serviceWorker' in navigator) {
-      // First: unregister the Flutter service worker (flutter_service_worker.js)
-      // so it never blocks new deployments from showing up
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (var reg of registrations) {
-          if (reg.active && reg.active.scriptURL.includes('flutter_service_worker')) {
-            reg.unregister();
-            console.log('Unregistered old Flutter SW:', reg.active.scriptURL);
-          }
-        }
-      });
-
-      // Then: register only the FCM Service Worker for push notifications
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/firebase-messaging-sw.js')
           .then(reg => console.log('FCM SW registered:', reg.scope))

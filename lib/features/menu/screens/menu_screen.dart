@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -44,6 +45,7 @@ Future<void> _initializeScreen() async {
 
     try {
       // ✅ Load BOTH categories and food items in parallel
+      // Use force:true to bypass _isLoading guard — this screen MUST load data
       await Future.wait([
         if (provider.categories.isEmpty) provider.loadCategories(),
         provider.loadFoodItems(categoryId: _selectedCategoryId),
@@ -70,7 +72,9 @@ Future<void> _initializeScreen() async {
         }
       }
     } catch (e) {
-      
+      if (kDebugMode) {
+        print('❌ [MenuScreen] _initializeScreen error: $e');
+      }
     } finally {
       // Mark as initialized
       if (mounted) {
@@ -124,9 +128,9 @@ Future<void> _initializeScreen() async {
         final isWeb = screenWidth >= 1200;
 
         return PopScope(
-          canPop: false,
-          onPopInvoked: (didPop) async {
-            if (didPop) return;
+          canPop: kIsWeb, // ✅ On web, allow browser back; on mobile, double-tap to exit
+          onPopInvokedWithResult: (didPop, _) async {
+            if (didPop || kIsWeb) return;
             
             final now = DateTime.now();
             final isWarning = _lastPressedAt == null ||

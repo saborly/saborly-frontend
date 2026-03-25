@@ -254,6 +254,7 @@ class _OffersSectionState extends State<OffersSection> {
       },
     );
   }
+  
 
   Widget _buildOfferCard(BuildContext context, OfferModel offer, bool isSmallScreen) {
     return GestureDetector(

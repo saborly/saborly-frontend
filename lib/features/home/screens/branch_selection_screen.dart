@@ -305,14 +305,15 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
       ),
     );
   }
+  
 
   // ── Card builders ───────────────────────────────────────────
   Widget _buildBarcelonaCard() {
     final isNearest = _nearestBranchIndex == 0;
     return _BranchCard(
-      name: 'Barcelona',
-      subtitle: 'Gràcia · Barcelona',
-      address: 'C/ Còrsega 183, 08036 Barcelona',
+      name: 'Saborly Barcelona',
+      subtitle: 'Sant Martí · Barcelona',
+      address: 'Carrer de Pere IV, 208, Sant Martí, 08005 Barcelona, Spain',
       iconData: Icons.location_city_rounded,
       isNearest: isNearest,
       isComingSoon: false,
@@ -324,7 +325,7 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
   Widget _buildSabadellCard() {
     final isNearest = _nearestBranchIndex == 1;
     return _BranchCard(
-      name: 'Sabadell',
+      name: 'Saborly Sabadell',
       subtitle: 'Sabadell · Barcelona',
       address: 'Opening soon — stay tuned!',
       iconData: Icons.storefront_rounded,
@@ -668,7 +669,7 @@ class _ComingSoonDialog extends StatelessWidget {
 
             // Title
             Text(
-              'Coming Soon to Sabadell!',
+              'Coming Soon to Saborly Sabadell!',
               style: GoogleFonts.poppins(
                 fontSize: 22.sp,
                 fontWeight: FontWeight.w700,

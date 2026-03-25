@@ -56,9 +56,8 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
       final currentLanguage = languageService.currentLanguage;
       
       
-      offersProvider.setLanguage(currentLanguage).then((_) {
-        offersProvider.loadOffers();
-      });
+      offersProvider.setLanguage(currentLanguage);
+      offersProvider.loadOffers();
     }
   }
 
@@ -84,9 +83,8 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
       final currentLanguage = languageService.currentLanguage;
       
       // Reload with new language
-      offersProvider.setLanguage(currentLanguage).then((_) {
-        return offersProvider.loadOffers();
-      }).then((_) {
+      offersProvider.setLanguage(currentLanguage);
+      offersProvider.loadOffers().then((_) {
         // Hide loading when done
         if (mounted) {
           setState(() {
@@ -117,7 +115,6 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
   // Responsive breakpoints
   bool _isMobile(double width) => width < 600;
   bool _isTablet(double width) => width >= 600 && width < 1000;
-  bool _isDesktop(double width) => width >= 1000;
 
   double _getMaxContentWidth(double screenWidth) {
     if (screenWidth >= 1400) return 1280;
@@ -220,7 +217,7 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
                         return RefreshIndicator(
                           onRefresh: () async {
                             final currentLanguage = languageService.currentLanguage;
-                            await provider.setLanguage(currentLanguage);
+                            provider.setLanguage(currentLanguage); // void — no await
                             await provider.loadOffers();
                           },
                           color: AppColors.primary,
@@ -414,149 +411,98 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
 
   Widget _buildHeader(double screenWidth, OffersProvider provider) {
     final isMobile = _isMobile(screenWidth);
-    final isTablet = _isTablet(screenWidth);
 
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 20.r : 32.r),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary.withOpacity(0.1),
-            AppColors.primary.withOpacity(0.05),
-          ],
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: isMobile ? screenWidth * 0.7 : 360.w,
         ),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: AppColors.primary.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 6.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.local_fire_department_rounded,
-                            color: Colors.white,
-                            size: 16.sp,
-                          ),
-                          SizedBox(width: 4.w),
-                          Text(
-                            AppStrings.get('hotDeals'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 24.w,
+            vertical: isMobile ? 18.h : 22.h,
+          ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primary.withOpacity(0.12),
+                AppColors.primary.withOpacity(0.04),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.r),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                SizedBox(height: 12.h),
-                Text(
-                  AppStrings.get('exclusiveOffers'),
-                  style: GoogleFonts.poppins(
-                    fontSize: isMobile ? 24.sp : (isTablet ? 32.sp : 40.sp),
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                    height: 1.2,
-                  ),
+                child: Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Colors.white,
+                  size: isMobile ? 20.sp : 24.sp,
                 ),
-                SizedBox(height: 8.h),
-                Text(
-                  AppStrings.get('saveUpTo'),
-                  style: GoogleFonts.poppins(
-                    fontSize: isMobile ? 14.sp : (isTablet ? 16.sp : 18.sp),
-                    color: AppColors.textLight,
-                    height: 1.5,
-                  ),
+              ),
+              SizedBox(width: 16.w),
+              Container(
+                padding: EdgeInsets.all(10.r),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                if (provider.itemsWithOffers.isNotEmpty) ...[
-                  SizedBox(height: 16.h),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.shopping_bag_rounded,
-                          color: AppColors.primary,
-                          size: 18.sp,
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          '${provider.itemsWithOffers.length} ${AppStrings.get('itemsOnOffer')}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
+                child: Icon(
+                  Icons.local_offer_rounded,
+                  color: AppColors.primary,
+                  size: isMobile ? 20.sp : 24.sp,
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Container(
+                padding: EdgeInsets.all(10.r),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.shopping_bag_rounded,
+                  color: AppColors.primary,
+                  size: isMobile ? 20.sp : 24.sp,
+                ),
+              ),
+            ],
           ),
-          if (!isMobile) ...[
-            SizedBox(width: 24.w),
-            Container(
-              padding: EdgeInsets.all(20.r),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.local_offer_rounded,
-                color: AppColors.primary,
-                size: 48.sp,
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

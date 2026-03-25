@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:Saborly/shared/models/app_settings.dart';
 import 'package:Saborly/shared/models/user.dart';
 import 'package:dio/dio.dart';
@@ -44,10 +44,13 @@ class ApiService {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'X-Language': _currentLanguage,
-        'Connection': 'keep-alive', // Reuse connections
+        // NOTE: Do NOT set 'Connection' header — it is a forbidden browser
+        // header. Browsers (XMLHttpRequest / Fetch) silently reject it and
+        // flood the console with "Refused to set unsafe header" errors which
+        // break all API calls on Flutter Web.
       },
-      // Enable persistent connections
-      persistentConnection: true,
+      // persistentConnection is a dart:io / mobile-only feature; omit it on
+      // web to avoid Dio trying to set Connection: keep-alive internally.
       // Follow redirects
       followRedirects: true,
       maxRedirects: 3,
@@ -1269,7 +1272,7 @@ class ApiService {
         data: {
           'fcmToken': fcmToken,
           'deviceId': deviceId ?? 'default',
-          'platform': platform ?? Platform.operatingSystem,
+          'platform': platform ?? (kIsWeb ? 'web' : 'mobile'),
         },
       );
 

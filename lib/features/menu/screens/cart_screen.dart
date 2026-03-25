@@ -52,9 +52,9 @@ void initState() {
     return Consumer<LanguageService>(
       builder: (context, languageService, _) {
     return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
+      canPop: kIsWeb,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || kIsWeb) return;
         
         final now = DateTime.now();
         final maxDuration = const Duration(seconds: 2);

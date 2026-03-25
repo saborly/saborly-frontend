@@ -1,5 +1,6 @@
 // lib/shared/widgets/download_app_modal.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,39 +15,64 @@ class DownloadAppModal extends StatefulWidget {
 }
 
 class _DownloadAppModalState extends State<DownloadAppModal>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
 
+  // Auto-close countdown
+  static const int _autoCloseSeconds = 20;
+  late AnimationController _countdownCtrl;
+  Timer? _autoCloseTimer;
+  int _secondsLeft = _autoCloseSeconds;
+
   @override
   void initState() {
     super.initState();
+
+    // Entry animation
     _controller = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-
     _scaleAnimation = CurvedAnimation(
       parent: _controller,
       curve: Curves.easeOutBack,
     );
-
     _fadeAnimation = CurvedAnimation(
       parent: _controller,
       curve: Curves.easeIn,
     );
-
     _controller.forward();
+
+    // Countdown ring animation (1.0 → 0.0 over 20 s)
+    _countdownCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: _autoCloseSeconds),
+      value: 1.0,
+    )..animateTo(0.0, curve: Curves.linear);
+
+    // Tick every second to update the number label
+    _autoCloseTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      setState(() => _secondsLeft--);
+      if (_secondsLeft <= 0) {
+        t.cancel();
+        _closeModal();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _autoCloseTimer?.cancel();
     _controller.dispose();
+    _countdownCtrl.dispose();
     super.dispose();
   }
 
   void _closeModal() {
+    _autoCloseTimer?.cancel();
     _controller.reverse().then((_) {
       if (mounted) {
         Navigator.of(context).pop();
@@ -90,7 +116,7 @@ class _DownloadAppModalState extends State<DownloadAppModal>
                 borderRadius: BorderRadius.circular(24.r),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 40,
                     offset: const Offset(0, 20),
                   ),
@@ -111,7 +137,7 @@ class _DownloadAppModalState extends State<DownloadAppModal>
                           end: Alignment.bottomRight,
                           colors: [
                             AppColors.primary,
-                            AppColors.primary.withOpacity(0.8),
+                            AppColors.primary.withValues(alpha: 0.8),
                           ],
                         ),
                         borderRadius: BorderRadius.only(
@@ -122,22 +148,63 @@ class _DownloadAppModalState extends State<DownloadAppModal>
                     ),
                   ),
 
-                  // Close button
+                  // Close button with countdown ring
                   Positioned(
-                    top: 16.h,
-                    right: 16.w,
-                    child: IconButton(
-                      onPressed: _closeModal,
-                      icon: Container(
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 20.sp,
+                    top: 12.h,
+                    right: 12.w,
+                    child: GestureDetector(
+                      onTap: _closeModal,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: SizedBox(
+                          width: 44.w,
+                          height: 44.w,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Countdown ring
+                              AnimatedBuilder(
+                                animation: _countdownCtrl,
+                                builder: (_, __) => CircularProgressIndicator(
+                                  value: _countdownCtrl.value,
+                                  strokeWidth: 2.5,
+                                  backgroundColor:
+                                      Colors.white.withValues(alpha: 0.25),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                ),
+                              ),
+                              // Inner circle + icon + seconds
+                              Container(
+                                width: 34.w,
+                                height: 34.w,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.20),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 13.sp,
+                                    ),
+                                    Text(
+                                      '$_secondsLeft',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9.sp,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -158,7 +225,7 @@ class _DownloadAppModalState extends State<DownloadAppModal>
                             borderRadius: BorderRadius.circular(24.r),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),
@@ -197,7 +264,7 @@ class _DownloadAppModalState extends State<DownloadAppModal>
                             borderRadius: BorderRadius.circular(50.r),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFFF6B6B).withOpacity(0.3),
+                                color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -358,7 +425,7 @@ class _StoreButtonState extends State<_StoreButton> {
             boxShadow: [
               if (_isHovered)
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),
@@ -381,7 +448,7 @@ class _StoreButtonState extends State<_StoreButton> {
                     style: GoogleFonts.poppins(
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                   Text(

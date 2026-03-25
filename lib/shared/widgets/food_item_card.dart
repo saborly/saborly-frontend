@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -19,14 +18,11 @@ class FoodItemCard extends StatelessWidget {
     required this.onTap,
   });
 
-  /// ✅ Detect current platform
+  /// ✅ Detect current platform (web-safe, no dart:io)
   String _getCurrentPlatform() {
-    if (kIsWeb) {
-      return 'web';
-    } else if (Platform.isAndroid || Platform.isIOS) {
-      return 'mobile';
-    }
-    return 'all';
+    if (kIsWeb) return 'web';
+    // On non-web platforms, default to mobile (Android/iOS)
+    return 'mobile';
   }
 
   double _getResponsiveValue({
@@ -57,9 +53,13 @@ class FoodItemCard extends StatelessWidget {
         final screenWidth = MediaQuery.of(context).size.width;
         final isWeb = screenWidth >= 600;
         
-        return GestureDetector(
-          onTap: onTap,
-          child: _buildVerticalCard(context, constraints, screenWidth, isWeb),
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: _buildVerticalCard(context, constraints, screenWidth, isWeb),
+          ),
         );
       },
     );

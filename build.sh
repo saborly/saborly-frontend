@@ -16,6 +16,6 @@ echo "📚 Getting dependencies..."
 flutter pub get
 
 echo "🏗️ Building web..."
-flutter build web --release
+flutter build web --release --no-web-resources-cdn
 
 echo "✅ Build completed!"

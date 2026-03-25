@@ -20,9 +20,9 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     DateTime? _lastPressedAt;
     return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
+      canPop: kIsWeb,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || kIsWeb) return;
 
         final now = DateTime.now();
         final maxDuration = const Duration(seconds: 2);

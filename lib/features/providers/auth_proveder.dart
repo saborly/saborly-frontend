@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+// dart:io removed — Platform is not available on web
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -50,9 +50,9 @@ class AuthProvider extends ChangeNotifier {
 
     if (kIsWeb) {
       clientId = _webClientId;
-    } else if (Platform.isAndroid) {
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
       clientId = _androidClientId;
-    } else if (Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       clientId = _iosClientId;
     }
 

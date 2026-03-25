@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'dart:io';
+// dart:io removed — Platform is not available on web
 
 class DeviceDiscountManager {
   final SharedPreferences _prefs;
@@ -42,14 +42,18 @@ class DeviceDiscountManager {
       final deviceInfo = DeviceInfoPlugin();
       String identifier = '';
 
-      if (Platform.isAndroid) {
+      if (kIsWeb) {
+        // Web: use a timestamp-based ID
+        final webInfo = await deviceInfo.webBrowserInfo;
+        identifier = 'web_${webInfo.userAgent?.hashCode ?? DateTime.now().millisecondsSinceEpoch}';
+      } else if (defaultTargetPlatform == TargetPlatform.android) {
         final androidInfo = await deviceInfo.androidInfo;
         identifier = '${androidInfo.id}_${androidInfo.device}_${androidInfo.model}';
-      } else if (Platform.isIOS) {
+      } else if (defaultTargetPlatform == TargetPlatform.iOS) {
         final iosInfo = await deviceInfo.iosInfo;
         identifier = '${iosInfo.identifierForVendor}_${iosInfo.model}';
       } else {
-        identifier = 'web_${DateTime.now().millisecondsSinceEpoch}';
+        identifier = 'unknown_${DateTime.now().millisecondsSinceEpoch}';
       }
 
       return identifier.hashCode.abs().toString();

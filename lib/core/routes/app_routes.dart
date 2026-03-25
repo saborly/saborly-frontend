@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:Saborly/features/auth/screens/authforgot.dart';
 import 'package:Saborly/features/auth/screens/authreset.dart';
 import 'package:Saborly/features/auth/screens/changeword.dart';
-import 'package:Saborly/features/home/screens/SplashScreen.dart';
 import 'package:Saborly/features/home/screens/branch_selection_screen.dart';
+import 'package:Saborly/features/home/screens/SplashScreen.dart';
 import 'package:Saborly/features/menu/screens/AboutUsScreen.dart';
 import 'package:Saborly/features/menu/screens/cart_screen.dart';
 import 'package:Saborly/features/auth/screens/eemailVerificationScreen.dart';
@@ -34,8 +34,6 @@ import '../../shared/models/food_item.dart';
 
 class AppRoutes {
   static const String splash = '/';
-  static const String branchSelection = '/';
-  static const String barcelona = '/barcelona';
   static const String login = '/login';
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot-password';
@@ -61,20 +59,16 @@ static const String faq = '/faq';
   static const String profile = '/profile';
 
   static final GoRouter router = GoRouter(
-    // Web starts at branch selection (/), mobile starts at splash (/)
+    // Web → branch selection landing page  |  Mobile → splash screen
     initialLocation: splash,
 
     redirect: (BuildContext context, GoRouterState state) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final isLoggedIn = authProvider.isAuthenticated;
 
-      // On mobile, / is the splash screen — nothing to redirect.
-      // On web, / is the BranchSelectionScreen — nothing to redirect either.
-
       // Routes that require authentication
       final protectedRoutes = [checkout, payment, orderStatus, profile];
-      final isProtectedRoute =
-          protectedRoutes.contains(state.matchedLocation);
+      final isProtectedRoute = protectedRoutes.contains(state.matchedLocation);
 
       if (isProtectedRoute && !isLoggedIn) {
         return login;
@@ -91,12 +85,6 @@ static const String faq = '/faq';
           GoRoute(
             path: home,
             name: 'home',
-            builder: (context, state) => const HomeScreen(),
-          ),
-          // Barcelona branch — mirrors the home screen at a dedicated URL
-          GoRoute(
-            path: barcelona,
-            name: 'barcelona',
             builder: (context, state) => const HomeScreen(),
           ),
           GoRoute(
@@ -198,19 +186,13 @@ GoRoute(
         ],
       ),
      
-      // Web: branch selection landing page at /
-      // Mobile: classic splash screen at /
-      if (kIsWeb)
-        GoRoute(
-          path: branchSelection,
-          name: 'branch-selection',
-          builder: (context, state) => const BranchSelectionScreen(),
-        )
-      else
-        GoRoute(
-          path: splash,
-          builder: (context, state) => const SplashScreen(),
-        ),
+      // Root route: branch selection on web, splash on mobile
+      GoRoute(
+        path: splash,
+        builder: (context, state) => kIsWeb
+            ? const BranchSelectionScreen()
+            : const SplashScreen(),
+      ),
       GoRoute(
         path: emailVerification,
         builder: (context, state) {
