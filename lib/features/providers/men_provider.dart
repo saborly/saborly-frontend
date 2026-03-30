@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show TargetPlatform;
+import 'package:dio/dio.dart';
 import '../../../core/services/api_service.dart';
 import '../../../shared/models/food_category.dart';
 import '../../../shared/models/food_item.dart';
@@ -156,6 +157,12 @@ class MenuProvider extends ChangeNotifier {
           'lang': _currentLanguage,
           'platform': _currentPlatform, // NEW: Include platform
         },
+        // Offers aggregation can be slower than regular menu calls.
+        // Use a request-level timeout so this endpoint does not fail at the
+        // global 15s default during temporary backend slowness.
+        options: Options(
+          receiveTimeout: const Duration(seconds: 35),
+        ),
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
@@ -178,6 +185,16 @@ class MenuProvider extends ChangeNotifier {
           print('✅ [MenuProvider] Loaded ${_itemsWithOffers.length} items with offers for $_currentPlatform');
         }
       }
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        if (e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.connectionTimeout) {
+          print('⚠️ [MenuProvider] Offers request timed out; continuing without merged offers.');
+        } else {
+          print('❌ [MenuProvider] Load offers error: $e');
+        }
+      }
+      _itemsWithOffers = [];
     } catch (e) {
       if (kDebugMode) {
         print('❌ [MenuProvider] Load offers error: $e');
