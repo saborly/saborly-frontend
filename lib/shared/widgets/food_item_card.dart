@@ -426,7 +426,9 @@ class FoodItemCard extends StatelessWidget {
         price: effectivePrice,
       );
       cartProvider.addItem(foodItem: foodItemWithDiscount);
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars(); // dismiss any existing toast instantly
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             AppStrings.get('addedToCart').replaceAll('{itemName}', foodItem.name),

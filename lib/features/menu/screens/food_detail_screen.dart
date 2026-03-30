@@ -1389,7 +1389,9 @@ Widget _buildDesktopBottomBar() {
       specialInstructions: _instructionsController.text.trim(),
     );
     
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars(); // dismiss any existing toast instantly
+    messenger.showSnackBar(
       SnackBar(
         content: Row(
           children: [

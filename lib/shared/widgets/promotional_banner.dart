@@ -40,6 +40,11 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
   bool _hovering = false;
   Timer? _timer;
 
+  /// Actual aspect ratio of the first banner image (width ÷ height).
+  /// Null until the image resolves. Used on mobile to set the exact height
+  /// so BoxFit.cover fills the banner with zero black bars and zero cropping.
+  double? _imageAspectRatio;
+
   static const String _proxyBase = 'https://api.saborly.es/api/proxy';
 
   @override
@@ -63,12 +68,29 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
 
   Future<void> _load() async {
     if (!mounted) return;
-    setState(() { _isLoading = true; _currentPage = 0; });
+    setState(() { _isLoading = true; _currentPage = 0; _imageAspectRatio = null; });
     _timer?.cancel();
     final banners = await BannerService.getActiveBanners(category: widget.category);
     if (!mounted) return;
     setState(() { _banners = banners; _isLoading = false; });
     if (widget.autoPlay && _banners.length > 1) _startTimer();
+    // Resolve the first image to learn its real aspect ratio.
+    // Once known, the banner height snaps to the image ratio → zero black bars.
+    if (_banners.isNotEmpty) _resolveImageRatio(_imageUrl(_banners[0].imageUrl));
+  }
+
+  void _resolveImageRatio(String url) {
+    final stream = NetworkImage(url).resolve(const ImageConfiguration());
+    stream.addListener(
+      ImageStreamListener((info, _) {
+        if (!mounted) return;
+        final w = info.image.width.toDouble();
+        final h = info.image.height.toDouble();
+        if (h > 0 && w > 0) {
+          setState(() => _imageAspectRatio = w / h);
+        }
+      }, onError: (_, __) {}),
+    );
   }
 
   void _startTimer() {
@@ -110,11 +132,21 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
 
   double _bannerHeight(double w) {
     if (widget.height != null) return widget.height!;
-    if (w >= 1400) return (w * 0.32).clamp(400.0, 520.0);
-    if (w >= 1024) return (w * 0.35).clamp(340.0, 440.0);
-    if (w >= 768)  return (w * 0.38).clamp(280.0, 360.0);
-    if (w >= 480)  return (w * 0.44).clamp(210.0, 270.0);
-    return (w * 0.50).clamp(180.0, 240.0);
+
+    final isMobile = w < 768;
+
+    if (!isMobile) {
+      // Web / tablet — fixed impactful heights
+      if (w >= 1400) return (w * 0.36).clamp(460.0, 580.0);
+      if (w >= 1024) return (w * 0.38).clamp(380.0, 480.0);
+      return (w * 0.40).clamp(300.0, 380.0);
+    }
+
+    // Mobile — use the image's REAL aspect ratio so BoxFit.cover fills the
+    // banner perfectly: zero black bars at top/bottom, zero side cropping.
+    // Falls back to 2.6:1 until the image resolves (first frame only).
+    final ratio = _imageAspectRatio ?? 2.6;
+    return (w / ratio).clamp(100.0, 260.0);
   }
 
   @override
@@ -151,6 +183,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
                   itemBuilder: (_, i) => _Slide(
                     key: ValueKey(_banners[i].id),
                     imageUrl: _imageUrl(_banners[i].imageUrl),
+                    isMobile: isMobile,
                     onTap: () => widget.onBannerTap?.call(_banners[i].link),
                   ),
                 ),
@@ -212,8 +245,9 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
 // ─────────────────────────────────────────────────────────────────────────────
 class _Slide extends StatefulWidget {
   final String imageUrl;
+  final bool isMobile;
   final VoidCallback? onTap;
-  const _Slide({super.key, required this.imageUrl, this.onTap});
+  const _Slide({super.key, required this.imageUrl, required this.isMobile, this.onTap});
   @override State<_Slide> createState() => _SlideState();
 }
 
@@ -234,41 +268,42 @@ class _SlideState extends State<_Slide> {
         ),
       );
     }
+    // BoxFit.cover on ALL platforms.
+    // On mobile the banner height is set to exactly match the image's real
+    // aspect ratio (detected via _resolveImageRatio), so cover fills the
+    // container with zero black bars AND zero side-cropping.
     return GestureDetector(
       onTap: widget.onTap,
-      child: Container(
-        color: Colors.black, // letterbox colour — matches most banner backgrounds
-        child: Image.network(
-          widget.imageUrl,
-          fit: BoxFit.contain,   // shows 100% of the image, no cropping
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (_, __, ___) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() => _error = true);
-            });
-            return const ColoredBox(color: Color(0xFFF0F0F0));
-          },
-          loadingBuilder: (_, child, progress) {
-            if (progress == null) return child;
-            return Container(
-              color: const Color(0xFFEEEEEE),
-              child: Center(
-                child: SizedBox(
-                  width: 30, height: 30,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: AppColors.primary,
-                    value: progress.expectedTotalBytes != null
-                        ? progress.cumulativeBytesLoaded /
-                            progress.expectedTotalBytes!
-                        : null,
-                  ),
+      child: Image.network(
+        widget.imageUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, __, ___) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _error = true);
+          });
+          return const ColoredBox(color: Color(0xFFF0F0F0));
+        },
+        loadingBuilder: (_, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            color: const Color(0xFFEEEEEE),
+            child: Center(
+              child: SizedBox(
+                width: 30, height: 30,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.primary,
+                  value: progress.expectedTotalBytes != null
+                      ? progress.cumulativeBytesLoaded /
+                          progress.expectedTotalBytes!
+                      : null,
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -333,32 +368,41 @@ class _EdgeArrow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final opacity = isMobile ? 0.75 : (hovering ? 1.0 : 0.50);
+    // Mobile: always 75% visible (user confirmed looks nice — don't change)
+    // Web: invisible at rest, fully visible on hover
+    final opacity = isMobile ? 0.75 : (hovering ? 1.0 : 0.0);
+    // Web arrows are larger and more prominent
+    final size       = isMobile ? 32.0 : 48.0;
+    final iconSize   = isMobile ? 16.0 : 22.0;
+    final inset      = isMobile ?  0.0 : 16.0;
 
-    return Center(
-      child: AnimatedOpacity(
-        opacity: opacity,
-        duration: const Duration(milliseconds: 180),
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: isMobile ? 32 : 38,
-            height: isMobile ? 32 : 38,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.18),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              color: AppColors.textDark,
-              size: isMobile ? 16 : 20,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: inset),
+      child: Center(
+        child: AnimatedOpacity(
+          opacity: opacity,
+          duration: const Duration(milliseconds: 200),
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isMobile ? 0.18 : 0.25),
+                    blurRadius: isMobile ? 8 : 16,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.textDark,
+                size: iconSize,
+              ),
             ),
           ),
         ),
