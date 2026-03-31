@@ -7,6 +7,7 @@ import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/core/services/language_service.dart';
 import 'package:Saborly/features/providers/cart_provider.dart';
+import 'package:Saborly/features/providers/checkout_provider.dart';
 import 'package:Saborly/shared/widgets/language_selector.dart';
 import 'package:Saborly/shared/widgets/search_bar_widget.dart';
 import '../../core/routes/app_routes.dart';
@@ -22,11 +23,24 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   String _currentRoute = '';
+  bool _hasInitializedBranchData = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _updateCurrentRoute();
+
+    if (!_hasInitializedBranchData) {
+      _hasInitializedBranchData = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+
+        final checkoutProvider = context.read<CheckoutProvider>();
+        if (checkoutProvider.branches.isEmpty) {
+          checkoutProvider.loadBranches();
+        }
+      });
+    }
   }
 
   void _updateCurrentRoute() {
@@ -438,6 +452,10 @@ Widget _buildRightSection(bool isDesktop, bool isTablet) {
         ),
         SizedBox(width: spacing),
       ],
+      Flexible(
+        child: _buildLocationButton(isDesktop, isTablet),
+      ),
+      SizedBox(width: spacing),
       if (showLanguageSelector) ...[
         LanguageSelector(
           showLabel: true,
@@ -449,6 +467,108 @@ Widget _buildRightSection(bool isDesktop, bool isTablet) {
       SizedBox(width: spacing),
       _buildAccountButton(isTablet),
     ],
+  );
+}
+
+Widget _buildLocationButton(bool isDesktop, bool isTablet) {
+  final horizontalPadding = _getResponsiveValue(
+    context,
+    mobile: 10.0,
+    tablet: 12.0,
+    desktop: 14.0,
+  );
+  final iconSize = _getResponsiveValue(
+    context,
+    mobile: 16.0,
+    tablet: 18.0,
+    desktop: 18.0,
+  );
+  final titleSize = _getResponsiveValue(
+    context,
+    mobile: 10.0,
+    tablet: 10.5,
+    desktop: 11.0,
+  );
+  final subtitleSize = _getResponsiveValue(
+    context,
+    mobile: 11.0,
+    tablet: 11.5,
+    desktop: 12.0,
+  );
+
+  return Consumer<CheckoutProvider>(
+    builder: (context, checkoutProvider, _) {
+      final selectedAddress = checkoutProvider.selectedAddress;
+      final selectedBranch = checkoutProvider.selectedBranch;
+
+      String title = AppStrings.pickupLocation;
+      String subtitle = 'Saborly Barcelona';
+
+      if (selectedAddress != null) {
+        title = AppStrings.get('delivery');
+        subtitle = selectedAddress.address;
+      } else if (selectedBranch != null) {
+        subtitle = selectedBranch.name;
+      }
+
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.go(AppRoutes.checkout),
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: isDesktop ? 9 : 8,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF6F7F9),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  color: AppColors.primary,
+                  size: iconSize,
+                ),
+                SizedBox(width: 8),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: titleSize,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: subtitleSize,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
   );
 }
 

@@ -61,6 +61,7 @@ static const String faq = '/faq';
   static final GoRouter router = GoRouter(
     // Web → branch selection landing page  |  Mobile → splash screen
     initialLocation: splash,
+    observers: [HomeScreen.routeObserver],
 
     redirect: (BuildContext context, GoRouterState state) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);

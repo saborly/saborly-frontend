@@ -10,6 +10,7 @@ import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/core/routes/app_routes.dart';
 import 'package:Saborly/core/services/language_service.dart';
 import 'package:Saborly/core/utils/responsive_utils.dart';
+import 'package:Saborly/features/providers/checkout_provider.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
 import 'package:Saborly/features/providers/notification_provider.dart';
 import 'package:Saborly/features/providers/offer_provider.dart';
@@ -43,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final TextEditingController _searchController = TextEditingController();
   String _lastProcessedLanguage = '';
   bool _hasShownModal = false;
+  bool _hasLoadedRouteData = false;
 
   static final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
@@ -56,27 +58,26 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _clearSearchSilently();
-        _loadDataAndShowModal();
+        _refreshHomeData();
       }
     });
   }
 
-  // ✅ Load data and show modal in parallel (non-blocking)
-  Future<void> _loadDataAndShowModal() async {
+  Future<void> _refreshHomeData({bool force = false}) async {
     if (!mounted) return;
+    if (_hasLoadedRouteData && !force) return;
 
-    // Start loading data immediately
+    _hasLoadedRouteData = true;
+
     final dataFuture = Future.wait([
       context.read<HomeProvider>().loadHomeData(),
       context.read<OffersProvider>().loadOffers(),
     ]);
 
-    // Trigger rebuild when data arrives
     dataFuture.then((_) {
       if (mounted) setState(() {});
     });
 
-    // Check modal timing in parallel (don't wait for data)
     if (ResponsiveUtils.isWeb(context) && !_hasShownModal) {
       _checkAndShowModal();
     }
@@ -129,12 +130,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   @override
   void didPopNext() {
-    if (mounted) _clearSearchSilently();
+    if (!mounted) return;
+    _clearSearchSilently();
+    _refreshHomeData(force: true);
   }
 
   @override
   void didPush() {
-    if (mounted) _clearSearchSilently();
+    if (!mounted) return;
+    _clearSearchSilently();
+    _refreshHomeData(force: true);
   }
 
   @override
@@ -568,10 +573,46 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
+      toolbarHeight: 78.h,
       automaticallyImplyLeading: false,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [_buildLogo(context)],
+      title: Consumer<CheckoutProvider>(
+        builder: (context, checkoutProvider, _) {
+          final locationText = _getLocationLabel(checkoutProvider);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildLogo(context),
+              SizedBox(height: 2.h),
+              GestureDetector(
+                onTap: () => context.go(AppRoutes.checkout),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      color: AppColors.primary,
+                      size: 14.sp,
+                    ),
+                    SizedBox(width: 4.w),
+                    Expanded(
+                      child: Text(
+                        locationText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textMedium,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
       actions: [
         Padding(
@@ -581,7 +622,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         Consumer<NotificationProvider>(
           builder: (context, notificationProvider, _) {
             final unreadCount = notificationProvider.unreadCount;
-            
+
             return Stack(
               clipBehavior: Clip.none,
               children: [
@@ -607,7 +648,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.h),
+                      constraints:
+                          BoxConstraints(minWidth: 16.w, minHeight: 16.h),
                       child: Text(
                         unreadCount > 99 ? '99+' : '$unreadCount',
                         style: TextStyle(
@@ -625,6 +667,31 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
         ),
       ],
     );
+  }
+
+  String _getLocationLabel(CheckoutProvider checkoutProvider) {
+    final selectedAddress = checkoutProvider.selectedAddress;
+    if (selectedAddress != null) {
+      final label = selectedAddress.type?.trim();
+      final address = selectedAddress.address?.trim();
+
+      if (label != null && label.isNotEmpty && address != null && address.isNotEmpty) {
+        return '$label • $address';
+      }
+      if (address != null && address.isNotEmpty) {
+        return address;
+      }
+      if (label != null && label.isNotEmpty) {
+        return label;
+      }
+    }
+
+    final selectedBranch = checkoutProvider.selectedBranch;
+    if (selectedBranch != null) {
+      return '${AppStrings.pickupLocation}: ${selectedBranch.name}';
+    }
+
+    return '${AppStrings.pickupLocation}: Saborly Barcelona';
   }
 
   Widget _buildLogo(BuildContext context) {
