@@ -54,6 +54,7 @@ class HomeProvider extends ChangeNotifier {
   String get lastSearchQuery => _lastSearchQuery;
   
   String get currentLanguage => _currentLanguage;
+  bool get hasInitialized => _hasInitialized;
 
   // ==================== INITIALIZATION ====================
 

@@ -69,10 +69,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     if (_hasLoadedRouteData && !force) return;
 
     _hasLoadedRouteData = true;
+    final homeProvider = context.read<HomeProvider>();
+    final offersProvider = context.read<OffersProvider>();
+    final currentLanguage = context.read<LanguageService>().currentLanguage;
 
     final dataFuture = Future.wait([
-      context.read<HomeProvider>().loadHomeData(),
-      context.read<OffersProvider>().loadOffers(),
+      force
+          ? homeProvider.loadHomeData()
+          : (homeProvider.hasInitialized
+              ? homeProvider.loadHomeData()
+              : homeProvider.initializeIfNeeded(currentLanguage)),
+      offersProvider.loadOffers(),
     ]);
 
     dataFuture.then((_) {
@@ -132,15 +139,21 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void didPopNext() {
     if (!mounted) return;
-    _clearSearchSilently();
-    _refreshHomeData(force: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _clearSearchSilently();
+      _refreshHomeData(force: true);
+    });
   }
 
   @override
   void didPush() {
     if (!mounted) return;
-    _clearSearchSilently();
-    _refreshHomeData(force: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _clearSearchSilently();
+      _refreshHomeData(force: true);
+    });
   }
 
   @override

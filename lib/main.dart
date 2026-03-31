@@ -540,23 +540,37 @@ class _FoodKingAppState extends State<FoodKingApp> {
                     return homeProvider;
                   },
                   update: (_, languageService, homeProvider) {
-                    homeProvider?.setLanguage(languageService.currentLanguage);
-                    return homeProvider ?? HomeProvider();
+                    final provider = homeProvider ?? HomeProvider();
+                    if (provider.currentLanguage != languageService.currentLanguage) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        provider.setLanguage(languageService.currentLanguage);
+                      });
+                    }
+                    return provider;
                   },
                 ),
                 ChangeNotifierProxyProvider<LanguageService, MenuProvider>(
                   create: (_) => MenuProvider(),
                   update: (_, languageService, menuProvider) {
-                    menuProvider?.setLanguage(languageService.currentLanguage);
-                    return menuProvider ?? MenuProvider();
+                    final provider = menuProvider ?? MenuProvider();
+                    if (provider.currentLanguage != languageService.currentLanguage) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        provider.setLanguage(languageService.currentLanguage);
+                      });
+                    }
+                    return provider;
                   },
                 ),
                 ChangeNotifierProxyProvider<LanguageService, OffersProvider>(
                   create: (_) => OffersProvider(),
                   update: (_, languageService, offersProvider) {
-                    offersProvider
-                        ?.setLanguage(languageService.currentLanguage);
-                    return offersProvider ?? OffersProvider();
+                    final provider = offersProvider ?? OffersProvider();
+                    if (provider.currentLanguage != languageService.currentLanguage) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        provider.setLanguage(languageService.currentLanguage);
+                      });
+                    }
+                    return provider;
                   },
                 ),
                 ChangeNotifierProvider(create: (_) => OrderProvider()),

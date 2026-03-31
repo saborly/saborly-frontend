@@ -33,6 +33,7 @@ class OffersProvider extends ChangeNotifier {
   List<FoodItemWithOffer> get itemsWithOffers => _filterClaimedItemOffers(_itemsWithOffers);
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String get currentLanguage => _currentLanguage;
   Map<String, dynamic>? get activeDeviceDiscount => _activeDeviceDiscount;
   bool get hasActiveDiscount => _activeDeviceDiscount != null;
   String? get deviceId => _deviceDiscountManager?.deviceId;
@@ -430,7 +431,7 @@ class OffersProvider extends ChangeNotifier {
       if (kDebugMode) {
         print('❌ Error loading main offers: $e');
       }
-      rethrow;
+      _allOffers = [];
     }
   }
 
@@ -493,7 +494,7 @@ class OffersProvider extends ChangeNotifier {
       if (kDebugMode) {
         print('❌ Error loading items with offers: $e');
       }
-      rethrow;
+      _itemsWithOffers = [];
     }
   }
 
