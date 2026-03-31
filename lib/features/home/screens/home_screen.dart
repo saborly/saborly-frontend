@@ -26,6 +26,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/widgets/download_app_modal.dart';
 
 class HomeScreen extends StatefulWidget {
+  static final RouteObserver<ModalRoute<void>> routeObserver =
+      RouteObserver<ModalRoute<void>>();
+
   const HomeScreen({super.key});
 
   @override
@@ -45,8 +48,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   String _lastProcessedLanguage = '';
   bool _hasShownModal = false;
   bool _hasLoadedRouteData = false;
-
-  static final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
   @override
   void initState() {
@@ -111,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     
     final modalRoute = ModalRoute.of(context);
     if (modalRoute is PageRoute) {
-      routeObserver.subscribe(this, modalRoute);
+      HomeScreen.routeObserver.subscribe(this, modalRoute);
     }
     
     final currentLanguage = context.read<LanguageService>().currentLanguage;
@@ -149,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   @override
   void dispose() {
-    routeObserver.unsubscribe(this);
+    HomeScreen.routeObserver.unsubscribe(this);
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
