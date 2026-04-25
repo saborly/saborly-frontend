@@ -20,7 +20,11 @@ class FoodKingFooter extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        color: Color(0xFF0A0E27),
+        gradient: LinearGradient(
+          colors: [Color(0xFF2A1611), Color(0xFF4A2015)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Column(
         children: [
@@ -184,19 +188,19 @@ class FoodKingFooter extends StatelessWidget {
       child: GestureDetector(
         onTap: () => _launchURL(url),
         child: Container(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppColors.primary.withOpacity(0.3),
+              color: Colors.white.withOpacity(0.12),
               width: 1,
             ),
           ),
           child: Icon(
             icon,
-            color: AppColors.primary,
+            color: AppColors.secondary,
             size: 20,
           ),
         ),
@@ -320,8 +324,8 @@ class FoodKingFooter extends StatelessWidget {
         // Newsletter Input
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.white.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: Colors.white.withOpacity(0.1),
             ),
@@ -351,8 +355,8 @@ class FoodKingFooter extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(6),
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Material(
                   color: Colors.transparent,

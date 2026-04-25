@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/routes/app_routes.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
 import 'package:Saborly/shared/models/food_category.dart';
@@ -23,90 +25,121 @@ class FoodCategoryCard extends StatelessWidget {
    Widget build(BuildContext context) {
     final colorScheme = _getCategoryColorScheme(category.name);
     final cardWidth = _isWeb(context) ? 120.w : 100.w;
-    final iconSize = _isWeb(context) ? 90.w : 80.w;
+    final baseIconSize = _isWeb(context) ? 90.w : 80.w;
     final fontSize = _isWeb(context) ? 14.sp : 13.sp;
 
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        context.go(AppRoutes.menu, extra: {
-          'category': category.id,
-          'selectedIndex': 1,
-        });
-      },
-      child: Container(
-        width: cardWidth,
-        margin: EdgeInsets.only(right: _isWeb(context) ? 20.w : 16.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: iconSize,
-              height: iconSize,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    colorScheme.primary,
-                    colorScheme.secondary,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(24.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.primary.withOpacity(0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                    spreadRadius: -4,
-                  ),
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.1),
-                    blurRadius: 1,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24.r),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.2),
-                          Colors.white.withOpacity(0.05),
-                        ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        var iconSize = baseIconSize;
+        var spacing = 12.h;
+        var textMaxHeight = 40.h;
+        var textLines = 2;
+
+        if (constraints.maxHeight.isFinite) {
+          final desired = iconSize + spacing + textMaxHeight;
+          final available = constraints.maxHeight;
+          if (desired > available && available > 0) {
+            final scale = (available / desired).clamp(0.55, 1.0);
+            iconSize = iconSize * scale;
+            spacing = spacing * scale;
+            textMaxHeight = textMaxHeight * scale;
+            if (scale < 0.75) textLines = 1;
+          }
+        }
+
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.go(AppRoutes.menu, extra: {
+              'category': category.id,
+              'selectedIndex': 1,
+            });
+          },
+          child: Container(
+            width: cardWidth,
+            margin: EdgeInsets.only(right: _isWeb(context) ? 20.w : 16.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: iconSize,
+                  height: iconSize,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        colorScheme.primary,
+                        colorScheme.secondary,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular((30.r * (iconSize / baseIconSize)).clamp(16.r, 30.r)),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.65),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary.withOpacity(0.4),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
+                        spreadRadius: -6,
                       ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: -12,
+                        right: -10,
+                        child: Container(
+                          width: iconSize * 0.42,
+                          height: iconSize * 0.42,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular((30.r * (iconSize / baseIconSize)).clamp(16.r, 30.r)),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withOpacity(0.26),
+                              Colors.white.withOpacity(0.03),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Center(child: _buildIcon(iconSize, context)),
+                    ],
+                  ),
+                ),
+                SizedBox(height: spacing),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: textMaxHeight),
+                  child: Text(
+                    category.name,
+                    textAlign: TextAlign.center,
+                    maxLines: textLines,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textDark,
+                      height: 1.15,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                  Center(child: _buildIcon(iconSize, context)),
-                ],
-              ),
-            ),
-            SizedBox(height: _isWeb(context) ? 12.h : 12.h),
-            Container(
-              width: cardWidth,
-              constraints: BoxConstraints(maxHeight: 40.h),
-              child: Text(
-                category.name,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF2D3748),
-                  height: 1.2,
-                  letterSpacing: -0.2,
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -149,36 +182,36 @@ class FoodCategoryCard extends StatelessWidget {
   CategoryColorScheme _getCategoryColorScheme(String name) {
     final schemes = [
       CategoryColorScheme(
-        primary: const Color(0xFFFF6B9D),
-        secondary: const Color(0xFFFF8FB8),
+        primary: const Color(0xFFD84E17),
+        secondary: const Color(0xFFF5A623),
       ),
       CategoryColorScheme(
-        primary: const Color(0xFF4FACFE),
-        secondary: const Color(0xFF00F2FE),
+        primary: const Color(0xFF6A1638),
+        secondary: const Color(0xFFE76F51),
       ),
       CategoryColorScheme(
-        primary: const Color(0xFF43E97B),
-        secondary: const Color(0xFF38F9D7),
+        primary: const Color(0xFF2F7A53),
+        secondary: const Color(0xFF6FBC8E),
       ),
       CategoryColorScheme(
-        primary: const Color(0xFFFA709A),
-        secondary: const Color(0xFFFEE140),
+        primary: const Color(0xFF7B2F17),
+        secondary: const Color(0xFFDB8A36),
       ),
       CategoryColorScheme(
-        primary: const Color(0xFFA8E6CF),
-        secondary: const Color(0xFF88D8A3),
+        primary: const Color(0xFFAA5C28),
+        secondary: const Color(0xFFF2B15E),
       ),
       CategoryColorScheme(
-        primary: const Color(0xFFFFD93D),
-        secondary: const Color(0xFF6BCF7F),
+        primary: const Color(0xFFB23A48),
+        secondary: const Color(0xFFF28482),
       ),
       CategoryColorScheme(
-        primary: const Color(0xFF667EEA),
-        secondary: const Color(0xFF764BA2),
+        primary: const Color(0xFF4A2C21),
+        secondary: const Color(0xFFB56A2D),
       ),
       CategoryColorScheme(
-        primary: const Color(0xFFF093FB),
-        secondary: const Color(0xFFF5576C),
+        primary: const Color(0xFFE07A1F),
+        secondary: const Color(0xFFF2CC8F),
       ),
     ];
 
@@ -245,19 +278,4 @@ Widget buildCategoriesSlider(
   );
 }
 
-// Helper function if you need it elsewhere
-bool _isSmallScreen(BuildContext context) {
-  return MediaQuery.of(context).size.width < 600;
-}
-bool _isWeb(BuildContext context) {
-  return MediaQuery.of(context).size.width > 600;
-
-
-
-
-
-
-
-
-
-}
+// (removed unused helpers)

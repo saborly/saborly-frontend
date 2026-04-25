@@ -2,25 +2,32 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Primary Colors
-  static const Color primary = Color(0xFFE91E63);
-  static const Color primaryLight = Color(0xFFF8BBD9);
-  static const Color primaryDark = Color(0xFFC2185B);
+  static const Color primary = Color(0xFFD84E17);
+  static const Color primaryLight = Color(0xFFFFC8A8);
+  static const Color primaryDark = Color(0xFF8C2F12);
   
   // Secondary Colors
-  static const Color secondary = Color(0xFF00BCD4);
-  static const Color secondaryLight = Color(0xFFB2EBF2);
-  static const Color secondaryDark = Color(0xFF0097A7);
+  static const Color secondary = Color(0xFFF5A623);
+  static const Color secondaryLight = Color(0xFFFFE2A8);
+  static const Color secondaryDark = Color(0xFF9D5A13);
+
+  // Brand Neutrals
+  static const Color accentBerry = Color(0xFF6A1638);
+  static const Color accentCream = Color(0xFFFFF4E8);
+  static const Color accentSand = Color(0xFFF6E4CF);
+  static const Color accentLeaf = Color(0xFF2F7A53);
+  static const Color accentNight = Color(0xFF2A1611);
   
   // Background Colors
-  static const Color background = Color(0xFFF8F9FA);
+  static const Color background = Color(0xFFFBF3E7);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color cardBackground = Color(0xFFFFFFFF);
+  static const Color cardBackground = Color(0xFFFFFCF8);
   
   // Text Colors
-  static const Color textDark = Color(0xFF212121);
-  static const Color textMedium = Color(0xFF424242);
-  static const Color textLight = Color(0xFF9E9E9E);
-  static const Color textHint = Color(0xFFBDBDBD);
+  static const Color textDark = Color(0xFF28140E);
+  static const Color textMedium = Color(0xFF72513E);
+  static const Color textLight = Color(0xFFA08371);
+  static const Color textHint = Color(0xFFC3AA97);
   
   // Status Colors
   static const Color success = Color(0xFF4CAF50);
@@ -35,21 +42,33 @@ class AppColors {
   static const Color whopper = Color(0xFFE3F2FD);
   
   // Additional Colors
-  static const Color border = Color(0xFFE0E0E0);
-  static const Color divider = Color(0xFFEEEEEE);
-  static const Color shadow = Color(0x1F000000);
-  static const Color shimmer = Color(0xFFE0E0E0);
-  static const Color shimmerHighlight = Color(0xFFF5F5F5);
+  static const Color border = Color(0xFFE7D3BD);
+  static const Color divider = Color(0xFFF0E1D2);
+  static const Color shadow = Color(0x291A0803);
+  static const Color shimmer = Color(0xFFF0DFCF);
+  static const Color shimmerHighlight = Color(0xFFFFF8F1);
   
   // Gradient Colors
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primary, primaryDark],
+    colors: [Color(0xFFE46221), Color(0xFFB33E17)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  static const LinearGradient heroGradient = LinearGradient(
+    colors: [Color(0xFF4F1F14), Color(0xFF7B2F17), Color(0xFFD84E17)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient surfaceGradient = LinearGradient(
+    colors: [Color(0xFFFFF9F1), Color(0xFFFFF0E1)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
   
   static const LinearGradient cardGradient = LinearGradient(
-    colors: [Colors.white, Color(0xFFFAFAFA)],
+    colors: [Color(0xFFFFFFFF), Color(0xFFFFF5EA)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );

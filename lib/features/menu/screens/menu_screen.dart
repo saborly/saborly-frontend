@@ -40,7 +40,8 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _initializeScreen());
   }
-Future<void> _initializeScreen() async {
+
+  Future<void> _initializeScreen() async {
     final provider = context.read<MenuProvider>();
 
     try {
@@ -83,9 +84,11 @@ Future<void> _initializeScreen() async {
         });
       }
     }
-  }void _onTabChanged() {
+  }
+
+  void _onTabChanged() {
     if (_tabController == null) return;
-    
+
     final provider = context.read<MenuProvider>();
     if (_tabController!.index == 0) {
       _selectedCategoryId = null;
@@ -111,7 +114,7 @@ Future<void> _initializeScreen() async {
     if (screenWidth >= 1200) return 4;
     if (screenWidth >= 900) return 3;
     if (screenWidth >= 600) return 2;
-    return 2;
+    return 1; // phones: bigger cards
   }
 
   double _getMaxContentWidth(double screenWidth) {
@@ -141,7 +144,7 @@ Future<void> _initializeScreen() async {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-  AppStrings.get('pressBackAgain'),
+                    AppStrings.get('pressBackAgain'),
                     style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.white),
                   ),
                   duration: const Duration(seconds: 2),
@@ -160,18 +163,17 @@ Future<void> _initializeScreen() async {
             appBar: !isWeb ? _buildModernAppBar(context) : null,
             body: Consumer<MenuProvider>(
               builder: (context, provider, child) {
-                              if (!_isInitialized && provider.isLoading) {
+                if (!_isInitialized && provider.isLoading) {
                   return _buildLoadingState();
                 }
 
-
- if (_isInitialized && provider.error != null) {
+                if (_isInitialized && provider.error != null) {
                   return _buildErrorState(provider.error!);
                 }
-               if (_isInitialized && provider.categories.isEmpty) {
+                if (_isInitialized && provider.categories.isEmpty) {
                   return _buildEmptyState(AppStrings.get('noCategoriesAvailable'));
                 }
-                    if (!_isInitialized) {
+                if (!_isInitialized) {
                   return _buildLoadingState();
                 }
 
@@ -195,15 +197,22 @@ Future<void> _initializeScreen() async {
 
   PreferredSizeWidget _buildModernAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
         icon: Container(
           padding: EdgeInsets.all(8.r),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10.r),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadow.withOpacity(0.2),
+                blurRadius: 10.r,
+                offset: Offset(0, 4.h),
+              ),
+            ],
           ),
           child: Icon(Icons.arrow_back_ios_new, color: AppColors.primary, size: 18.sp),
         ),
@@ -211,9 +220,8 @@ Future<void> _initializeScreen() async {
       ),
       title: Text(
         AppStrings.ourMenu,
-        style: GoogleFonts.poppins(
+        style: GoogleFonts.breeSerif(
           fontSize: 22.sp,
-          fontWeight: FontWeight.w700,
           color: AppColors.textDark,
           letterSpacing: -0.5,
         ),
@@ -225,8 +233,15 @@ Future<void> _initializeScreen() async {
           icon: Container(
             padding: EdgeInsets.all(8.r),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10.r),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14.r),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.shadow.withOpacity(0.2),
+                  blurRadius: 10.r,
+                  offset: Offset(0, 4.h),
+                ),
+              ],
             ),
             child: Icon(Icons.tune_rounded, color: AppColors.primary, size: 20.sp),
           ),
@@ -391,51 +406,86 @@ Widget _buildEmptyState(String message) {
     return SliverToBoxAdapter(
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.fromLTRB(48.w, 40.h, 48.w, 24.h),
+        padding: EdgeInsets.fromLTRB(48.w, 32.h, 48.w, 24.h),
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: _getMaxContentWidth(screenWidth)),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppStrings.ourMenu,
-                      style: GoogleFonts.poppins(
-                        fontSize: 42.sp,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                        letterSpacing: -1.5,
-                        height: 1.2,
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-  AppStrings.get('discoverOfferings'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        color: AppColors.textMedium,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-                ElevatedButton.icon(
-                  onPressed: _showFilterDialog,
-                  icon: Icon(Icons.tune_rounded, size: 20.sp),
-label: Text(AppStrings.get('filters'), style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600)),                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 18.h),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-                    elevation: 0,
-                    shadowColor: AppColors.primary.withOpacity(0.3),
+            child: Container(
+              padding: EdgeInsets.all(28.w),
+              decoration: BoxDecoration(
+                gradient: AppColors.heroGradient,
+                borderRadius: BorderRadius.circular(32.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryDark.withOpacity(0.24),
+                    blurRadius: 28.r,
+                    offset: const Offset(0, 14),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.14),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'Bolder menu discovery',
+                            style: GoogleFonts.manrope(
+                              color: Colors.white,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 16.h),
+                        Text(
+                          AppStrings.ourMenu,
+                          style: GoogleFonts.breeSerif(
+                            fontSize: 42.sp,
+                            color: Colors.white,
+                            letterSpacing: -1.3,
+                            height: 1.1,
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
+                        Text(
+                          AppStrings.get('discoverOfferings'),
+                          style: GoogleFonts.manrope(
+                            fontSize: 16.sp,
+                            color: Colors.white.withOpacity(0.84),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 24.w),
+                  ElevatedButton.icon(
+                    onPressed: _showFilterDialog,
+                    icon: Icon(Icons.tune_rounded, size: 20.sp),
+                    label: Text(
+                      AppStrings.get('filters'),
+                      style: GoogleFonts.manrope(fontSize: 15.sp, fontWeight: FontWeight.w800),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppColors.primaryDark,
+                      padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 18.h),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -447,7 +497,22 @@ label: Text(AppStrings.get('filters'), style: GoogleFonts.poppins(fontSize: 15.s
     return SliverToBoxAdapter(
       child: Padding(
         padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-        child: SearchBarWidget(onSearch: provider.searchFoodItems),
+        child: Container(
+          padding: EdgeInsets.all(14.w),
+          decoration: BoxDecoration(
+            gradient: AppColors.surfaceGradient,
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(color: Colors.white.withOpacity(0.95), width: 1.4),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadow.withOpacity(0.16),
+                blurRadius: 18.r,
+                offset: Offset(0, 8.h),
+              ),
+            ],
+          ),
+          child: SearchBarWidget(onSearch: provider.searchFoodItems),
+        ),
       ),
     );
   }
@@ -462,13 +527,14 @@ label: Text(AppStrings.get('filters'), style: GoogleFonts.poppins(fontSize: 15.s
           child: Container(
             margin: EdgeInsets.symmetric(horizontal: isWeb ? 48.w : 16.w, vertical: 20.h),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20.r),
+              gradient: AppColors.surfaceGradient,
+              borderRadius: BorderRadius.circular(24.r),
+              border: Border.all(color: AppColors.border),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
+                  color: AppColors.shadow.withOpacity(0.18),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
@@ -509,9 +575,9 @@ label: Text(AppStrings.get('filters'), style: GoogleFonts.poppins(fontSize: 15.s
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w500,
                 ),
-                labelPadding: EdgeInsets.symmetric(horizontal: 4.w),
-                tabs: [
-_buildEnhancedTab(AppStrings.get('allCategories'), Icons.apps_rounded),
+                  labelPadding: EdgeInsets.symmetric(horizontal: 4.w),
+                  tabs: [
+                    _buildEnhancedTab(AppStrings.get('allCategories'), Icons.apps_rounded),
 
                   ...provider.categories.map(
                     (category) => _buildEnhancedTab(
@@ -568,40 +634,53 @@ _buildEnhancedTab(AppStrings.get('allCategories'), Icons.apps_rounded),
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: _getMaxContentWidth(screenWidth)),
-          child: Container(
-            margin: EdgeInsets.symmetric(horizontal: isWeb ? 48.w : 16.w, vertical: 12.h),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: [
-                  _buildModernFilterChip(
-  AppStrings.get('vegetarian'),
-                    Icons.eco_rounded,
-                    provider.showVegOnly,
-                    () => provider.setVegFilter(!provider.showVegOnly),
-                    const Color(0xFF10B981),
+            child: Container(
+              margin: EdgeInsets.fromLTRB(
+                isWeb ? 48.w : 16.w,
+                10.h,
+                isWeb ? 48.w : 16.w,
+                6.h,
+              ),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(24.r),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      _buildModernFilterChip(
+                        AppStrings.get('vegetarian'),
+                        Icons.eco_rounded,
+                        provider.showVegOnly,
+                        () => provider.setVegFilter(!provider.showVegOnly),
+                        AppColors.accentLeaf,
+                      ),
+                      SizedBox(width: 12.w),
+                      _buildModernFilterChip(
+                        AppStrings.get('nonVegetarian'),
+                        Icons.restaurant_rounded,
+                        provider.showNonVegOnly,
+                        () => provider.setNonVegFilter(!provider.showNonVegOnly),
+                        AppColors.primary,
+                      ),
+                      SizedBox(width: 12.w),
+                      _buildModernFilterChip(
+                        AppStrings.get('featuredItems'),
+                        Icons.local_fire_department_rounded,
+                        provider.showPopularOnly,
+                        () => provider.setPopularFilter(!provider.showPopularOnly),
+                        AppColors.secondary,
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 12.w),
-                  _buildModernFilterChip(
-  AppStrings.get('nonVegetarian'),
-                    Icons.restaurant_rounded,
-                    provider.showNonVegOnly,
-                    () => provider.setNonVegFilter(!provider.showNonVegOnly),
-                    const Color(0xFFEF4444),
-                  ),
-                  SizedBox(width: 12.w),
-                  _buildModernFilterChip(
-  AppStrings.get('featuredItems'),
-                    Icons.local_fire_department_rounded,
-                    provider.showPopularOnly,
-                    () => provider.setPopularFilter(!provider.showPopularOnly),
-                    const Color(0xFFF59E0B),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
         ),
       ),
     );
@@ -701,39 +780,62 @@ Widget _buildFoodGridSliver(MenuProvider provider, double screenWidth) {
   }
 
   final crossAxisCount = _getCrossAxisCount(screenWidth);
-  final aspectRatio = screenWidth >= 1200 ? 0.75 : (screenWidth >= 600 ? 0.7 : 0.68);
+  // On phones we show 1 column, so use a less-tall ratio.
+  final aspectRatio = screenWidth >= 1200
+      ? 0.75
+      : (screenWidth >= 600 ? 0.7 : 1.10);
   final isWeb = screenWidth >= 1200;
 
-  return SliverPadding(
-    padding: EdgeInsets.fromLTRB(
-      isWeb ? 48.w : 16.w,
-      20.h,
-      isWeb ? 48.w : 16.w,
-      32.h,
-    ),
-    sliver: SliverGrid(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 20.w,
-        mainAxisSpacing: 20.h,
-        childAspectRatio: aspectRatio,
+    return SliverPadding(
+      padding: EdgeInsets.fromLTRB(
+        isWeb ? 48.w : 16.w,
+        isWeb ? 8.h : 10.h,
+        isWeb ? 48.w : 16.w,
+        32.h,
       ),
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final item = provider.foodItems[index];
-          return FoodItemCard(
-            foodItem: item,
-            onTap: () => context.push(AppRoutes.foodDetail, extra: item),
-          );
-        },
-        childCount: provider.foodItems.length,
+      sliver: SliverToBoxAdapter(
+        child: Container(
+          padding: EdgeInsets.all(isWeb ? 18.w : 12.w),
+          decoration: BoxDecoration(
+            gradient: AppColors.surfaceGradient,
+            borderRadius: BorderRadius.circular(28.r),
+            border: Border.all(color: Colors.white.withOpacity(0.96), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadow.withOpacity(0.16),
+                blurRadius: 20.r,
+                offset: Offset(0, 10.h),
+              ),
+            ],
+          ),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 20.w,
+              mainAxisSpacing: 20.h,
+              childAspectRatio: aspectRatio,
+            ),
+            itemCount: provider.foodItems.length,
+            itemBuilder: (context, index) {
+              final item = provider.foodItems[index];
+              return FoodItemCard(
+                foodItem: item,
+                showDescription: true,
+                onTap: () => context.push(AppRoutes.foodDetail, extra: item),
+              );
+            },
+          ),
+        ),
       ),
-    ),
-  );
-} Widget _buildFooterSliver(bool isDesktop) {
-    return SliverToBoxAdapter(
-      child: FoodKingFooter(),
     );
+  }
+
+  Widget _buildFooterSliver(bool isDesktop) {
+      return SliverToBoxAdapter(
+        child: FoodKingFooter(),
+      );
   }
 
   void _showFilterBottomSheet() {
@@ -938,7 +1040,7 @@ Widget _buildFoodGridSliver(MenuProvider provider, double screenWidth) {
         ),
         SizedBox(height: 16.h),
         _buildCheckboxTile(
-  AppStrings.get('vegetarian'),
+          AppStrings.get('vegetarian'),
           Icons.eco_rounded,
           provider.showVegOnly,
           (value) => provider.setVegFilter(value ?? false),
@@ -946,7 +1048,7 @@ Widget _buildFoodGridSliver(MenuProvider provider, double screenWidth) {
         ),
         SizedBox(height: 8.h),
         _buildCheckboxTile(
-  AppStrings.get('nonVegetarian'),
+          AppStrings.get('nonVegetarian'),
           Icons.restaurant_rounded,
           provider.showNonVegOnly,
           (value) => provider.setNonVegFilter(value ?? false),
@@ -954,7 +1056,7 @@ Widget _buildFoodGridSliver(MenuProvider provider, double screenWidth) {
         ),
         SizedBox(height: 8.h),
         _buildCheckboxTile(
-  AppStrings.get('popularItems'),
+          AppStrings.get('popularItems'),
           Icons.local_fire_department_rounded,
           provider.showPopularOnly,
           (value) => provider.setPopularFilter(value ?? false),

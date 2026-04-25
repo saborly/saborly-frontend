@@ -293,16 +293,28 @@ Widget _buildSocialButton({
                       'https://www.pngfind.com/pngs/m/84-847501_contact-us-google-app-logo-transparent-hd-png.png',
                       width: 20.w,
                       height: 20.h,
-                    
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (context, error, stackTrace) {
+                        // On web this URL often fails (CORS / statusCode 0). Fall back to a local icon.
+                        return Icon(
+                          Icons.g_mobiledata_rounded,
+                          size: 22.sp,
+                          color: const Color(0xFF4285F4),
+                        );
+                      },
                     ),
                     SizedBox(width: 12.w),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
-                        letterSpacing: 0.2,
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ),
                   ],

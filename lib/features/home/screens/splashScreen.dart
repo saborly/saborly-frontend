@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
+import 'package:Saborly/core/services/api_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -96,10 +97,12 @@ class _SplashScreenState extends State<SplashScreen>
     
     // Check auth status and navigate
     if (mounted) {
-      
-      // Navigate based on authentication status
+      final bid = ApiService().branchId;
+      if (bid == null || bid.isEmpty) {
+        context.go('/branch-select');
+      } else {
         context.go('/home');
-    
+      }
     }
   }
 

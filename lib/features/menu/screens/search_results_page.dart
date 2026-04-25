@@ -215,7 +215,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 16.w,
                 mainAxisSpacing: 16.h,
-                childAspectRatio: 0.75,
+                childAspectRatio: width < 600 ? 1.10 : 0.75,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -223,6 +223,7 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
                   return FoodItemCard(
                     key: ValueKey('search_${item.id}'),
                     foodItem: item,
+                    showDescription: true,
                     onTap: () => context.push(AppRoutes.foodDetail, extra: item),
                   );
                 },
@@ -579,6 +580,6 @@ class _SearchResultsPageState extends State<SearchResultsPage> {
     if (width >= 1200) return 5;
     if (width >= 900) return 4;
     if (width >= 600) return 3;
-    return 2;
+    return 1; // phones: bigger cards
   }
 }

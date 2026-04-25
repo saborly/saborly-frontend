@@ -24,10 +24,13 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   String _currentRoute = '';
   bool _hasInitializedBranchData = false;
+  GoRouterDelegate? _routerDelegate;
+  VoidCallback? _routerListener;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _attachRouterListener();
     _updateCurrentRoute();
 
     if (!_hasInitializedBranchData) {
@@ -41,6 +44,26 @@ class _MainLayoutState extends State<MainLayout> {
         }
       });
     }
+  }
+
+  void _attachRouterListener() {
+    // In web release builds, scheduling route sync in every build can
+    // produce an exception loop. Instead, listen to router changes once.
+    final router = GoRouter.of(context);
+    final delegate = router.routerDelegate;
+    if (_routerDelegate == delegate) return;
+
+    // Detach old listener (if any)
+    if (_routerDelegate != null && _routerListener != null) {
+      _routerDelegate!.removeListener(_routerListener!);
+    }
+
+    _routerDelegate = delegate;
+    _routerListener = () {
+      if (!mounted) return;
+      _updateCurrentRoute();
+    };
+    _routerDelegate!.addListener(_routerListener!);
   }
 
   void _updateCurrentRoute() {
@@ -88,6 +111,48 @@ class _MainLayoutState extends State<MainLayout> {
   // ✅ Check if current route is home
   bool _isHomeScreen() {
     return _currentRoute == AppRoutes.home || _currentRoute == '/' || _currentRoute.isEmpty;
+  }
+
+  bool _routeStartsWith(String prefix) {
+    if (_currentRoute.isEmpty) return false;
+    return _currentRoute == prefix || _currentRoute.startsWith('$prefix/');
+  }
+
+  bool _shouldHideChrome() {
+    // Screens that should NOT show app chrome (bottom nav / app bar)
+    // because they are full-screen flows or should not be tab-navigable.
+    final hiddenExact = <String>{
+      AppRoutes.login,
+      AppRoutes.signup,
+      AppRoutes.forgotPassword,
+      AppRoutes.resetPassword,
+      AppRoutes.emailVerification,
+      AppRoutes.foodDetail,
+      AppRoutes.cart,
+      AppRoutes.checkout,
+      AppRoutes.payment,
+      AppRoutes.notifications,
+      AppRoutes.search,
+      AppRoutes.privacy,
+      AppRoutes.faq,
+    };
+
+    if (hiddenExact.contains(_currentRoute)) return true;
+
+    // Parameterized routes
+    if (_routeStartsWith('/order-status')) return true;
+
+    return false;
+  }
+
+  bool _shouldShowBottomNav(bool isDesktop) {
+    if (isDesktop) return false;
+    return !_shouldHideChrome();
+  }
+
+  bool _shouldShowAppBar(bool isDesktop, bool isTablet) {
+    if (!(isDesktop || isTablet)) return false;
+    return !_shouldHideChrome();
   }
 
   // ✅ Get current selected index based on route
@@ -175,24 +240,11 @@ class _MainLayoutState extends State<MainLayout> {
     final navItems = isSmallScreen ? _getMobileNavItems() : _getDesktopNavItems();
     if (index >= 0 && index < navItems.length) {
       context.go(navItems[index].route);
-      // Force update route after navigation
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _updateCurrentRoute();
-        }
-      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Update route on every build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _updateCurrentRoute();
-      }
-    });
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSmallScreen = constraints.maxWidth < 600;
@@ -201,8 +253,10 @@ class _MainLayoutState extends State<MainLayout> {
 
         return Consumer<LanguageService>(
           builder: (context, languageService, _) {
+            final showBottomNav = _shouldShowBottomNav(isDesktop);
+            final showAppBar = _shouldShowAppBar(isDesktop, isTablet);
             return Scaffold(
-              appBar: (isDesktop || isTablet) ? _buildAppBar(isDesktop, isTablet, isSmallScreen) : null,
+              appBar: showAppBar ? _buildAppBar(isDesktop, isTablet, isSmallScreen) : null,
               body: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
@@ -213,10 +267,10 @@ class _MainLayoutState extends State<MainLayout> {
                   ),
                 ),
               ),
-              bottomNavigationBar: !isDesktop 
+              bottomNavigationBar: showBottomNav
                   ? _buildBottomNavigation(isSmallScreen, isTablet, isDesktop) 
                   : null,
-              floatingActionButton: isTablet && !isDesktop 
+              floatingActionButton: (isTablet && !isDesktop && showBottomNav)
                   ? _buildFloatingActionButton(isSmallScreen, isTablet) 
                   : null,
               floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -225,6 +279,14 @@ class _MainLayoutState extends State<MainLayout> {
         );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    if (_routerDelegate != null && _routerListener != null) {
+      _routerDelegate!.removeListener(_routerListener!);
+    }
+    super.dispose();
   }
 
   PreferredSizeWidget _buildAppBar(bool isDesktop, bool isTablet, bool isSmallScreen) {
@@ -452,10 +514,6 @@ Widget _buildRightSection(bool isDesktop, bool isTablet) {
         ),
         SizedBox(width: spacing),
       ],
-      Flexible(
-        child: _buildLocationButton(isDesktop, isTablet),
-      ),
-      SizedBox(width: spacing),
       if (showLanguageSelector) ...[
         LanguageSelector(
           showLabel: true,

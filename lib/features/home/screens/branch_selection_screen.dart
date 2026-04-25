@@ -6,19 +6,14 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/services/api_service.dart';
 import 'package:Saborly/core/services/geolocation_service.dart';
 
-// ─────────────────────────────────────────────────────────────
-// Branch coordinates
-// ─────────────────────────────────────────────────────────────
 const _barcelonaLat = 41.3851;
 const _barcelonaLng = 2.1734;
 const _sabadellLat = 41.5433;
 const _sabadellLng = 2.1093;
 
-// ─────────────────────────────────────────────────────────────
-// Screen
-// ─────────────────────────────────────────────────────────────
 class BranchSelectionScreen extends StatefulWidget {
   const BranchSelectionScreen({super.key});
 
@@ -28,28 +23,26 @@ class BranchSelectionScreen extends StatefulWidget {
 
 class _BranchSelectionScreenState extends State<BranchSelectionScreen>
     with SingleTickerProviderStateMixin {
-  // 0 = Barcelona, 1 = Sabadell, null = none
+  List<Map<String, dynamic>> _branches = [];
+  bool _loadingBranches = true;
+  String? _branchLoadError;
   int? _nearestBranchIndex;
   bool _isDetectingLocation = true;
 
-  // Subtle pulse animation for the pre-selected card
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
-
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.028).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-
-    _detectLocation();
+    _loadBranches();
   }
 
   @override
@@ -58,18 +51,39 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
     super.dispose();
   }
 
-  // ── Geolocation ────────────────────────────────────────────
+  Future<void> _loadBranches() async {
+    try {
+      final res = await ApiService().dio.get('/branches/public');
+      final raw = res.data['branches'] as List<dynamic>? ?? [];
+      final list = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      list.sort((a, b) => '${a['name']}'.compareTo('${b['name']}'));
+      if (!mounted) return;
+      setState(() {
+        _branches = list;
+        _loadingBranches = false;
+      });
+      await _detectLocation();
+      if (list.length == 1 && list.first['isActive'] == true) {
+        await _selectBranch('${list.first['_id']}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _branchLoadError = e.toString();
+        _loadingBranches = false;
+      });
+    }
+  }
+
   Future<void> _detectLocation() async {
     if (!kIsWeb) {
       if (mounted) setState(() => _isDetectingLocation = false);
       return;
     }
-
     try {
       final coords = await detectUserLocation();
       if (!mounted) return;
-
-      if (coords != null) {
+      if (coords != null && _branches.length >= 2) {
         final distBarcelona = _haversine(
           coords['lat']!, coords['lng']!,
           _barcelonaLat, _barcelonaLng,
@@ -78,8 +92,26 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
           coords['lat']!, coords['lng']!,
           _sabadellLat, _sabadellLng,
         );
+        int nearest = 0;
+        double best = 1e12;
+        for (var i = 0; i < _branches.length; i++) {
+          final b = _branches[i];
+          final lat = (b['latitude'] as num?)?.toDouble();
+          final lng = (b['longitude'] as num?)?.toDouble();
+          final double d;
+          if (lat != null && lng != null) {
+            d = _haversine(coords['lat']!, coords['lng']!, lat, lng);
+          } else {
+            final n = '${b['name']}'.toLowerCase();
+            d = n.contains('sabadell') ? distSabadell : distBarcelona;
+          }
+          if (d < best) {
+            best = d;
+            nearest = i;
+          }
+        }
         setState(() {
-          _nearestBranchIndex = distBarcelona <= distSabadell ? 0 : 1;
+          _nearestBranchIndex = nearest;
           _isDetectingLocation = false;
         });
       } else {
@@ -90,8 +122,7 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
     }
   }
 
-  double _haversine(
-      double lat1, double lng1, double lat2, double lng2) {
+  double _haversine(double lat1, double lng1, double lat2, double lng2) {
     const r = 6371.0;
     final dLat = _rad(lat2 - lat1);
     final dLng = _rad(lng2 - lng1);
@@ -105,28 +136,11 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
 
   double _rad(double deg) => deg * math.pi / 180;
 
-  // ── Navigation / interactions ───────────────────────────────
-  void _onSelectBranch(int index) {
-    if (index == 0) {
-      // Barcelona — go to main app
-      context.go('/home');
-    } else {
-      // Sabadell — show "Coming Soon" modal, no navigation
-      _showComingSoonModal();
-    }
+  Future<void> _selectBranch(String id) async {
+    await ApiService().setBranchId(id);
+    if (mounted) context.go('/home');
   }
 
-  void _showComingSoonModal() {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      builder: (ctx) => _ComingSoonDialog(
-        onDismiss: () => Navigator.of(ctx).pop(),
-      ),
-    );
-  }
-
-  // ── Build ───────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -136,7 +150,6 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // ── Soft gradient background ──────────────────────
           Positioned.fill(
             child: DecoratedBox(
               decoration: const BoxDecoration(
@@ -153,8 +166,6 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
               ),
             ),
           ),
-
-          // ── Decorative blobs ─────────────────────────────
           Positioned(
             top: -100,
             right: -100,
@@ -171,8 +182,6 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
               color: AppColors.primary.withOpacity(0.05),
             ),
           ),
-
-          // ── Main scroll content ───────────────────────────
           SafeArea(
             child: SingleChildScrollView(
               child: ConstrainedBox(
@@ -189,15 +198,12 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // ── Logo ────────────────────────────
                       Image.asset(
                         'assets/images/logo3.png',
                         height: 56.h,
                         fit: BoxFit.contain,
                       ),
                       SizedBox(height: 44.h),
-
-                      // ── Heading ─────────────────────────
                       Text(
                         'Choose Your Branch',
                         style: GoogleFonts.poppins(
@@ -209,8 +215,6 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
                         textAlign: TextAlign.center,
                       ),
                       SizedBox(height: 12.h),
-
-                      // ── Sub-heading (changes with location state) ─
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 400),
                         child: _isDetectingLocation
@@ -221,11 +225,10 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
                                   SizedBox(
                                     width: 14.w,
                                     height: 14.w,
-                                    child: CircularProgressIndicator(
+                                    child: const CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor:
-                                          const AlwaysStoppedAnimation(
-                                              AppColors.primary),
+                                      valueColor: AlwaysStoppedAnimation(
+                                          AppColors.primary),
                                     ),
                                   ),
                                   SizedBox(width: 8.w),
@@ -250,43 +253,62 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
                                 textAlign: TextAlign.center,
                               ),
                       ),
-
                       SizedBox(height: 52.h),
-
-                      // ── Branch cards ─────────────────────
-                      isWide
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Flexible(
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                        maxWidth: 420),
-                                    child: _buildBarcelonaCard(),
-                                  ),
-                                ),
-                                SizedBox(width: 28.w),
-                                Flexible(
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                        maxWidth: 420),
-                                    child: _buildSabadellCard(),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Column(
-                              children: [
-                                _buildBarcelonaCard(),
-                                SizedBox(height: 20.h),
-                                _buildSabadellCard(),
-                              ],
+                      if (_loadingBranches)
+                        const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: CircularProgressIndicator(),
+                        )
+                      else if (_branchLoadError != null)
+                        Padding(
+                          padding: EdgeInsets.all(16.w),
+                          child: Text(
+                            'Could not load branches. Check connection and try again.\n$_branchLoadError',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13.sp,
+                              color: Colors.redAccent,
                             ),
-
+                          ),
+                        )
+                      else if (_branches.isEmpty)
+                        Text(
+                          'No branches available.',
+                          style: GoogleFonts.poppins(fontSize: 14.sp),
+                        )
+                      else
+                        isWide
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  for (var i = 0; i < _branches.length; i++) ...[
+                                    if (i > 0) SizedBox(width: 28.w),
+                                    Expanded(
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                            maxWidth: 420),
+                                        child: _branchCard(i, _branches[i]),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              )
+                            : Column(
+                                children: _branches
+                                    .asMap()
+                                    .entries
+                                    .map((e) => Padding(
+                                          padding: EdgeInsets.only(
+                                              bottom:
+                                                  e.key < _branches.length - 1
+                                                      ? 20.h
+                                                      : 0),
+                                          child: _branchCard(e.key, e.value),
+                                        ))
+                                    .toList(),
+                              ),
                       SizedBox(height: 52.h),
-
-                      // ── Footer ───────────────────────────
                       Text(
                         '© ${DateTime.now().year} Saborly · Delivering happiness to your door',
                         style: GoogleFonts.poppins(
@@ -305,41 +327,26 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
       ),
     );
   }
-  
 
-  // ── Card builders ───────────────────────────────────────────
-  Widget _buildBarcelonaCard() {
-    final isNearest = _nearestBranchIndex == 0;
+  Widget _branchCard(int index, Map<String, dynamic> b) {
+    final id = '${b['_id']}';
+    final name = '${b['name'] ?? 'Branch'}';
+    final loc = '${b['location'] ?? b['address'] ?? ''}';
+    final active = b['isActive'] == true;
+    final isNearest = _nearestBranchIndex == index;
     return _BranchCard(
-      name: 'Saborly Barcelona',
-      subtitle: 'Sant Martí · Barcelona',
-      address: 'Carrer de Pere IV, 208, Sant Martí, 08005 Barcelona, Spain',
-      iconData: Icons.location_city_rounded,
-      isNearest: isNearest,
-      isComingSoon: false,
-      onTap: () => _onSelectBranch(0),
-      pulseAnimation: isNearest ? _pulseAnimation : null,
-    );
-  }
-
-  Widget _buildSabadellCard() {
-    final isNearest = _nearestBranchIndex == 1;
-    return _BranchCard(
-      name: 'Saborly Sabadell',
-      subtitle: 'Sabadell · Barcelona',
-      address: 'Opening soon — stay tuned!',
+      name: name,
+      subtitle: loc.isNotEmpty ? loc : 'Saborly',
+      address: loc.isNotEmpty ? loc : (b['address']?.toString() ?? ''),
       iconData: Icons.storefront_rounded,
       isNearest: isNearest,
-      isComingSoon: true,
-      onTap: () => _onSelectBranch(1),
-      pulseAnimation: null, // Never pulse for coming soon
+      isComingSoon: !active,
+      onTap: active ? () => _selectBranch(id) : () {},
+      pulseAnimation: isNearest && active ? _pulseAnimation : null,
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Branch card widget
-// ─────────────────────────────────────────────────────────────
 class _BranchCard extends StatefulWidget {
   final String name;
   final String subtitle;
@@ -373,7 +380,9 @@ class _BranchCardState extends State<_BranchCard> {
     Widget card = MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      cursor: SystemMouseCursors.click,
+      cursor: widget.isComingSoon
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
@@ -397,10 +406,8 @@ class _BranchCardState extends State<_BranchCard> {
               BoxShadow(
                 color: widget.isNearest
                     ? AppColors.primary.withOpacity(_hovered ? 0.22 : 0.14)
-                    : Colors.black
-                        .withOpacity(_hovered && !widget.isComingSoon
-                            ? 0.10
-                            : 0.06),
+                    : Colors.black.withOpacity(
+                        _hovered && !widget.isComingSoon ? 0.10 : 0.06),
                 blurRadius: widget.isNearest ? 24 : (_hovered ? 18 : 12),
                 spreadRadius: widget.isNearest ? 2 : 0,
                 offset: const Offset(0, 8),
@@ -410,12 +417,10 @@ class _BranchCardState extends State<_BranchCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Row: icon + badges ───────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon container
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     width: 60.w,
@@ -434,8 +439,6 @@ class _BranchCardState extends State<_BranchCard> {
                           : AppColors.primary,
                     ),
                   ),
-
-                  // Badge column
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -447,7 +450,7 @@ class _BranchCardState extends State<_BranchCard> {
                         ),
                       if (widget.isComingSoon) ...[
                         _Pill(
-                          text: '🚧 Coming Soon',
+                          text: 'Unavailable',
                           bgColor: const Color(0xFFFFF3E0),
                           textColor: const Color(0xFFE65100),
                         ),
@@ -456,10 +459,7 @@ class _BranchCardState extends State<_BranchCard> {
                   ),
                 ],
               ),
-
               SizedBox(height: 22.h),
-
-              // ── Branch name ───────────────────────────────
               Text(
                 widget.name,
                 style: GoogleFonts.poppins(
@@ -479,10 +479,7 @@ class _BranchCardState extends State<_BranchCard> {
                   color: const Color(0xFF9E9E9E),
                 ),
               ),
-
               SizedBox(height: 10.h),
-
-              // ── Address row ───────────────────────────────
               Row(
                 children: [
                   Icon(
@@ -503,19 +500,12 @@ class _BranchCardState extends State<_BranchCard> {
                   ),
                 ],
               ),
-
               SizedBox(height: 24.h),
-
-              // ── Divider ───────────────────────────────────
               const Divider(color: Color(0xFFF2F2F2), thickness: 1, height: 1),
-
               SizedBox(height: 20.h),
-
-              // ── Footer row: status + CTA ──────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Status indicator
                   if (!widget.isComingSoon)
                     Row(
                       children: [
@@ -551,7 +541,7 @@ class _BranchCardState extends State<_BranchCard> {
                         ),
                         SizedBox(width: 6.w),
                         Text(
-                          'Coming soon',
+                          'Inactive',
                           style: GoogleFonts.poppins(
                             fontSize: 13.sp,
                             fontWeight: FontWeight.w500,
@@ -560,8 +550,6 @@ class _BranchCardState extends State<_BranchCard> {
                         ),
                       ],
                     ),
-
-                  // CTA button
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     padding: EdgeInsets.symmetric(
@@ -577,8 +565,7 @@ class _BranchCardState extends State<_BranchCard> {
                           ? []
                           : [
                               BoxShadow(
-                                color:
-                                    AppColors.primary.withOpacity(0.30),
+                                color: AppColors.primary.withOpacity(0.30),
                                 blurRadius: _hovered ? 12 : 6,
                                 offset: const Offset(0, 4),
                               ),
@@ -588,7 +575,7 @@ class _BranchCardState extends State<_BranchCard> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          widget.isComingSoon ? 'Learn more' : 'Order now',
+                          widget.isComingSoon ? '—' : 'Order now',
                           style: GoogleFonts.poppins(
                             fontSize: 13.sp,
                             fontWeight: FontWeight.w600,
@@ -597,14 +584,14 @@ class _BranchCardState extends State<_BranchCard> {
                                 : Colors.white,
                           ),
                         ),
-                        SizedBox(width: 4.w),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 14.sp,
-                          color: widget.isComingSoon
-                              ? const Color(0xFF9E9E9E)
-                              : Colors.white,
-                        ),
+                        if (!widget.isComingSoon) ...[
+                          SizedBox(width: 4.w),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 14.sp,
+                            color: Colors.white,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -616,7 +603,6 @@ class _BranchCardState extends State<_BranchCard> {
       ),
     );
 
-    // Wrap nearest card in pulse animation
     if (widget.pulseAnimation != null) {
       return AnimatedBuilder(
         animation: widget.pulseAnimation!,
@@ -632,139 +618,6 @@ class _BranchCardState extends State<_BranchCard> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Coming Soon dialog
-// ─────────────────────────────────────────────────────────────
-class _ComingSoonDialog extends StatelessWidget {
-  final VoidCallback onDismiss;
-  const _ComingSoonDialog({required this.onDismiss});
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28.r)),
-      elevation: 0,
-      backgroundColor: Colors.white,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 40.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Icon
-            Container(
-              width: 88.w,
-              height: 88.w,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.construction_rounded,
-                size: 44.sp,
-                color: const Color(0xFFFF9800),
-              ),
-            ),
-            SizedBox(height: 24.h),
-
-            // Title
-            Text(
-              'Coming Soon to Saborly Sabadell!',
-              style: GoogleFonts.poppins(
-                fontSize: 22.sp,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF1A1A2E),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 14.h),
-
-            // Body
-            Text(
-              'We\'re working hard to bring Saborly\'s delicious food to Sabadell. '
-              'Our team is setting up the branch and we\'ll be ready very soon!',
-              style: GoogleFonts.poppins(
-                fontSize: 14.sp,
-                color: AppColors.textLight,
-                height: 1.65,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 10.h),
-
-            // Coming soon chip
-            Container(
-              padding:
-                  EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(
-                    color: const Color(0xFFFFCC80), width: 1.2),
-              ),
-              child: Text(
-                '🗓️  Expected opening: Coming soon',
-                style: GoogleFonts.poppins(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFFE65100),
-                ),
-              ),
-            ),
-            SizedBox(height: 32.h),
-
-            // Dismiss button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: onDismiss,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: EdgeInsets.symmetric(vertical: 14.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
-                  shadowColor: AppColors.primary.withOpacity(0.3),
-                ),
-                child: Text(
-                  'Got it, thanks!',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-
-            SizedBox(height: 12.h),
-
-            // Order from Barcelona instead
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                context.go('/home');
-              },
-              child: Text(
-                'Order from Barcelona instead →',
-                style: GoogleFonts.poppins(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Helper widgets
-// ─────────────────────────────────────────────────────────────
 class _Pill extends StatelessWidget {
   final String text;
   final Color bgColor;

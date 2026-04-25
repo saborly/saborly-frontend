@@ -91,21 +91,21 @@ class SearchBarWidgetState extends State<SearchBarWidget> with SingleTickerProvi
               child: Container(
                 height: containerHeight,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  gradient: AppColors.surfaceGradient,
                   borderRadius: BorderRadius.circular(borderRadius),
                   border: Border.all(
                     color: _focusNode.hasFocus
                         ? AppColors.primary
-                        : Colors.grey[300]!,
+                        : AppColors.border,
                     width: _focusNode.hasFocus ? 2.0 : 1.0,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: _focusNode.hasFocus
                           ? AppColors.primary.withOpacity(0.15 * _glowAnimation.value)
-                          : Colors.black.withOpacity(0.04),
-                      blurRadius: _focusNode.hasFocus ? 16.r : 8.r,
-                      offset: Offset(0, _focusNode.hasFocus ? 4.h : 2.h),
+                          : AppColors.shadow.withOpacity(0.35),
+                      blurRadius: _focusNode.hasFocus ? 20.r : 14.r,
+                      offset: Offset(0, _focusNode.hasFocus ? 8.h : 5.h),
                       spreadRadius: _focusNode.hasFocus ? 1 : 0,
                     ),
                   ],
@@ -119,9 +119,9 @@ class SearchBarWidgetState extends State<SearchBarWidget> with SingleTickerProvi
                       padding: EdgeInsets.all(8.w),
                       decoration: BoxDecoration(
                         color: _focusNode.hasFocus
-                            ? AppColors.primary.withOpacity(0.1)
-                            : Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8.r),
+                            ? AppColors.primary.withOpacity(0.14)
+                            : AppColors.accentCream,
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Icon(
                         Icons.search_rounded,
@@ -172,7 +172,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> with SingleTickerProvi
                             child: Container(
                               padding: EdgeInsets.all(6.w),
                               decoration: BoxDecoration(
-                                color: Colors.grey[100],
+                                color: AppColors.accentCream,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -299,8 +299,8 @@ class SearchFeedbackBanner extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primary.withOpacity(0.08),
-                  AppColors.primary.withOpacity(0.03),
+                  AppColors.secondaryLight.withOpacity(0.45),
+                  AppColors.primaryLight.withOpacity(0.25),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -326,8 +326,8 @@ class SearchFeedbackBanner extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.15),
-                        AppColors.primary.withOpacity(0.08),
+                        AppColors.primary.withOpacity(0.12),
+                        AppColors.secondary.withOpacity(0.12),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12.r),

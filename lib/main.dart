@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,7 +25,6 @@ import 'package:Saborly/features/providers/offer_provider.dart';
 import 'package:Saborly/features/providers/order_provider.dart';
 import 'package:Saborly/features/providers/payment_provider.dart';
 import 'package:Saborly/firebase_options.dart';
-import 'package:Saborly/shared/models/notification_model.dart';
 import 'core/routes/app_routes.dart';
 import 'core/services/api_service.dart';
 // REMOVE the maintenance screen import
@@ -57,6 +55,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         iOS: iosSettings,
       ),
     );
+
 
     // Create notification channel for Android
     const androidChannel = AndroidNotificationChannel(
@@ -162,6 +161,7 @@ void main() async {
 
   // Initialize API Service first
   ApiService().initialize();
+  await ApiService().loadBranchFromPrefs();
 
   // Initialize Language Service and sync everything
   final languageService = LanguageService(prefs);
@@ -231,10 +231,9 @@ class FoodKingApp extends StatefulWidget {
 }
 
 class _FoodKingAppState extends State<FoodKingApp> {
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _notificationDialogScheduled = false;
   bool _isDialogShowing = false;
-  late BuildContext _dialogContext;
+  BuildContext? _rootContext;
 
   @override
   void initState() {
@@ -319,10 +318,9 @@ class _FoodKingAppState extends State<FoodKingApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       
-      // Use the navigator key's context
-      final context = _navigatorKey.currentContext;
+      final context = _rootContext;
       if (context == null) {
-        print('🔍 DEBUG: Navigator context is null');
+        print('🔍 DEBUG: Root context is null');
         _isDialogShowing = false;
         return;
       }
@@ -331,7 +329,6 @@ class _FoodKingAppState extends State<FoodKingApp> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext dialogContext) {
-          _dialogContext = dialogContext;
           return NotificationPermissionDialog(
             onAllow: () async {
               print('🔍 DEBUG: User clicked Allow');
@@ -358,7 +355,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
     print('🔍 DEBUG: Checking if should show dialog...');
     
     // TESTING: Force show dialog - uncomment this line for testing
-    return true;
+    // return true;
     
     // Check if user has already been asked
     final permissionAsked = widget.prefs.getBool('notification_permission_asked') ?? false;
@@ -424,7 +421,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
         }
 
         // Show success message
-        final context = _navigatorKey.currentContext;
+        final context = _rootContext;
         if (mounted && context != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -437,7 +434,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
       } else {
         // Permission denied
         print('🔍 DEBUG: Permission denied or provisional');
-        final context = _navigatorKey.currentContext;
+        final context = _rootContext;
         if (mounted && context != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -450,7 +447,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
       }
     } catch (e) {
       print('🔍 DEBUG: Error requesting notification permission: $e');
-      final context = _navigatorKey.currentContext;
+      final context = _rootContext;
       if (mounted && context != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -468,7 +465,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
     widget.prefs.setBool('notification_permission_asked', true);
     print('🔍 DEBUG: Saved permission_asked as true (denied)');
     
-    final context = _navigatorKey.currentContext;
+    final context = _rootContext;
     if (mounted && context != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -609,16 +606,14 @@ class _FoodKingAppState extends State<FoodKingApp> {
                     },
                     routerConfig: AppRoutes.router,
                     builder: (context, child) {
-                      // Store the navigator key in a Navigator widget
-                      return Navigator(
-                        key: _navigatorKey,
-                        onGenerateRoute: (settings) {
-                          return MaterialPageRoute(
-                            builder: (context) => Directionality(
-                              textDirection: languageService.textDirection,
-                              child: AppBackButtonHandler(
-                                child: child ?? const SizedBox(),
-                              ),
+                      return Builder(
+                        builder: (context) {
+                          // Keep a stable context for dialogs/snackbars.
+                          _rootContext = context;
+                          return Directionality(
+                            textDirection: languageService.textDirection,
+                            child: AppBackButtonHandler(
+                              child: child ?? const SizedBox(),
                             ),
                           );
                         },
@@ -635,82 +630,165 @@ class _FoodKingAppState extends State<FoodKingApp> {
   }
 
   ThemeData _buildThemeData() {
+    final baseTextTheme = GoogleFonts.manropeTextTheme().copyWith(
+      displayLarge: GoogleFonts.breeSerif(
+        fontSize: 40.sp,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textDark,
+      ),
+      displayMedium: GoogleFonts.breeSerif(
+        fontSize: 34.sp,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textDark,
+      ),
+      headlineMedium: GoogleFonts.breeSerif(
+        fontSize: 28.sp,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textDark,
+      ),
+      titleLarge: GoogleFonts.breeSerif(
+        fontSize: 22.sp,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textDark,
+      ),
+      titleMedium: GoogleFonts.manrope(
+        fontSize: 17.sp,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textDark,
+      ),
+      bodyLarge: GoogleFonts.manrope(
+        fontSize: 16.sp,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textDark,
+      ),
+      bodyMedium: GoogleFonts.manrope(
+        fontSize: 14.sp,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textMedium,
+      ),
+    );
+
     return ThemeData(
-      primarySwatch: Colors.pink,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.primary,
+        onPrimary: Colors.white,
+        secondary: AppColors.secondary,
+        onSecondary: AppColors.textDark,
+        surface: AppColors.surface,
+        onSurface: AppColors.textDark,
+        error: AppColors.error,
+        onError: Colors.white,
+      ),
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.background,
+      canvasColor: AppColors.background,
+      dividerColor: AppColors.divider,
+      splashColor: AppColors.primary.withOpacity(0.08),
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         iconTheme: const IconThemeData(color: AppColors.textDark),
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: GoogleFonts.breeSerif(
           color: AppColors.textDark,
-          fontSize: 18.sp,
-          fontWeight: FontWeight.w600,
+          fontSize: 20.sp,
+          fontWeight: FontWeight.w700,
         ),
       ),
-      textTheme: GoogleFonts.robotoTextTheme().apply(
-        bodyColor: AppColors.textDark,
-        displayColor: AppColors.textDark,
-      ),
+      textTheme: baseTextTheme,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(20.r),
           ),
-          padding: EdgeInsets.symmetric(vertical: 16.h),
-          textStyle: GoogleFonts.poppins(
+          padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 20.w),
+          textStyle: GoogleFonts.manrope(
             fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primaryDark,
+          side: const BorderSide(color: AppColors.border, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          textStyle: GoogleFonts.manrope(
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: const Color(0xFFFFFBF6),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(20.r),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: Colors.grey[200]!),
+          borderRadius: BorderRadius.circular(20.r),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: const BorderSide(color: AppColors.primary),
+          borderRadius: BorderRadius.circular(20.r),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
         ),
-        hintStyle: GoogleFonts.poppins(
+        hintStyle: GoogleFonts.manrope(
           color: AppColors.textLight,
           fontSize: 14.sp,
+          fontWeight: FontWeight.w500,
         ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 16.h),
       ),
       cardTheme: CardThemeData(
-        color: Colors.white,
-        elevation: 4,
-        // ignore: deprecated_member_use
-        shadowColor: Colors.black.withOpacity(0.1),
+        color: AppColors.cardBackground,
+        elevation: 0,
+        shadowColor: AppColors.shadow,
+        surfaceTintColor: Colors.transparent,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(28.r),
+          side: BorderSide(
+            color: Colors.white.withOpacity(0.92),
+            width: 1.4,
+          ),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.accentNight,
+        contentTextStyle: GoogleFonts.manrope(
+          color: Colors.white,
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w700,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18.r),
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
+        selectedIconTheme: IconThemeData(size: 22.sp),
+        unselectedIconTheme: IconThemeData(size: 20.sp),
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textLight,
         type: BottomNavigationBarType.fixed,
-        elevation: 8,
-        selectedLabelStyle: GoogleFonts.poppins(
+        elevation: 14,
+        selectedLabelStyle: GoogleFonts.manrope(
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelStyle: GoogleFonts.manrope(
           fontSize: 12.sp,
           fontWeight: FontWeight.w500,
-        ),
-        unselectedLabelStyle: GoogleFonts.poppins(
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w400,
         ),
       ),
       useMaterial3: true,

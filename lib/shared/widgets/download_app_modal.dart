@@ -296,7 +296,7 @@ class _DownloadAppModalState extends State<DownloadAppModal>
 
                         // Title
                         Text(
-                          'Download Saborly App',
+                          'Download our app',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
                             fontSize: 28.sp,
@@ -310,7 +310,7 @@ class _DownloadAppModalState extends State<DownloadAppModal>
 
                         // Description
                         Text(
-                          'Order from our mobile app and enjoy an exclusive 20% discount on your first order!',
+                          'Order from our mobile app and save on your first order!',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
                             fontSize: 15.sp,

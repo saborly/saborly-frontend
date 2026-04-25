@@ -109,6 +109,43 @@
   </style>
 </head>
 <body>
+  <script>
+    // Renderer is set in flutter_bootstrap.js via _flutter.loader.load({ renderer: "html" }).
+    // Do not set window.flutterConfiguration — Flutter forbids mixing it with the bootstrap loader.
+
+    // Aggressively unregister any old Flutter service worker that could be
+    // serving stale cached engine artifacts. Keep firebase messaging SW.
+    (async function () {
+      if (!("serviceWorker" in navigator)) return;
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(
+          regs
+            .filter((reg) => {
+              const url =
+                reg.active?.scriptURL ||
+                reg.installing?.scriptURL ||
+                reg.waiting?.scriptURL ||
+                "";
+              return url.includes("flutter_service_worker.js");
+            })
+            .map((reg) => reg.unregister())
+        );
+
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(
+            keys
+              .filter((k) => k.startsWith("flutter-") || k.includes("flutter-app-cache"))
+              .map((k) => caches.delete(k))
+          );
+        }
+      } catch (e) {
+        // best-effort only
+      }
+    })();
+  </script>
+
   <!-- ✅ Optimized Loading Screen -->
   <div id="loading">
     <div class="logo-container">
@@ -120,7 +157,8 @@
   </div>
 
   <!-- Flutter App -->
-  <script src="flutter_bootstrap.js" async></script>
+  <!-- Cache-bust bootstrap to avoid CDN/SW stale copies -->
+  <script src="flutter_bootstrap.js?v=20260414" async></script>
   
   <script>
     // ✅ Fast loading screen removal

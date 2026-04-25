@@ -34,6 +34,7 @@ import '../../shared/models/food_item.dart';
 
 class AppRoutes {
   static const String splash = '/';
+  static const String branchSelect = '/branch-select';
   static const String login = '/login';
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot-password';
@@ -193,6 +194,10 @@ GoRoute(
         builder: (context, state) => kIsWeb
             ? const BranchSelectionScreen()
             : const SplashScreen(),
+      ),
+      GoRoute(
+        path: branchSelect,
+        builder: (context, state) => const BranchSelectionScreen(),
       ),
       GoRoute(
         path: emailVerification,

@@ -26,8 +26,30 @@ class ApiService {
 
   late final Dio _dio;
   String? _authToken;
+  String? _branchId;
   String _currentLanguage = 'es'; // Default language
   Dio get dio => _dio;
+
+  String? get branchId => _branchId;
+
+  Future<void> loadBranchFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    _branchId = prefs.getString('branch_id');
+  }
+
+  Future<void> setBranchId(String id) async {
+    _branchId = id;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('branch_id', id);
+    clearCache();
+  }
+
+  Future<void> clearBranchId() async {
+    _branchId = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('branch_id');
+    clearCache();
+  }
 
   // Response cache for GET requests (5 minutes TTL)
   final Map<String, _CachedResponse> _responseCache = {};
@@ -63,6 +85,10 @@ class ApiService {
           options.headers['Authorization'] = 'Bearer $_authToken';
           // Update last activity timestamp for authenticated requests
           _updateLastActivity();
+        }
+
+        if (_branchId != null && _branchId!.isNotEmpty) {
+          options.headers['X-Branch-Id'] = _branchId;
         }
 
         // ✅ CRITICAL: Always include current language in BOTH header and query
@@ -142,7 +168,7 @@ class ApiService {
   // Generate cache key from request options
   String _getCacheKey(RequestOptions options) {
     final queryParams = options.queryParameters.toString();
-    return '${options.method}:${options.path}:$queryParams';
+    return '${options.method}:${options.path}:$queryParams:${_branchId ?? ''}';
   }
 
   // Clear cache (useful after login/logout)

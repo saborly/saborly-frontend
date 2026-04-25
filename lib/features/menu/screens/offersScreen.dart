@@ -129,14 +129,14 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
   }
 
   int _getCrossAxisCount(double screenWidth) {
-    if (screenWidth < 500) return 2;
+    if (screenWidth < 500) return 1;
     if (screenWidth < 800) return 3;
     if (screenWidth < 1200) return 4;
     return 5;
   }
 
   double _getChildAspectRatio(double screenWidth) {
-    if (_isMobile(screenWidth)) return 0.72;
+    if (_isMobile(screenWidth)) return 1.10;
     if (_isTablet(screenWidth)) return 0.75;
     return 0.78;
   }
@@ -549,6 +549,7 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
           },
           child: FoodItemCard(
             foodItem: foodItem,
+            showDescription: true,
             onTap: () {
               context.push(AppRoutes.foodDetail, extra: foodItem);
             },

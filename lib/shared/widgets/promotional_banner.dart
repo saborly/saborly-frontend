@@ -184,6 +184,7 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
                     key: ValueKey(_banners[i].id),
                     imageUrl: _imageUrl(_banners[i].imageUrl),
                     isMobile: isMobile,
+                    index: i,
                     onTap: () => widget.onBannerTap?.call(_banners[i].link),
                   ),
                 ),
@@ -246,8 +247,15 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
 class _Slide extends StatefulWidget {
   final String imageUrl;
   final bool isMobile;
+  final int index;
   final VoidCallback? onTap;
-  const _Slide({super.key, required this.imageUrl, required this.isMobile, this.onTap});
+  const _Slide({
+    super.key,
+    required this.imageUrl,
+    required this.isMobile,
+    required this.index,
+    this.onTap,
+  });
   @override State<_Slide> createState() => _SlideState();
 }
 
@@ -274,36 +282,42 @@ class _SlideState extends State<_Slide> {
     // container with zero black bars AND zero side-cropping.
     return GestureDetector(
       onTap: widget.onTap,
-      child: Image.network(
-        widget.imageUrl,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        errorBuilder: (_, __, ___) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _error = true);
-          });
-          return const ColoredBox(color: Color(0xFFF0F0F0));
-        },
-        loadingBuilder: (_, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            color: const Color(0xFFEEEEEE),
-            child: Center(
-              child: SizedBox(
-                width: 30, height: 30,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: AppColors.primary,
-                  value: progress.expectedTotalBytes != null
-                      ? progress.cumulativeBytesLoaded /
-                          progress.expectedTotalBytes!
-                      : null,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            widget.imageUrl,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (_, __, ___) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() => _error = true);
+              });
+              return const ColoredBox(color: Color(0xFFF0F0F0));
+            },
+            loadingBuilder: (_, child, progress) {
+              if (progress == null) return child;
+              return Container(
+                color: const Color(0xFFEEEEEE),
+                child: Center(
+                  child: SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: AppColors.primary,
+                      value: progress.expectedTotalBytes != null
+                          ? progress.cumulativeBytesLoaded /
+                              progress.expectedTotalBytes!
+                          : null,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ],
       ),
     );
   }

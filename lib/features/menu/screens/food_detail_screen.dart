@@ -1186,25 +1186,29 @@ double _calculateTotalPrice() {
 }
 
 Widget _buildDesktopBottomBar() {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: _isDesktop ? 48.w : 32.w,
-        vertical: 24.h,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 680.w),
-        child: Row(
-          children: [
+    return SafeArea(
+      top: false,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          horizontal: _isDesktop ? 48.w : 32.w,
+          vertical: 24.h,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 680.w),
+            child: Row(
+              children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -1275,7 +1279,9 @@ Widget _buildDesktopBottomBar() {
                 height: 56.h,
               ),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

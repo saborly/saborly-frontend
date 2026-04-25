@@ -54,6 +54,7 @@ class FeaturedItemsPage extends StatelessWidget {
                           itemBuilder: (context, index) {
                             return FoodItemCard(
                               foodItem: provider.featuredItems[index],
+                              showDescription: true,
                               onTap: () {
                                 _navigateToDetails(context, provider.featuredItems[index]);
                               },
@@ -134,14 +135,14 @@ class FeaturedItemsPage extends StatelessWidget {
     if (screenWidth >= 1200) return 5;
     if (screenWidth >= 900) return 4;
     if (screenWidth >= 600) return 3;
-    return 2;
+    return 1; // phones: bigger cards
   }
 
   double _getAspectRatio(double screenWidth) {
     if (screenWidth >= 1200) return 0.7;
     if (screenWidth >= 900) return 0.72;
     if (screenWidth >= 600) return 0.75;
-    return 0.68;
+    return 1.10; // phones: less-tall card for 1-column grid
   }
 
   void _navigateToDetails(BuildContext context, FoodItem foodItem) {

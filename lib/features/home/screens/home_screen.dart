@@ -19,7 +19,7 @@ import 'package:Saborly/shared/widgets/food_item_card.dart';
 import 'package:Saborly/shared/widgets/language_selector.dart';
 import 'package:Saborly/shared/widgets/offersSection.dart';
 import 'package:Saborly/shared/widgets/ooter.dart';
-import 'package:Saborly/shared/widgets/promotional_banner.dart';
+import 'package:Saborly/shared/widgets/promotional_banner_v2.dart';
 import 'package:Saborly/shared/widgets/search_bar_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   final GlobalKey _searchResultsKey = GlobalKey();
   final TextEditingController _searchController = TextEditingController();
   String _lastProcessedLanguage = '';
-  bool _hasShownModal = false;
+  bool _downloadModalCheckInFlight = false;
   bool _hasLoadedRouteData = false;
 
   @override
@@ -86,30 +86,28 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       if (mounted) setState(() {});
     });
 
-    if (ResponsiveUtils.isWeb(context) && !_hasShownModal) {
-      _checkAndShowModal();
+    if (kIsWeb) {
+      _checkAndShowDownloadModal();
     }
   }
 
-  // ✅ Show modal with minimal delay, independent of data loading
-  Future<void> _checkAndShowModal() async {
-    if (!mounted || _hasShownModal) return;
+  Future<void> _checkAndShowDownloadModal() async {
+    if (!mounted || _downloadModalCheckInFlight) return;
+    _downloadModalCheckInFlight = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastDismissed = prefs.getInt('download_modal_dismissed') ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
 
-    final prefs = await SharedPreferences.getInstance();
-    final lastDismissed = prefs.getInt('download_modal_dismissed') ?? 0;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    
-    // Show if dismissed more than 2 hours ago
-    if (now - lastDismissed > 7200000) {
-      _hasShownModal = true;
-      
-      // Minimal delay - just enough for first frame
+      if (now - lastDismissed <= 7200000) return;
+
       await Future.delayed(const Duration(milliseconds: 300));
-      
-      if (mounted) {
-        await showDownloadAppModal(context);
-        await prefs.setInt('download_modal_dismissed', now);
-      }
+
+      if (!mounted) return;
+      await showDownloadAppModal(context);
+      await prefs.setInt('download_modal_dismissed', now);
+    } finally {
+      _downloadModalCheckInFlight = false;
     }
   }
 
@@ -257,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             SystemNavigator.pop();
           },
           child: Scaffold(
-            backgroundColor: isWeb ? const Color(0xFFFAFAFA) : Colors.white,
+            backgroundColor: AppColors.background,
             appBar: isWeb || isTalet ? null : _buildMobileAppBar(),
             body: Consumer2<HomeProvider, OffersProvider>(
               builder: (context, homeProvider, offersProvider, child) {
@@ -309,9 +307,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                     children: [
                                       // Top spacing: generous after banner on web,
                                       // compact on mobile
-                                      SizedBox(height: isWeb ? 44.h : 20.h),
+                                      SizedBox(height: isWeb ? 28.h : 18.h),
 
-                                      // Mobile search bar (below banner)
+                                      _buildHeroIntro(isWeb),
+
+                                      SizedBox(height: isWeb ? 28.h : 18.h),
+
                                       if (!isWeb) ...[
                                         SearchBarWidget(
                                           controller: _searchController,
@@ -340,7 +341,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           },
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
-                                        _buildCategoriesSlider(homeProvider, context, isWeb),
+                                        _buildShowcaseShell(
+                                          child: _buildCategoriesSlider(homeProvider, context, isWeb),
+                                        ),
                                         SizedBox(height: isWeb ? 48.h : 24.h),
 
                                         _buildSectionHeader(
@@ -349,7 +352,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           onViewAll: () => _navigateToFeaturedPage(context, homeProvider),
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
-                                        _buildFeaturedItems(homeProvider, isSmallScreen, isTablet, isDesktop),
+                                        _buildShowcaseShell(
+                                          child: _buildFeaturedItems(homeProvider, isSmallScreen, isTablet, isDesktop),
+                                        ),
                                         SizedBox(height: isWeb ? 48.h : 24.h),
 
                                         if (offersProvider.itemsWithOffers.isNotEmpty ||
@@ -364,7 +369,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           onViewAll: () => _navigateToPopularPage(context, homeProvider),
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
-                                        _buildPopularItems(homeProvider, isSmallScreen, isTablet, isDesktop),
+                                        _buildShowcaseShell(
+                                          child: _buildPopularItems(homeProvider, isSmallScreen, isTablet, isDesktop),
+                                        ),
                                       ],
 
                                       SizedBox(height: isWeb ? 64.h : 32.h),
@@ -393,18 +400,128 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
+  Widget _buildHeroIntro(bool isWeb) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isWeb ? 28.w : 20.w),
+      decoration: BoxDecoration(
+        gradient: AppColors.heroGradient,
+        borderRadius: BorderRadius.circular(28.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDark.withOpacity(0.22),
+            blurRadius: 24.r,
+            offset: Offset(0, 12.h),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20.w,
+            top: -16.h,
+            child: Container(
+              width: isWeb ? 150.w : 110.w,
+              height: isWeb ? 150.w : 110.w,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Fresh burgers, bold deals',
+                  style: GoogleFonts.manrope(
+                    color: Colors.white,
+                    fontSize: isWeb ? 14.sp : 12.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              SizedBox(height: 14.h),
+              Text(
+                'Crave-worthy meals made to feel fast, warm, and premium.',
+                style: GoogleFonts.breeSerif(
+                  fontSize: isWeb ? 30.sp : 22.sp,
+                  height: 1.15,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                'Browse favorites, jump into offers, and order in a cleaner experience across web and mobile.',
+                style: GoogleFonts.manrope(
+                  fontSize: isWeb ? 15.sp : 13.sp,
+                  height: 1.5,
+                  color: Colors.white.withOpacity(0.84),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Wrap(
+                spacing: 10.w,
+                runSpacing: 10.h,
+                children: const [
+                  _HeroPill(label: 'Fast delivery'),
+                  _HeroPill(label: 'Fresh offers'),
+                  _HeroPill(label: 'Mobile-first flow'),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShowcaseShell({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        gradient: AppColors.surfaceGradient,
+        borderRadius: BorderRadius.circular(28.r),
+        border: Border.all(color: Colors.white.withOpacity(0.95), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withOpacity(0.15),
+            blurRadius: 18.r,
+            offset: Offset(0, 10.h),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
   Widget _buildSearchStatusBanner(HomeProvider provider) {
     final totalResults = provider.searchResults.length;
     
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12.r),
+        gradient: AppColors.surfaceGradient,
+        borderRadius: BorderRadius.circular(18.r),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
+          color: AppColors.border,
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withOpacity(0.18),
+            blurRadius: 14.r,
+            offset: Offset(0, 6.h),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -466,8 +583,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       return _buildNoResultsView();
     }
 
-    int crossAxisCount = isSmallScreen ? 2 : (isTablet ? 3 : 5);
-    double childAspectRatio = isSmallScreen ? 0.75 : (isTablet ? 0.8 : 0.75);
+    int crossAxisCount = isSmallScreen ? 1 : (isTablet ? 3 : 5);
+    double childAspectRatio = isSmallScreen ? 1.10 : (isTablet ? 0.8 : 0.75);
 
     return Column(
       key: _searchResultsKey,
@@ -585,7 +702,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
   PreferredSizeWidget _buildMobileAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       elevation: 0,
       toolbarHeight: 78.h,
       automaticallyImplyLeading: false,
@@ -605,7 +722,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   children: [
                     Icon(
                       Icons.location_on_outlined,
-                      color: AppColors.primary,
+                      color: AppColors.secondary,
                       size: 14.sp,
                     ),
                     SizedBox(width: 4.w),
@@ -687,12 +804,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final selectedAddress = checkoutProvider.selectedAddress;
     if (selectedAddress != null) {
       final label = selectedAddress.type?.trim();
-      final address = selectedAddress.address?.trim();
+      final address = selectedAddress.address.trim();
 
-      if (label != null && label.isNotEmpty && address != null && address.isNotEmpty) {
+      if (label != null && label.isNotEmpty && address.isNotEmpty) {
         return '$label • $address';
       }
-      if (address != null && address.isNotEmpty) {
+      if (address.isNotEmpty) {
         return address;
       }
       if (label != null && label.isNotEmpty) {
@@ -750,9 +867,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
             children: [
               Text(
                 title,
-                style: TextStyle(
+                style: GoogleFonts.breeSerif(
                   fontSize: isWeb ? 32.sp : 24.sp,
-                  fontWeight: FontWeight.w700,
                   color: AppColors.textDark,
                   letterSpacing: -0.5,
                   height: 1.2,
@@ -761,13 +877,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               if (isWeb) ...[
                 SizedBox(height: 8.h),
                 Container(
-                  width: 60.w,
+                  width: 84.w,
                   height: 4.h,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primary.withOpacity(0.5)],
+                      colors: [AppColors.secondary, AppColors.primary],
                     ),
-                    borderRadius: BorderRadius.circular(2.r),
+                    borderRadius: BorderRadius.circular(999.r),
                   ),
                 ),
               ],
@@ -785,17 +901,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   vertical: isWeb ? 12.h : 8.h,
                 ),
                 decoration: BoxDecoration(
-                  color: isWeb ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8.r),
+                  gradient: isWeb ? AppColors.surfaceGradient : null,
+                  color: isWeb ? null : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16.r),
                   border: isWeb ? Border.all(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.border,
                     width: 1.5,
                   ) : null,
                   boxShadow: isWeb ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
+                      color: AppColors.shadow.withOpacity(0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
                     ),
                   ] : null,
                 ),
@@ -803,9 +920,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                   children: [
                     Text(
                       AppStrings.viewAll,
-                      style: TextStyle(
+                      style: GoogleFonts.manrope(
                         fontSize: isWeb ? 16.sp : 14.sp,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w800,
                         color: AppColors.primary,
                       ),
                     ),
@@ -861,8 +978,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
       return const SizedBox.shrink();
     }
 
-    int crossAxisCount = isSmallScreen ? 2 : (isTablet ? 3 : 5);
-    double childAspectRatio = isSmallScreen ? 0.75 : (isTablet ? 0.8 : 0.75);
+    int crossAxisCount = isSmallScreen ? 1 : (isTablet ? 3 : 5);
+    double childAspectRatio = isSmallScreen ? 1.10 : (isTablet ? 0.8 : 0.75);
     int maxItems = isSmallScreen ? 4 : (isTablet ? 6 : 10);
     int itemCount = provider.featuredItems.length > maxItems ? maxItems : provider.featuredItems.length;
 
@@ -902,8 +1019,8 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
     int maxItems = isSmallScreen ? 4 : (isTablet ? 6 : 10);
     int itemCount = provider.popularItems.length > maxItems ? maxItems : provider.popularItems.length;
-    int crossAxisCount = isSmallScreen ? 2 : (isTablet ? 3 : 5);
-    double childAspectRatio = isSmallScreen ? 0.75 : (isTablet ? 0.8 : 0.75);
+    int crossAxisCount = isSmallScreen ? 1 : (isTablet ? 3 : 5);
+    double childAspectRatio = isSmallScreen ? 1.10 : (isTablet ? 0.8 : 0.75);
 
     return GridView.builder(
       shrinkWrap: true,
@@ -926,6 +1043,32 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           },
         );
       },
+    );
+  }
+}
+
+class _HeroPill extends StatelessWidget {
+  final String label;
+
+  const _HeroPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.manrope(
+          color: Colors.white,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -1026,13 +1169,13 @@ class ItemsGridPage extends StatelessWidget {
     if (screenWidth >= 1200) return 5;
     if (screenWidth >= 900) return 4;
     if (screenWidth >= 600) return 3;
-    return 2;
+    return 1; // phones: bigger cards
   }
 
   double _getAspectRatio(double screenWidth) {
     if (screenWidth >= 1200) return 0.7;
     if (screenWidth >= 900) return 0.72;
     if (screenWidth >= 600) return 0.75;
-    return 0.68;
+    return 1.10; // phones: less-tall card for 1-column grid
   }
 }
