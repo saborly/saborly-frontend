@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/features/providers/cart_provider.dart';
+import 'package:Saborly/main.dart';
 import '../models/food_item.dart';
 
 class FoodItemCard extends StatelessWidget {
@@ -729,20 +730,20 @@ class FoodItemCard extends StatelessWidget {
       final effectivePrice = foodItem.getEffectivePriceForPlatform(platform);
       final foodItemWithDiscount = foodItem.copyWith(price: effectivePrice);
       cartProvider.addItem(foodItem: foodItemWithDiscount);
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.clearSnackBars();
-      messenger.showSnackBar(
+      scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+      scaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(
           content: Text(
             AppStrings.get('addedToCart').replaceAll('{itemName}', foodItem.name),
           ),
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 5),
           backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(16.r),
+              topRight: Radius.circular(16.r),
+            ),
           ),
-          margin: EdgeInsets.all(16.w),
           action: SnackBarAction(
             label: AppStrings.get('undo'),
             textColor: Colors.white,
@@ -750,6 +751,11 @@ class FoodItemCard extends StatelessWidget {
           ),
         ),
       );
+
+      // Manual backup dismissal for Web stability
+      Future.delayed(const Duration(seconds: 5), () {
+        scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+      });
     }
   }
 

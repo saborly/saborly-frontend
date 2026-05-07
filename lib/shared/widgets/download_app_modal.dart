@@ -82,8 +82,8 @@ class _DownloadAppModalState extends State<DownloadAppModal>
 
   Future<void> _launchStore(String store) async {
     final urls = {
-      'ios': 'https://apps.apple.com/app/saborly',
-      'android': 'https://play.google.com/store/apps/details?id=com.saborly.app',
+      'ios': 'https://apps.apple.com/pk/app/saborly/id6761368370',
+      'android': 'https://play.google.com/store/apps/details?id=com.saborly.soely',
     };
 
     final url = urls[store];

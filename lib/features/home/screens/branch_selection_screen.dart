@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/services/api_service.dart';
 import 'package:Saborly/core/services/geolocation_service.dart';
@@ -58,11 +59,33 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
       final list = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       list.sort((a, b) => '${a['name']}'.compareTo('${b['name']}'));
       if (!mounted) return;
+
+      // Show branch cards IMMEDIATELY — don't wait for geolocation
       setState(() {
         _branches = list;
         _loadingBranches = false;
       });
-      await _detectLocation();
+
+      // On mobile: if user already has a saved branch, auto-navigate home now
+      if (!kIsWeb) {
+        final savedBranchId = ApiService().branchId;
+        if (savedBranchId != null && savedBranchId.isNotEmpty) {
+          final savedBranch = list.firstWhere(
+            (b) => '${b['_id']}' == savedBranchId && b['isActive'] == true,
+            orElse: () => {},
+          );
+          if (savedBranch.isNotEmpty && mounted) {
+            context.go('/home');
+            return;
+          }
+        }
+        // Mobile: mark location detection done (no geo on mobile)
+        setState(() => _isDetectingLocation = false);
+      } else {
+        // Web: detect location in the background — cards are already visible
+        _detectLocation(); // intentionally unawaited
+      }
+
       if (list.length == 1 && list.first['isActive'] == true) {
         await _selectBranch('${list.first['_id']}');
       }
@@ -76,12 +99,11 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
   }
 
   Future<void> _detectLocation() async {
-    if (!kIsWeb) {
-      if (mounted) setState(() => _isDetectingLocation = false);
-      return;
-    }
+    // Web-only. Mobile is handled separately.
     try {
-      final coords = await detectUserLocation();
+      // Timeout after 4 s so a slow browser GPS never keeps the spinner forever
+      final coords = await detectUserLocation()
+          .timeout(const Duration(seconds: 4), onTimeout: () => null);
       if (!mounted) return;
       if (coords != null && _branches.length >= 2) {
         final distBarcelona = _haversine(
@@ -110,12 +132,14 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
             nearest = i;
           }
         }
-        setState(() {
-          _nearestBranchIndex = nearest;
-          _isDetectingLocation = false;
-        });
+        if (mounted) {
+          setState(() {
+            _nearestBranchIndex = nearest;
+            _isDetectingLocation = false;
+          });
+        }
       } else {
-        setState(() => _isDetectingLocation = false);
+        if (mounted) setState(() => _isDetectingLocation = false);
       }
     } catch (_) {
       if (mounted) setState(() => _isDetectingLocation = false);
@@ -137,6 +161,15 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
   double _rad(double deg) => deg * math.pi / 180;
 
   Future<void> _selectBranch(String id) async {
+    // If switching to a different branch, clear the cart to avoid
+    // stale items from the previous branch blocking order placement.
+    final currentBranchId = ApiService().branchId;
+    if (currentBranchId != null &&
+        currentBranchId.isNotEmpty &&
+        currentBranchId != id) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cart_items');
+    }
     await ApiService().setBranchId(id);
     if (mounted) context.go('/home');
   }
@@ -334,10 +367,24 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
     final loc = '${b['location'] ?? b['address'] ?? ''}';
     final active = b['isActive'] == true;
     final isNearest = _nearestBranchIndex == index;
+
+    // Robust phone fallback
+    String? phone = b['phone']?.toString();
+    final lowerName = name.toLowerCase();
+    if (phone == null || phone.isEmpty || phone == 'null') {
+      if (lowerName.contains('sabadell')) {
+        phone = '669 37 85 28 / 935 35 92 24';
+      } else {
+        // Default to Barcelona/Main
+        phone = '932 11 20 72 / 619 80 70 84';
+      }
+    }
+
     return _BranchCard(
       name: name,
       subtitle: loc.isNotEmpty ? loc : 'Saborly',
       address: loc.isNotEmpty ? loc : (b['address']?.toString() ?? ''),
+      phone: phone,
       iconData: Icons.storefront_rounded,
       isNearest: isNearest,
       isComingSoon: !active,
@@ -351,6 +398,7 @@ class _BranchCard extends StatefulWidget {
   final String name;
   final String subtitle;
   final String address;
+  final String? phone;
   final IconData iconData;
   final bool isNearest;
   final bool isComingSoon;
@@ -361,6 +409,7 @@ class _BranchCard extends StatefulWidget {
     required this.name,
     required this.subtitle,
     required this.address,
+    this.phone,
     required this.iconData,
     required this.isNearest,
     required this.isComingSoon,
@@ -480,6 +529,30 @@ class _BranchCardState extends State<_BranchCard> {
                 ),
               ),
               SizedBox(height: 10.h),
+              if (widget.phone != null && widget.phone!.isNotEmpty) ...[
+                SizedBox(height: 12.h),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.phone_outlined,
+                      size: 14.sp,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(width: 6.w),
+                    Expanded(
+                      child: Text(
+                        widget.phone!,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              SizedBox(height: 8.h),
               Row(
                 children: [
                   Icon(

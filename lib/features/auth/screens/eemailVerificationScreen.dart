@@ -224,30 +224,26 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: List.generate(6, (index) {
         return SizedBox(
-          width: 50.w,
-          height: 60.h,
+          width: 54.w,
+          height: 72.h,
           child: TextField(
             controller: _otpControllers[index],
             focusNode: _focusNodes[index],
             textAlign: TextAlign.center,
+            textAlignVertical: TextAlignVertical.center,
             keyboardType: TextInputType.number,
             maxLength: 1,
+            cursorColor: AppColors.primary,
             style: TextStyle(
-              fontSize: 24.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textDark,
+              fontSize: 26.sp,
+              fontWeight: FontWeight.bold,
+              color: AppColors.accentNight,
             ),
             decoration: InputDecoration(
               counterText: '',
               filled: true,
-              fillColor: AppColors.background,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide(
-                  color: AppColors.border,
-                  width: 1.5,
-                ),
-              ),
+              fillColor: AppColors.accentSand.withOpacity(0.3),
+              contentPadding: EdgeInsets.zero,
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
                 borderSide: BorderSide(

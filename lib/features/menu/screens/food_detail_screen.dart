@@ -9,6 +9,7 @@ import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/core/services/language_service.dart';
 import 'package:Saborly/features/providers/cart_provider.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
+import 'package:Saborly/main.dart';
 import '../../../shared/models/food_item.dart';
 import '../../../shared/widgets/custom_button.dart';
 
@@ -1381,6 +1382,7 @@ Widget _buildDesktopBottomBar() {
 
  void _addToCart() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final foodItem = widget.foodItem;
     
     // Create a copy of the foodItem with the effective price
     final foodItemWithDiscount = widget.foodItem.copyWith(
@@ -1395,29 +1397,32 @@ Widget _buildDesktopBottomBar() {
       specialInstructions: _instructionsController.text.trim(),
     );
     
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.clearSnackBars(); // dismiss any existing toast instantly
-    messenger.showSnackBar(
+    scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+    scaffoldMessengerKey.currentState?.showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle_rounded, color: Colors.white),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Text(
-                '${widget.foodItem.name} added to cart',
-                style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
+        content: Text(
+          AppStrings.get('addedToCart').replaceAll('{itemName}', foodItem.name),
         ),
-        backgroundColor: Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-        margin: EdgeInsets.all(16.w),
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 5),
+        backgroundColor: AppColors.success,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(16.r),
+            topRight: Radius.circular(16.r),
+          ),
+        ),
+        action: SnackBarAction(
+          label: AppStrings.get('undo'),
+          textColor: Colors.white,
+          onPressed: () => cartProvider.removeItem(foodItem.id),
+        ),
       ),
     );
+
+    // Manual backup dismissal for Web stability
+    Future.delayed(const Duration(seconds: 5), () {
+      scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
+    });
     
     context.pop();
   }

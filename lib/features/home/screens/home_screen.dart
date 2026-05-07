@@ -286,13 +286,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // ── Full-width hero banner (SupperClub style) ──
-                            // Placed OUTSIDE the constrained/padded column so
-                            // it spans the entire screen width edge-to-edge.
-                            if (!homeProvider.isInSearchMode)
-                              const DynamicPromotionalBanner(),
-
-                            // ── Constrained content area ───────────────────
                             Center(
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(
@@ -305,6 +298,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
+                                      // ── Promotional Banner (Aligned with content) ──
+                                      if (!homeProvider.isInSearchMode)
+                                        const DynamicPromotionalBanner(),
                                       // Top spacing: generous after banner on web,
                                       // compact on mobile
                                       SizedBox(height: isWeb ? 28.h : 18.h),

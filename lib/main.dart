@@ -31,6 +31,8 @@ import 'core/services/api_service.dart';
 // import 'package:Saborly/shared/screens/maintenance_screen.dart';
 
 @pragma('vm:entry-point')
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (!kIsWeb) {
     await Firebase.initializeApp(
@@ -578,6 +580,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
               child: Consumer<LanguageService>(
                 builder: (context, languageService, _) {
                   return MaterialApp.router(
+                    scaffoldMessengerKey: scaffoldMessengerKey,
                     title: AppStrings.appName,
                     debugShowCheckedModeBanner: false,
                     theme: _buildThemeData(),

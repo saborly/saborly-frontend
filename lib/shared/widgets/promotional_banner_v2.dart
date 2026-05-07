@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/services/banner_service.dart';
@@ -114,8 +115,8 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
 
       _pageCtrl.animateToPage(
         (_currentPage + 1) % _banners.length,
-        duration: const Duration(milliseconds: 520),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOutQuart,
       );
     });
   }
@@ -124,8 +125,8 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
     if (!_pageCtrl.hasClients || _banners.isEmpty) return;
     _pageCtrl.animateToPage(
       index,
-      duration: const Duration(milliseconds: 420),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOutQuart,
     );
   }
 
@@ -149,13 +150,13 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
 
     final isMobile = width < 768;
     if (!isMobile) {
-      if (width >= 1400) return 500;
-      if (width >= 1100) return 430;
-      return 360;
+      if (width >= 1400) return 480;
+      if (width >= 1100) return 400;
+      return 340;
     }
 
-    final ratio = _imageAspectRatio ?? 2.15;
-    return (width / ratio).clamp(220.0, 340.0);
+    final ratio = _imageAspectRatio ?? 2.0;
+    return (width / ratio).clamp(200.0, 320.0);
   }
 
   @override
@@ -165,42 +166,32 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
         final width = constraints.maxWidth;
         final isMobile = width < 768;
         final height = _bannerHeight(width);
-        final horizontalInset = isMobile ? 0.0 : (width >= 1280 ? 24.0 : 16.0);
-        final radius = isMobile ? 0.0 : 30.0;
+        final radius = isMobile ? 16.0 : 32.0;
 
         if (_isLoading) {
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalInset),
-            child: _Shimmer(height: height, radius: radius),
-          );
+          return _Shimmer(height: height, radius: radius);
         }
 
         if (_banners.isEmpty) return const SizedBox.shrink();
 
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontalInset),
-          child: MouseRegion(
-            onEnter: (_) => setState(() => _hovering = true),
-            onExit: (_) => setState(() => _hovering = false),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
+        return MouseRegion(
+          onEnter: (_) => setState(() => _hovering = true),
+          onExit: (_) => setState(() => _hovering = false),
+          child: AnimatedScale(
+            scale: _hovering && !isMobile ? 1.015 : 1.0,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutCubic,
+            child: Container(
               height: height,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFFFF7EF),
-                    Color(0xFFFFE6D1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
                 borderRadius: BorderRadius.circular(radius),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.shadow.withOpacity(isMobile ? 0.12 : 0.22),
-                    blurRadius: isMobile ? 18 : 34,
-                    offset: const Offset(0, 16),
+                    color:
+                        AppColors.primary.withOpacity(isMobile ? 0.05 : 0.15),
+                    blurRadius: isMobile ? 20 : 45,
+                    offset: const Offset(0, 20),
+                    spreadRadius: -10,
                   ),
                 ],
               ),
@@ -227,37 +218,58 @@ class _DynamicPromotionalBannerState extends State<DynamicPromotionalBanner> {
                         );
                       },
                     ),
-                    Positioned(
-                      left: isMobile ? 14 : 24,
-                      right: isMobile ? 14 : 24,
-                      bottom: isMobile ? 12 : 20,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: _BottomIndicators(
+
+                    // Gradient Overlay for readability
+                    IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.3),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.4],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Navigation Controls
+                    if (_banners.length > 1)
+                      Positioned(
+                        left: isMobile ? 16 : 24,
+                        right: isMobile ? 16 : 24,
+                        bottom: isMobile ? 16 : 24,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _BottomIndicators(
                               total: _banners.length,
                               current: _currentPage,
                               onTap: _animateTo,
                             ),
-                          ),
-                          if (_banners.length > 1 && !isMobile) ...[
-                            const SizedBox(width: 16),
-                            _ArrowButton(
-                              icon: Icons.arrow_back_rounded,
-                              visible: _hovering,
-                              onTap: _prev,
-                            ),
-                            const SizedBox(width: 10),
-                            _ArrowButton(
-                              icon: Icons.arrow_forward_rounded,
-                              visible: _hovering,
-                              onTap: _next,
-                            ),
+                            if (!isMobile)
+                              Row(
+                                children: [
+                                  _GlassButton(
+                                    icon: Icons.chevron_left_rounded,
+                                    visible: _hovering,
+                                    onTap: _prev,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _GlassButton(
+                                    icon: Icons.chevron_right_rounded,
+                                    visible: _hovering,
+                                    onTap: _next,
+                                  ),
+                                ],
+                              ),
                           ],
-                        ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -293,14 +305,17 @@ class _SlideState extends State<_Slide> {
   @override
   Widget build(BuildContext context) {
     if (_error) {
-      return DecoratedBox(
-        decoration: const BoxDecoration(color: Color(0xFFF2E1CF)),
-        child: Center(
-          child: Icon(
-            Icons.image_not_supported_outlined,
-            color: AppColors.textLight.withOpacity(0.8),
-            size: 52,
-          ),
+      return Container(
+        color: const Color(0xFFF9F1EA),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.image_not_supported_outlined,
+                color: AppColors.textLight, size: 48),
+            const SizedBox(height: 12),
+            Text("Image unavailable",
+                style: TextStyle(color: AppColors.textLight, fontSize: 14)),
+          ],
         ),
       );
     }
@@ -309,50 +324,22 @@ class _SlideState extends State<_Slide> {
       color: Colors.transparent,
       child: InkWell(
         onTap: widget.onTap,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              widget.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) setState(() => _error = true);
-                });
-                return const ColoredBox(color: Color(0xFFF3E6D7));
-              },
-              loadingBuilder: (_, child, progress) {
-                if (progress == null) return child;
-                return const ColoredBox(color: Color(0xFFF4E7D9));
-              },
-            ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.black.withOpacity(0.10),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.05),
-                  ],
-                  stops: const [0.0, 0.55, 1.0],
-                ),
-              ),
-            ),
-            Positioned(
-              top: widget.isMobile ? -36 : -28,
-              right: widget.isMobile ? -44 : 34,
-              child: Container(
-                width: widget.isMobile ? 120 : 156,
-                height: widget.isMobile ? 120 : 156,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFFE3C8).withOpacity(0.72),
-                ),
-              ),
-            ),
-          ],
+        splashColor: Colors.white.withOpacity(0.1),
+        highlightColor: Colors.transparent,
+        child: Image.network(
+          widget.imageUrl,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (_, __, ___) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _error = true);
+            });
+            return const SizedBox.shrink();
+          },
+          loadingBuilder: (_, child, progress) {
+            if (progress == null) return child;
+            return Container(color: const Color(0xFFFBF4EE));
+          },
         ),
       ),
     );
@@ -372,55 +359,42 @@ class _BottomIndicators extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.88),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow.withOpacity(0.12),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(total, (index) {
-            final isActive = index == current;
-            return GestureDetector(
-              onTap: () => onTap(index),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 240),
-                curve: Curves.easeOutCubic,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: isActive ? 26 : 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? AppColors.primary
-                      : AppColors.primaryLight.withOpacity(0.75),
-                  borderRadius: BorderRadius.circular(999),
-                ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(total, (index) {
+          final isActive = index == current;
+          return GestureDetector(
+            onTap: () => onTap(index),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: isActive ? 24 : 8,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isActive ? Colors.white : Colors.white.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(4),
               ),
-            );
-          }),
-        ),
+            ),
+          );
+        }),
       ),
     );
   }
 }
 
-class _ArrowButton extends StatelessWidget {
+class _GlassButton extends StatelessWidget {
   final IconData icon;
   final bool visible;
   final VoidCallback onTap;
 
-  const _ArrowButton({
+  const _GlassButton({
     required this.icon,
     required this.visible,
     required this.onTap,
@@ -428,32 +402,26 @@ class _ArrowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      ignoring: !visible,
-      child: AnimatedOpacity(
-        opacity: visible ? 1 : 0,
-        duration: const Duration(milliseconds: 220),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: onTap,
-            child: Ink(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFFFE3C7)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.16),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+    return AnimatedOpacity(
+      opacity: visible ? 1 : 0,
+      duration: const Duration(milliseconds: 300),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Material(
+            color: Colors.white.withOpacity(0.25),
+            child: InkWell(
+              onTap: onTap,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 24),
               ),
-              child: Icon(icon, color: AppColors.textDark, size: 20),
             ),
           ),
         ),
@@ -484,7 +452,7 @@ class _ShimmerState extends State<_Shimmer>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 1800),
     )..repeat();
   }
 
@@ -499,31 +467,28 @@ class _ShimmerState extends State<_Shimmer>
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (_, __) {
-        final value = _ctrl.value;
-        return SizedBox(
+        return Container(
           height: widget.height,
           width: double.infinity,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.radius),
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: const [
-                  Color(0xFFEBD7C4),
-                  Color(0xFFF3E5D7),
-                  Color(0xFFFFF4EA),
-                  Color(0xFFF3E5D7),
-                  Color(0xFFEBD7C4),
-                ],
-                stops: [
-                  (value - 0.50).clamp(0.0, 1.0),
-                  (value - 0.25).clamp(0.0, 1.0),
-                  value.clamp(0.0, 1.0),
-                  (value + 0.25).clamp(0.0, 1.0),
-                  (value + 0.50).clamp(0.0, 1.0),
-                ],
-              ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.radius),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: const [
+                Color(0xFFF7EFE8),
+                Color(0xFFFBF4EE),
+                Color(0xFFFFF9F3),
+                Color(0xFFFBF4EE),
+                Color(0xFFF7EFE8),
+              ],
+              stops: [
+                (_ctrl.value - 0.4).clamp(0.0, 1.0),
+                (_ctrl.value - 0.2).clamp(0.0, 1.0),
+                _ctrl.value.clamp(0.0, 1.0),
+                (_ctrl.value + 0.2).clamp(0.0, 1.0),
+                (_ctrl.value + 0.4).clamp(0.0, 1.0),
+              ],
             ),
           ),
         );

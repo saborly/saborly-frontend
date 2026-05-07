@@ -144,8 +144,16 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
       return '0';
     }
 
+    final branchName = order.branchName?.toLowerCase() ?? '';
+    final isSabadell = branchName.contains('sabadell');
+    final defaultTime = isSabadell ? '45' : '30';
+    
+    // For Sabadell, we allow up to 60 mins before falling back to default
+    // For others (Barcelona), we allow up to 40 mins
+    final maxDisplayTime = isSabadell ? 60 : 40;
+
     if (order.estimatedDeliveryTime == null) {
-      return '30-40';
+      return defaultTime;
     }
 
     final difference = order.estimatedDeliveryTime!.difference(_currentTime);
@@ -159,10 +167,10 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
       return '0';
     } else if (minutes <= 5) {
       return '5';
-    } else if (minutes <= 40) {
+    } else if (minutes <= maxDisplayTime) {
       return '$minutes';
     } else {
-      return '30-40';
+      return defaultTime;
     }
   }
 

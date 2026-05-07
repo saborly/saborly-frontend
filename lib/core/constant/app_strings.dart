@@ -1299,6 +1299,8 @@ class AppStrings {
       'noCategoriesAvailable': 'No hay categorías disponibles',
       'noFoodItemsAvailable': 'No hay elementos de comida disponibles',
       'discoverOfferings': 'Descubre nuestras deliciosas ofertas',
+      'addedToCart': '{itemName} añadido al carrito',
+      'undo': 'Deshacer',
      
       'popular': 'Popular',
       'appLogo': 'Logotipo de la Aplicación',
@@ -1563,7 +1565,6 @@ class AppStrings {
   "markAllAsRead": "Marcar todo como leído",
   "allNotificationsMarkedAsRead": "Todas las notificaciones marcadas como leídas",
   "notificationDeleted": "Notificación eliminada",
-  "undo": "Deshacer",
   "clearAllNotifications": "Borrar todas las notificaciones",
   "areYouSureYouWantToClearAllNotifications": "¿Estás seguro de que quieres borrar todas las notificaciones?",
   "allNotificationsCleared": "Todas las notificaciones borradas",

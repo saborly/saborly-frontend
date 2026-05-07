@@ -399,6 +399,14 @@ class ProfileScreen extends StatelessWidget {
         },
       ),
       ProfileMenuItem(
+        icon: Icons.store_mall_directory_outlined,
+        title: 'Change Branch',
+        subtitle: 'Switch to a different branch',
+        onTap: () {
+          context.go(AppRoutes.branchSelect);
+        },
+      ),
+      ProfileMenuItem(
         icon: Icons.notifications,
         title: AppStrings.get('notifications'),
         subtitle: AppStrings.get('notificationPreferences'),

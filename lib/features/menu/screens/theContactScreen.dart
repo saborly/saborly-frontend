@@ -412,11 +412,31 @@ Future<void> _submitForm() async {
           title: AppStrings.get('callUs'),
           icon: Icons.phone,
           children: [
-            _buildInfoItem(
-              icon: Icons.phone_in_talk,
-              text: '+34932112072',
-              isWeb: isWeb,
+            Text(
+              'Sabadell',
+              style: TextStyle(
+                fontSize: isWeb ? 15.sp : 13.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
             ),
+            SizedBox(height: 8.h),
+            _buildPhoneItem(icon: Icons.phone_in_talk, phone: '669 37 85 28', isWeb: isWeb),
+            SizedBox(height: 8.h),
+            _buildPhoneItem(icon: Icons.phone_in_talk, phone: '935 35 92 24', isWeb: isWeb),
+            SizedBox(height: 16.h),
+            Text(
+              'Barcelona',
+              style: TextStyle(
+                fontSize: isWeb ? 15.sp : 13.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            _buildPhoneItem(icon: Icons.phone_in_talk, phone: '932 11 20 72', isWeb: isWeb),
+            SizedBox(height: 8.h),
+            _buildPhoneItem(icon: Icons.phone_in_talk, phone: '619 80 70 84', isWeb: isWeb),
             SizedBox(height: 12.h),
             _buildInfoItem(
               icon: Icons.access_time,
@@ -538,6 +558,34 @@ Future<void> _submitForm() async {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPhoneItem({
+    required IconData icon,
+    required String phone,
+    required bool isWeb,
+  }) {
+    final dialNumber = phone.replaceAll(' ', '');
+    return InkWell(
+      onTap: () => _launchUrl('tel:$dialNumber'),
+      borderRadius: BorderRadius.circular(8.r),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 20.sp),
+          SizedBox(width: 12.w),
+          Text(
+            phone,
+            style: TextStyle(
+              fontSize: isWeb ? 16.sp : 14.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+              decoration: TextDecoration.underline,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

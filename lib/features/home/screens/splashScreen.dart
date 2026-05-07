@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
-import 'package:Saborly/core/services/api_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -95,14 +94,9 @@ class _SplashScreenState extends State<SplashScreen>
     // Wait a bit for visual appeal
     await Future.delayed(const Duration(milliseconds: 1500));
     
-    // Check auth status and navigate
+    // Always show branch selection screen (landing page)
     if (mounted) {
-      final bid = ApiService().branchId;
-      if (bid == null || bid.isEmpty) {
-        context.go('/branch-select');
-      } else {
-        context.go('/home');
-      }
+      context.go('/branch-select');
     }
   }
 
