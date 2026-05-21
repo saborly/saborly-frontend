@@ -1,49 +1,226 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Order delicious food online from Saborly - Fast delivery, great taste!">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  
-  <!-- Preconnect to improve performance -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://firebasestorage.googleapis.com">
-  
-  <!-- ✅ Preload logo for instant display -->
-  <link rel="preload" href="assets/assets/images/logo3.png" as="image">
-  
-  <!-- iOS meta tags & icons -->
+
+  <!-- ═══════════════════════════════════════════
+       PRIMARY SEO
+  ═══════════════════════════════════════════ -->
+  <title>Saborly – Comida Halal a Domicilio en Barcelona y Sabadell</title>
+  <meta name="description" content="Pide comida halal online en Saborly. Pizzas, burgers, combos y más con entrega a domicilio o recogida en Barcelona (Poblenou) y Sabadell. ¡Rápido, fácil y delicioso!">
+  <meta name="keywords" content="comida halal barcelona, comida halal sabadell, pizza halal, burger halal, comida a domicilio barcelona, saborly, pedido online halal, pollo halal, comida para llevar">
+  <meta name="author" content="Saborly">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#FF1744">
+  <link rel="canonical" href="https://saborly.es/">
+
+  <!-- ═══════════════════════════════════════════
+       OPEN GRAPH (Facebook / WhatsApp / LinkedIn)
+  ═══════════════════════════════════════════ -->
+  <meta property="og:type" content="restaurant">
+  <meta property="og:site_name" content="Saborly">
+  <meta property="og:title" content="Saborly – Comida Halal a Domicilio en Barcelona y Sabadell">
+  <meta property="og:description" content="Pide pizzas, burgers y combos halal online. Entrega a domicilio o recogida en Barcelona (Poblenou) y Sabadell. ¡100% Halal certificado!">
+  <meta property="og:url" content="https://saborly.es/">
+  <meta property="og:image" content="https://saborly.es/assets/assets/images/logo3.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Saborly – Comida Halal">
+  <meta property="og:locale" content="es_ES">
+  <meta property="og:locale:alternate" content="en_GB">
+  <meta property="og:locale:alternate" content="ar_AR">
+  <meta property="og:locale:alternate" content="fr_FR">
+
+  <!-- ═══════════════════════════════════════════
+       TWITTER CARD
+  ═══════════════════════════════════════════ -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Saborly – Comida Halal a Domicilio">
+  <meta name="twitter:description" content="Pide comida halal online: pizzas, burgers, combos. Entrega en Barcelona y Sabadell.">
+  <meta name="twitter:image" content="https://saborly.es/assets/assets/images/logo3.png">
+  <meta name="twitter:image:alt" content="Saborly – Comida Halal">
+
+  <!-- ═══════════════════════════════════════════
+       GEO / LOCAL SEO
+  ═══════════════════════════════════════════ -->
+  <meta name="geo.region" content="ES-CT">
+  <meta name="geo.placename" content="Barcelona, Sabadell">
+  <meta name="geo.position" content="41.3851;2.1734">
+  <meta name="ICBM" content="41.3851, 2.1734">
+
+  <!-- ═══════════════════════════════════════════
+       PWA / APPLE
+  ═══════════════════════════════════════════ -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Saborly">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>Saborly - Order Food Online</title>
   <link rel="manifest" href="manifest.json">
-  
+
+  <!-- ═══════════════════════════════════════════
+       FAVICON
+  ═══════════════════════════════════════════ -->
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png">
+
+  <!-- ═══════════════════════════════════════════
+       PERFORMANCE
+  ═══════════════════════════════════════════ -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://api.saborly.es">
+  <link rel="dns-prefetch" href="https://api.saborly.es">
+  <link rel="preload" href="assets/assets/images/logo3.png" as="image">
+
+  <!-- ═══════════════════════════════════════════
+       STRUCTURED DATA – Restaurant (JSON-LD)
+  ═══════════════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    "name": "Saborly",
+    "alternateName": "Saborly Halal",
+    "url": "https://saborly.es",
+    "logo": "https://saborly.es/assets/assets/images/logo3.png",
+    "image": "https://saborly.es/assets/assets/images/logo3.png",
+    "description": "Restaurante de comida halal con entrega a domicilio y recogida en Barcelona (Poblenou) y Sabadell. Pizzas, burgers, combos y más, 100% certificado halal.",
+    "servesCuisine": ["Halal", "Pizza", "Burger", "Mediterranean", "Fast Food"],
+    "priceRange": "€€",
+    "currenciesAccepted": "EUR",
+    "paymentAccepted": "Cash, Credit Card",
+    "hasMenu": "https://saborly.es/menu",
+    "telephone": "+34932112072",
+    "email": "info@saborly.es",
+    "sameAs": [
+      "https://saborly.es"
+    ],
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "C/ de Pere IV, 208",
+      "addressLocality": "Barcelona",
+      "addressRegion": "Cataluña",
+      "postalCode": "08005",
+      "addressCountry": "ES"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 41.3851,
+      "longitude": 2.1734
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+        "opens": "11:00",
+        "closes": "23:00"
+      }
+    ],
+    "areaServed": [
+      {
+        "@type": "City",
+        "name": "Barcelona"
+      },
+      {
+        "@type": "City",
+        "name": "Sabadell"
+      }
+    ],
+    "potentialAction": {
+      "@type": "OrderAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://saborly.es/menu",
+        "inLanguage": "es",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/MobileWebPlatform"
+        ]
+      },
+      "deliveryMethod": ["http://purl.org/goodrelations/v1#DeliveryModeOwnFleet"],
+      "result": {
+        "@type": "Order",
+        "orderStatus": "http://schema.org/OrderProcessing"
+      }
+    }
+  }
+  </script>
+
+  <!-- Breadcrumb structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Inicio",
+        "item": "https://saborly.es/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Menú",
+        "item": "https://saborly.es/menu"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Ofertas",
+        "item": "https://saborly.es/offer"
+      }
+    ]
+  }
+  </script>
+
+  <!-- WebSite with SearchAction -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Saborly",
+    "url": "https://saborly.es",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://saborly.es/search?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- ═══════════════════════════════════════════
+       LOADING SCREEN STYLES
+  ═══════════════════════════════════════════ -->
   <style>
-    /* ✅ Optimized loading screen */
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       background-color: #ffffff;
-      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    
+
+    /* Hidden SEO content — visible to crawlers, hidden visually until Flutter loads */
+    #seo-content {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+    }
+
     #loading {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background-color: #ffffff;
       display: flex;
       flex-direction: column;
@@ -52,13 +229,12 @@
       z-index: 9999;
       transition: opacity 0.3s ease-out;
     }
-    
+
     #loading.fade-out {
       opacity: 0;
       pointer-events: none;
     }
-    
-    /* ✅ Use img tag for faster logo rendering */
+
     .logo-container {
       width: 160px;
       height: 80px;
@@ -67,14 +243,13 @@
       justify-content: center;
       align-items: center;
     }
-    
+
     .logo-container img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
     }
-    
-    /* ✅ Smaller, faster loader */
+
     .loader {
       width: 40px;
       height: 40px;
@@ -83,38 +258,83 @@
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-    
+
     .loading-text {
       margin-top: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       font-size: 14px;
       color: #666;
       font-weight: 500;
     }
-    
+
     @keyframes spin {
-      0% { transform: rotate(0deg); }
+      0%   { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    
-    /* ✅ Smooth Flutter app appearance */
+
     flutter-view {
       opacity: 0;
       transition: opacity 0.2s ease-in;
     }
-    
+
     flutter-view.loaded {
       opacity: 1;
     }
   </style>
 </head>
 <body>
-  <script>
-    // Renderer is set in flutter_bootstrap.js via _flutter.loader.load({ renderer: "html" }).
-    // Do not set window.flutterConfiguration — Flutter forbids mixing it with the bootstrap loader.
 
-    // Aggressively unregister any old Flutter service worker that could be
-    // serving stale cached engine artifacts. Keep firebase messaging SW.
+  <!-- ═══════════════════════════════════════════
+       SEO FALLBACK CONTENT (crawlers read this)
+  ═══════════════════════════════════════════ -->
+  <div id="seo-content" aria-hidden="true">
+    <header>
+      <h1>Saborly – Comida Halal a Domicilio en Barcelona y Sabadell</h1>
+      <nav>
+        <a href="https://saborly.es/menu">Menú</a>
+        <a href="https://saborly.es/offer">Ofertas</a>
+        <a href="https://saborly.es/#/about">Sobre Nosotros</a>
+        <a href="https://saborly.es/#/contact">Contacto</a>
+      </nav>
+    </header>
+    <main>
+      <section>
+        <h2>Pide comida halal online – rápido y fácil</h2>
+        <p>Saborly ofrece entrega a domicilio y recogida en tienda de comida halal certificada en Barcelona (Poblenou) y Sabadell. Disfruta de nuestras pizzas, burgers, combos y mucho más.</p>
+      </section>
+      <section>
+        <h2>Nuestras especialidades</h2>
+        <ul>
+          <li>Pizza Halal – Pollo Especial, Pepperoni Halal y más</li>
+          <li>Burgers Halal – Zinger Burger, Crispy Chicken</li>
+          <li>Combos familiares con bebida incluida</li>
+          <li>Entrega a domicilio en Barcelona y Sabadell</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Ofertas especiales</h2>
+        <p>Descubre nuestros combos exclusivos: The Saborly Special Combo desde 21.90€ y The Ultimate Family Deal desde 29.90€. ¡Comida halal de calidad al mejor precio!</p>
+        <a href="https://saborly.es/offer">Ver todas las ofertas</a>
+      </section>
+      <section>
+        <h2>Nuestras sucursales</h2>
+        <address>
+          <strong>Barcelona – Sant Martí</strong><br>
+          C/ de Pere IV, 208, Sant Martí, 08005 Barcelona, España<br>
+          Tel: <a href="tel:+34932112072">34 932112072</a><br>
+          Email: <a href="mailto:info@saborly.es">info@saborly.es</a>
+        </address>
+        <address>
+          <strong>Sabadell</strong><br>
+          Sabadell, Cataluña, España
+        </address>
+      </section>
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       STALE SERVICE WORKER CLEANUP
+  ═══════════════════════════════════════════ -->
+  <script>
     (async function () {
       if (!("serviceWorker" in navigator)) return;
       try {
@@ -122,16 +342,11 @@
         await Promise.all(
           regs
             .filter((reg) => {
-              const url =
-                reg.active?.scriptURL ||
-                reg.installing?.scriptURL ||
-                reg.waiting?.scriptURL ||
-                "";
+              const url = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || "";
               return url.includes("flutter_service_worker.js");
             })
             .map((reg) => reg.unregister())
         );
-
         if ("caches" in window) {
           const keys = await caches.keys();
           await Promise.all(
@@ -140,65 +355,47 @@
               .map((k) => caches.delete(k))
           );
         }
-      } catch (e) {
-        // best-effort only
-      }
+      } catch (e) {}
     })();
   </script>
 
-  <!-- ✅ Optimized Loading Screen -->
+  <!-- Loading Screen -->
   <div id="loading">
     <div class="logo-container">
-      <!-- ✅ Direct img tag for faster loading -->
-      <img src="assets/assets/images/logo3.png" alt="Saborly Logo" onerror="this.style.display='none'">
+      <img src="assets/assets/images/logo3.png" alt="Saborly – Comida Halal" width="160" height="80">
     </div>
     <div class="loader"></div>
-    <div class="loading-text">Loading...</div>
+    <div class="loading-text">Cargando…</div>
   </div>
 
-  <!-- Flutter App -->
-  <!-- Cache-bust bootstrap to avoid CDN/SW stale copies -->
-  <script src="flutter_bootstrap.js?v=20260414" async></script>
-  
+  <!-- Flutter Bootstrap -->
+  <script src="flutter_bootstrap.js?v=20260521" async></script>
+
   <script>
-    // ✅ Fast loading screen removal
-    window.addEventListener('flutter-first-frame', function() {
+    window.addEventListener('flutter-first-frame', function () {
       const loading = document.getElementById('loading');
       const flutterView = document.querySelector('flutter-view');
-      
+
       if (loading) {
         loading.classList.add('fade-out');
-        setTimeout(() => {
-          loading.remove();
-          document.body.style.overflow = 'auto';
-        }, 300);
+        setTimeout(() => { loading.remove(); document.body.style.overflow = 'auto'; }, 300);
       }
-      
-      if (flutterView) {
-        flutterView.classList.add('loaded');
-      }
+      if (flutterView) flutterView.classList.add('loaded');
     });
-    
-    // ✅ Reduced fallback timeout to 5 seconds
-    setTimeout(function() {
+
+    // Fallback: remove loading screen after 6s even if flutter-first-frame never fires
+    setTimeout(function () {
       const loading = document.getElementById('loading');
       if (loading && loading.parentNode) {
         loading.classList.add('fade-out');
-        setTimeout(() => {
-          if (loading.parentNode) {
-            loading.remove();
-            document.body.style.overflow = 'auto';
-          }
-        }, 300);
+        setTimeout(() => { if (loading.parentNode) { loading.remove(); document.body.style.overflow = 'auto'; } }, 300);
       }
-    }, 5000);
-    
-    // ✅ Service Worker registration (non-blocking)
+    }, 6000);
+
     // Register FCM Service Worker (non-blocking)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/firebase-messaging-sw.js')
-          .then(reg => console.log('FCM SW registered:', reg.scope))
           .catch(err => console.warn('SW registration failed:', err));
       });
     }

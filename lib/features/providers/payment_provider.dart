@@ -178,6 +178,14 @@ class PaymentProvider extends ChangeNotifier {
         }
       }
 
+      // Check first-order mobile discount eligibility (mobile only, non-web)
+      final String deviceId = _offersProvider?.deviceId ?? '';
+      bool applyFirstOrderDiscount = false;
+      if (!kIsWeb && deviceId.isNotEmpty) {
+        final eligibility = await ApiService().checkFirstOrderDiscount(deviceId);
+        applyFirstOrderDiscount = eligibility['eligible'] == true;
+      }
+
       // Create order
       final success = await _orderProvider!.createOrder(
         items: _cartProvider!.items,
@@ -190,6 +198,9 @@ class PaymentProvider extends ChangeNotifier {
         codPaymentType: _codPaymentType,
         deliveryFee: deliveryFee,
         specialInstructions: _specialInstructions,
+        deviceId: deviceId.isNotEmpty ? deviceId : null,
+        platform: kIsWeb ? 'web' : 'mobile',
+        applyFirstOrderDiscount: applyFirstOrderDiscount,
       );
 
       if (!success) {

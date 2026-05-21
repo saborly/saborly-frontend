@@ -850,7 +850,14 @@ class ApiService {
 
       if (response.statusCode == 201 && response.data['order'] != null) {
         final order = Order.fromMap(response.data['order']);
-        return ApiResponse.success(order, statusCode: response.statusCode);
+        return ApiResponse.success(
+          order,
+          statusCode: response.statusCode,
+          rawData: {
+            'firstOrderDiscountApplied': response.data['firstOrderDiscountApplied'] ?? false,
+            'discountAmount': response.data['discountAmount'],
+          },
+        );
       }
       return ApiResponse.error('Failed to create order: Invalid response',
           statusCode: response.statusCode);
@@ -864,6 +871,22 @@ class ApiService {
       return ApiResponse.error('Network error: ${e.message}');
     } catch (e) {
       return ApiResponse.error('Unexpected error occurred: $e');
+    }
+  }
+
+  /// Check whether the current mobile user is eligible for the first-order 20% discount.
+  Future<Map<String, dynamic>> checkFirstOrderDiscount(String deviceId) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.orders}/first-order-discount/check',
+        queryParameters: {'deviceId': deviceId},
+      );
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data);
+      }
+      return {'eligible': false};
+    } catch (_) {
+      return {'eligible': false};
     }
   }
 

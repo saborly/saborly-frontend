@@ -10,6 +10,7 @@ import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/core/services/api_service.dart';
 import 'package:Saborly/features/providers/cart_provider.dart';
 import 'package:Saborly/features/providers/checkout_provider.dart';
+import 'package:Saborly/features/providers/offer_provider.dart';
 import 'package:Saborly/features/providers/order_provider.dart';
 import 'package:Saborly/features/providers/payment_provider.dart';
 import '../../../core/routes/app_routes.dart';
@@ -26,6 +27,8 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController _addressController = TextEditingController();
+  bool _firstOrderDiscountEligible = false;
+
 @override
 void initState() {
   super.initState();
@@ -38,7 +41,7 @@ void initState() {
 
     // ✅ CRITICAL: Check delivery availability AND restaurant hours FIRST
     await checkoutProvider.checkDeliveryAvailability();
-    
+
     // ✅ NEW: Start monitoring restaurant hours
     checkoutProvider.startHoursMonitoring();
 
@@ -48,6 +51,19 @@ void initState() {
 
     // Update delivery fee based on current state
     checkoutProvider.updateDeliveryFee(cartProvider.subtotal);
+
+    // Check first-order mobile discount eligibility (skip on web)
+    if (!kIsWeb) {
+      final deviceId = context.read<OffersProvider>().deviceId;
+      if (deviceId != null && deviceId.isNotEmpty) {
+        final result = await ApiService().checkFirstOrderDiscount(deviceId);
+        if (mounted) {
+          setState(() {
+            _firstOrderDiscountEligible = result['eligible'] == true;
+          });
+        }
+      }
+    }
   });
 }
 
@@ -2855,6 +2871,47 @@ List<Widget> _buildHoursList(bool isWeb) {
                     ),
                   ),
                 SizedBox(height: isWeb ? 24 : 20.h),
+                // First-order 20% discount banner (mobile only)
+                if (_firstOrderDiscountEligible && !isWeb) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 10.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(10.r),
+                      border: Border.all(color: const Color(0xFF4CAF50), width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.local_offer_rounded,
+                            color: Color(0xFF2E7D32), size: 18),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            '🎉 20% first-order discount will be applied!',
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF2E7D32),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '-€${(cartProvider.subtotal * 0.20).toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF2E7D32),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: isWeb ? 12 : 10.h),
+                ],
                 // Subtotal
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2906,6 +2963,31 @@ List<Widget> _buildHoursList(bool isWeb) {
                   ),
                 if (checkoutProvider.deliveryType == DeliveryType.delivery)
                   SizedBox(height: isWeb ? 12 : 10.h),
+                // First-order discount row
+                if (_firstOrderDiscountEligible && !isWeb) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'First-order discount (20%)',
+                        style: TextStyle(
+                          fontSize: isWeb ? 15 : 14.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF2E7D32),
+                        ),
+                      ),
+                      Text(
+                        '-€${(cartProvider.subtotal * 0.20).toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: isWeb ? 15 : 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF2E7D32),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isWeb ? 12 : 10.h),
+                ],
                 // Total
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2918,14 +3000,37 @@ List<Widget> _buildHoursList(bool isWeb) {
                         color: AppColors.textDark,
                       ),
                     ),
-                    Text(
-                      '€${cartProvider.total.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: isWeb ? 16 : 15.sp,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
-                    ),
+                    _firstOrderDiscountEligible && !isWeb
+                        ? Row(
+                            children: [
+                              Text(
+                                '€${cartProvider.total.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: isWeb ? 14 : 13.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textMedium,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                              SizedBox(width: 6.w),
+                              Text(
+                                '€${(cartProvider.total - cartProvider.subtotal * 0.20).toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: isWeb ? 16 : 15.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            '€${cartProvider.total.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: isWeb ? 16 : 15.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
                   ],
                 ),
               ] else ...[

@@ -25,6 +25,7 @@ import 'package:Saborly/features/providers/offer_provider.dart';
 import 'package:Saborly/features/providers/order_provider.dart';
 import 'package:Saborly/features/providers/payment_provider.dart';
 import 'package:Saborly/firebase_options.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'core/routes/app_routes.dart';
 import 'core/services/api_service.dart';
 // REMOVE the maintenance screen import
@@ -129,23 +130,13 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void main() async {
+  usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
 
   // Enable web support
   // flutter config --enable-web
   if (kIsWeb) {
-    // Web-specific initialization
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "YOUR_WEB_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID",
-        measurementId: "YOUR_MEASUREMENT_ID",
-      ),
-    );
+    // Firebase not configured for web — skip to avoid blocking startup
   } else {
     // Mobile-specific initialization
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

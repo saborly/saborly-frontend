@@ -20,6 +20,7 @@ class OfferModel extends Equatable {
   final bool isFeatured;
   final List<String> platforms;
   final bool isOneTimePerDevice; // NEW
+  final double? comboPrice;
 
   const OfferModel({
     required this.id,
@@ -38,13 +39,14 @@ class OfferModel extends Equatable {
     this.isFeatured = false,
     this.platforms = const ['all'],
     this.isOneTimePerDevice = false, // NEW
+    this.comboPrice,
   });
 
   @override
   List<Object?> get props => [
         id, title, description, badge, imageUrl, expiryDate, category,
-        type, value, minOrderAmount, couponCode, isActive, isFeatured, 
-        platforms, isOneTimePerDevice, // NEW
+        type, value, minOrderAmount, couponCode, isActive, isFeatured,
+        platforms, isOneTimePerDevice, comboPrice,
       ];
 
   /// Check if offer is valid for a specific platform

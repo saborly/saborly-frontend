@@ -186,12 +186,15 @@ class OrderProvider extends ChangeNotifier {
     CodPaymentType? codPaymentType,
     required double deliveryFee,
     String? specialInstructions,
+    String? deviceId,
+    String? platform,
+    bool applyFirstOrderDiscount = false,
   }) async {
     _setLoading(true);
     _setError(null);
 
     try {
-      // Calculate totals
+      // Calculate totals — discount is always applied/validated server-side
       final subtotal = items.fold(0.0, (sum, item) => sum + item.totalPrice);
       final tax = 0.0;
       final discount = 0.0;
@@ -211,6 +214,7 @@ class OrderProvider extends ChangeNotifier {
         'specialInstructions': specialInstructions,
         'estimatedDeliveryTime':
             DateTime.now().add(const Duration(minutes: 40)).toIso8601String(),
+        'platform': platform ?? 'mobile',
 
         // Only include deliveryAddress for delivery orders
         if (deliveryType == DeliveryType.delivery && deliveryAddress != null)
@@ -220,6 +224,12 @@ class OrderProvider extends ChangeNotifier {
         if (paymentMethod == PaymentMethod.cashOnDelivery &&
             codPaymentType != null)
           'codPaymentType': codPaymentType.name,
+
+        // First-order mobile discount — validated server-side
+        if (applyFirstOrderDiscount && deviceId != null) ...{
+          'applyFirstOrderDiscount': true,
+          'deviceId': deviceId,
+        },
       };
 
       final response = await _apiService.createOrder(orderData);

@@ -641,6 +641,7 @@ class OffersProvider extends ChangeNotifier {
       isActive: json['isActive'] as bool? ?? true,
       isFeatured: json['isFeatured'] as bool? ?? false,
       isOneTimePerDevice: json['isOneTimePerDevice'] as bool? ?? false,
+      comboPrice: json['comboPrice']?.toDouble(),
     );
   }
 

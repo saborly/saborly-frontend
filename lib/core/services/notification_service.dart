@@ -7,7 +7,7 @@ import 'package:Saborly/shared/models/notification_model.dart';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     if (dart.library.html) 'package:Saborly/core/services/web_notifications_stub.dart';
-import 'dart:io' if (dart.library.html) 'dart:html' show Platform;
+import 'dart:io' if (dart.library.html) 'package:Saborly/core/services/web_notifications_stub.dart' show Platform;
 
 class NotificationService {
    static final NotificationService _instance = NotificationService._internal();
@@ -26,7 +26,8 @@ class NotificationService {
   void attachProvider(NotificationProvider provider) {
     notificationProviderCallback = provider.addNotification;
   }
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  FirebaseMessaging? _messagingInstance;
+  FirebaseMessaging get _messaging => _messagingInstance ??= FirebaseMessaging.instance;
   FlutterLocalNotificationsPlugin? _localNotifications;
 
   String? _fcmToken;
@@ -42,8 +43,12 @@ class NotificationService {
   /// Initialize WITHOUT requesting permission
   /// Permission will be requested later via requestPermissionWithDialog()
   Future<void> initialize() async {
+    if (kIsWeb) {
+      _isInitialized = true;
+      return;
+    }
     try {
-   
+
       // Check current permission status WITHOUT requesting
       final settings = await _messaging.getNotificationSettings();
       
@@ -61,8 +66,9 @@ class NotificationService {
 
   /// Request permission and complete setup - call this from your dialog
   Future<bool> requestPermissionWithDialog() async {
+    if (kIsWeb) return false;
     try {
-      
+
       // Check if already granted
       final currentSettings = await _messaging.getNotificationSettings();
       if (currentSettings.authorizationStatus == AuthorizationStatus.authorized) {
@@ -108,6 +114,7 @@ class NotificationService {
 
   /// Check if we should show the permission dialog
   Future<bool> shouldShowPermissionDialog() async {
+    if (kIsWeb) return false;
     try {
       final prefs = await SharedPreferences.getInstance();
       final hasAsked = prefs.getBool('notification_permission_asked') ?? false;
