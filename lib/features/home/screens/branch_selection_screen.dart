@@ -12,8 +12,8 @@ import 'package:Saborly/core/services/geolocation_service.dart';
 
 const _barcelonaLat = 41.3851;
 const _barcelonaLng = 2.1734;
-const _sabadellLat = 41.5433;
-const _sabadellLng = 2.1093;
+const _sabadellLat = 41.5570164;
+const _sabadellLng = 2.0969248;
 
 class BranchSelectionScreen extends StatefulWidget {
   const BranchSelectionScreen({super.key});
@@ -57,6 +57,9 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen>
       final res = await ApiService().dio.get('/branches/public');
       final raw = res.data['branches'] as List<dynamic>? ?? [];
       final list = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      // Deduplicate by name (case-insensitive) keeping the first occurrence
+      final seen = <String>{};
+      list.retainWhere((b) => seen.add('${b['name']}'.toLowerCase().trim()));
       list.sort((a, b) => '${a['name']}'.compareTo('${b['name']}'));
       if (!mounted) return;
 

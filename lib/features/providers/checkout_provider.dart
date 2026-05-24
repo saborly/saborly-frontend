@@ -30,9 +30,14 @@ class CheckoutProvider extends ChangeNotifier {
   double? _deliveryDistance;
   double? _deliveryFee;
 
-  static const double shopLat = 41.3995;
-  static const double shopLng = 2.1909;
+  // Fallback to Barcelona; overwritten by loadCurrentBranchCoords()
+  double _shopLat = 41.3995;
+  double _shopLng = 2.1909;
   static const double maxDeliveryDistance = 3.5;
+
+  // Keep static getters so call-sites that use CheckoutProvider.shopLat still compile
+  double get shopLat => _shopLat;
+  double get shopLng => _shopLng;
   bool _isRestaurantOpen = true;
   String? _restaurantClosedMessage;
   
@@ -240,6 +245,28 @@ Future<void> checkDeliveryAvailability() async {
     } finally {
       _setLoading(false);
     }
+  }
+
+  /// Fetches the active branch from the API and updates shop coordinates.
+  Future<void> loadCurrentBranchCoords() async {
+    try {
+      final branchId = _apiService.branchId;
+      if (branchId == null || branchId.isEmpty) return;
+      final res = await _apiService.dio.get('/branches/public');
+      final raw = (res.data['branches'] as List<dynamic>? ?? []);
+      final match = raw.cast<Map<String, dynamic>>().firstWhere(
+        (b) => '${b['_id']}' == branchId,
+        orElse: () => {},
+      );
+      if (match.isNotEmpty) {
+        final lat = (match['latitude'] as num?)?.toDouble();
+        final lng = (match['longitude'] as num?)?.toDouble();
+        if (lat != null && lng != null) {
+          _shopLat = lat;
+          _shopLng = lng;
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> loadSavedAddresses() async {

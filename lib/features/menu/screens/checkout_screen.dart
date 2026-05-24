@@ -47,6 +47,7 @@ void initState() {
 
     // Load branches and addresses
     checkoutProvider.loadBranches();
+    await checkoutProvider.loadCurrentBranchCoords();
     checkoutProvider.loadSavedAddresses();
 
     // Update delivery fee based on current state
@@ -897,7 +898,7 @@ Widget _buildDeliveryAddressSection() {
     String selectedAddressText = '';
     double? selectedLat;
     double? selectedLng;
-    String addressType = AppStrings.get('home');
+    String addressType = 'home';
 
     bool showAddressForm = false;
 
@@ -1285,10 +1286,9 @@ Widget _buildDeliveryAddressSection() {
                                         child: _buildTypeChip(
                                           AppStrings.get('home'),
                                           Icons.home,
-                                          addressType == AppStrings.get('home'),
+                                          addressType == 'home',
                                           () => dialogSetState(() =>
-                                              addressType =
-                                                  AppStrings.get('home')),
+                                              addressType = 'home'),
                                           isWeb,
                                         ),
                                       ),
@@ -1297,11 +1297,9 @@ Widget _buildDeliveryAddressSection() {
                                         child: _buildTypeChip(
                                           AppStrings.get('office'),
                                           Icons.work,
-                                          addressType ==
-                                              AppStrings.get('office'),
+                                          addressType == 'office',
                                           () => dialogSetState(() =>
-                                              addressType =
-                                                  AppStrings.get('office')),
+                                              addressType = 'office'),
                                           isWeb,
                                         ),
                                       ),
@@ -1310,11 +1308,9 @@ Widget _buildDeliveryAddressSection() {
                                         child: _buildTypeChip(
                                           AppStrings.get('other'),
                                           Icons.location_on,
-                                          addressType ==
-                                              AppStrings.get('other'),
+                                          addressType == 'other',
                                           () => dialogSetState(() =>
-                                              addressType =
-                                                  AppStrings.get('other')),
+                                              addressType = 'other'),
                                           isWeb,
                                         ),
                                       ),
@@ -1705,7 +1701,7 @@ Widget _buildDeliveryAddressSection() {
           final address = DeliveryAddress(
             id: DateTime.now().toString(),
             address: suggestion['description'] ?? '',
-            type: AppStrings.get('home'),
+            type: 'home',
             latitude: lat,
             longitude: lng,
           );
