@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 // dart:io removed — Platform is not available on web
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:Saborly/core/services/notification_service.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:crypto/crypto.dart';
 import '../../../shared/models/user.dart';
 import '../../../core/services/api_service.dart';
 
@@ -234,6 +237,80 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _googleSignIn.signOut();
     } catch (e) {}
+  }
+
+  String _generateNonce([int length = 32]) {
+    final charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    return sha256.convert(bytes).toString();
+  }
+
+  Future<bool> signInWithApple() async {
+    _setSocialLoading(true);
+    _setError(null);
+    try {
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final identityToken = appleCredential.identityToken;
+      final authorizationCode = appleCredential.authorizationCode;
+
+      if (identityToken == null) {
+        _setError('Failed to get Apple credentials');
+        _setSocialLoading(false);
+        return false;
+      }
+
+      final response = await _apiService.appleSignIn(
+        identityToken: identityToken,
+        authorizationCode: authorizationCode,
+        firstName: appleCredential.givenName,
+        lastName: appleCredential.familyName,
+        email: appleCredential.email,
+      );
+
+      if (response.isSuccess && response.data != null) {
+        _user = response.data!;
+        await _saveUserData();
+        _setupTokenExpiryTimer();
+        await _registerFCMToken();
+
+        _setSocialLoading(false);
+        return true;
+      } else {
+        _setError(response.error ?? 'Apple sign-in failed');
+        _setSocialLoading(false);
+        return false;
+      }
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        _setSocialLoading(false);
+        return false;
+      }
+      _setError('Apple sign-in failed: ${e.message}');
+      _setSocialLoading(false);
+      return false;
+    } catch (e) {
+      _setError('Apple sign-in error occurred');
+      _setSocialLoading(false);
+      return false;
+    }
   }
 
   // Token management methods

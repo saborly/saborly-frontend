@@ -29,7 +29,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.130218217091-ta95bq5pq3b38aqdlr158m6q6umug720</string>
+				<string>com.googleusercontent.apps.420029681993-p2nfhlmb17otaaho8f7tqbst5a6g9t82</string>
 			</array>
 		</dict>
 	</array>
@@ -40,7 +40,7 @@
 	<key>FirebaseMessagingAutoInitEnabled</key>
 	<true/>
 	<key>GIDClientID</key>
-	<string>130218217091-ta95bq5pq3b38aqdlr158m6q6umug720.apps.googleusercontent.com</string>
+	<string>420029681993-p2nfhlmb17otaaho8f7tqbst5a6g9t82.apps.googleusercontent.com</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>https</string>

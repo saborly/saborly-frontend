@@ -1,9 +1,12 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:Saborly/shared/models/app_settings.dart';
 import 'package:Saborly/shared/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Saborly/core/constant/api_constants.dart';
+import 'package:Saborly/core/services/notification_service.dart';
 import 'package:Saborly/shared/models/order.dart';
 import '../../shared/models/food_item.dart';
 import '../../shared/models/food_category.dart';
@@ -363,6 +366,71 @@ class ApiService {
         return ApiResponse.success(user, statusCode: response.statusCode);
       }
       return ApiResponse.error('Google sign-in failed',
+          statusCode: response.statusCode);
+    } on DioException catch (e) {
+      return ApiResponse.error(_handleDioError(e),
+          statusCode: e.response?.statusCode);
+    } catch (e) {
+      return ApiResponse.error('Unexpected error occurred: $e');
+    }
+  }
+
+  Future<String> getDeviceId() async {
+    if (kIsWeb) return 'unknown_web';
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        return androidInfo.id;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        return iosInfo.identifierForVendor ?? 'unknown_ios';
+      }
+    } catch (_) {}
+    return 'unknown_device';
+  }
+
+  /// Apple Sign-In
+  Future<ApiResponse<User>> appleSignIn({
+    required String identityToken,
+    required String authorizationCode,
+    String? firstName,
+    String? lastName,
+    String? email,
+  }) async {
+    final notificationService = NotificationService();
+    final fcmToken = notificationService.fcmToken;
+    final deviceId = await getDeviceId();
+
+    try {
+      final response = await _dio.post(ApiConstants.appleSignIn, data: {
+        'identityToken': identityToken,
+        'firstName': firstName ?? 'firstname',
+        'lastName': lastName ?? '',
+        'fcmToken': fcmToken,
+        'deviceId': deviceId,
+        'platform': Platform.isIOS ? 'ios' : 'android',
+        if (email != null) 'email': email,
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final userData = response.data['user'];
+        final token = response.data['token'];
+
+        final user = User(
+          id: userData['id'].toString(),
+          firstName: userData['firstName'],
+          lastName: userData['lastName'],
+          email: userData['email'],
+          phone: userData['phone'] ?? '',
+          token: token,
+        );
+
+        setAuthToken(token);
+
+        return ApiResponse.success(user, statusCode: response.statusCode);
+      }
+      return ApiResponse.error('Apple sign-in failed',
           statusCode: response.statusCode);
     } on DioException catch (e) {
       return ApiResponse.error(_handleDioError(e),

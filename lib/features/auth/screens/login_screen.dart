@@ -1,5 +1,6 @@
 // lib/features/auth/screens/login_screen.dart - FIXED
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -170,15 +171,32 @@ class _LoginScreenState extends State<LoginScreen> {
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {
                       return _buildSocialButton(
-                        onPressed: authProvider.isLoading 
-                          ? null 
+                        onPressed: authProvider.isLoading
+                          ? null
                           : () => _handleGoogleSignIn(context, authProvider),
                         label: 'Continue with Google',
                         isLoading: authProvider.isLoading && authProvider.isSocialLoading,
+                        isApple: false,
                       );
                     },
                   ),
-                  
+
+                  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) ...[
+                    SizedBox(height: 16.h),
+                    Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        return _buildSocialButton(
+                          onPressed: authProvider.isLoading
+                              ? null
+                              : () => _handleAppleSignIn(context, authProvider),
+                          label: 'Continue with Apple',
+                          isLoading: authProvider.isLoading && authProvider.isSocialLoading,
+                          isApple: true,
+                        );
+                      },
+                    ),
+                  ],
+
                   SizedBox(height: isLargeScreen ? 60.h : 40.h),
                   
                   // Sign Up Link
@@ -244,6 +262,7 @@ class _LoginScreenState extends State<LoginScreen> {
 Widget _buildSocialButton({
   required VoidCallback? onPressed,
   required String label,
+  required bool isApple,
   bool isLoading = false,
 }) {
   return Container(
@@ -288,8 +307,13 @@ Widget _buildSocialButton({
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Google Logo Image
-                    Image.network(
+                    isApple
+                        ? Icon(
+                            Icons.apple,
+                            color: Colors.black,
+                            size: 22.sp,
+                          )
+                        : Image.network(
                       'https://www.pngfind.com/pngs/m/84-847501_contact-us-google-app-logo-transparent-hd-png.png',
                       width: 20.w,
                       height: 20.h,
@@ -406,5 +430,28 @@ Widget _buildSocialButton({
       }
     }
   }
+
+  Future<void> _handleAppleSignIn(BuildContext context, AuthProvider authProvider) async {
+    final success = await authProvider.signInWithApple();
+
+    if (success) {
+      if (mounted) {
+        context.go(AppRoutes.home);
+      }
+    } else {
+      if (mounted && authProvider.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.error ?? 'Apple sign-in failed'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            margin: EdgeInsets.all(16.w),
+          ),
+        );
+      }
+    }
+  }
 }
- 

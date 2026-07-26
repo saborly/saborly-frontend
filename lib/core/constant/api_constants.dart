@@ -23,6 +23,7 @@ static const String googleSignInWeb = '/auth/google-signin-web';
    static const String verifyRegistration = '/auth/verify-registration';
   static const String resendRegistrationOTP = '/auth/resend-registration-otp';
   static const String googleSignIn = '/auth/google-signin';
+  static const String appleSignIn = '/auth/apple-signin';
 
   // User endpoints
   static const String profile = '/auth/profile';

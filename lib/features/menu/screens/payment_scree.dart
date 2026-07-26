@@ -26,16 +26,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final paymentProvider = context.read<PaymentProvider>();
-      paymentProvider.initialize(
-        orderProvider: context.read<OrderProvider>(),
-        cartProvider: context.read<CartProvider>(),
-        checkoutProvider: context.read<CheckoutProvider>(),
-              offersProvider: context.read<OffersProvider>(), // NEW: Add this line
-
-      );
-    });
+    final paymentProvider = context.read<PaymentProvider>();
+    paymentProvider.initialize(
+      orderProvider: context.read<OrderProvider>(),
+      cartProvider: context.read<CartProvider>(),
+      checkoutProvider: context.read<CheckoutProvider>(),
+      offersProvider: context.read<OffersProvider>(),
+    );
   }
 
   @override
