@@ -78,6 +78,8 @@ void initState() {
     paymentProvider.initialize(
       orderProvider: context.read<OrderProvider>(),
       cartProvider: context.read<CartProvider>(),
+      checkoutProvider: context.read<CheckoutProvider>(),
+      offersProvider: context.read<OffersProvider>(),
     );
 
     final screenWidth = MediaQuery.of(context).size.width;

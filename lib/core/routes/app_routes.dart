@@ -59,7 +59,10 @@ static const String faq = '/faq';
   static const String payment = '/payment';
   static const String profile = '/profile';
 
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   static final GoRouter router = GoRouter(
+    navigatorKey: navigatorKey,
     // Web → branch selection landing page  |  Mobile → splash screen
     initialLocation: splash,
     observers: [HomeScreen.routeObserver],

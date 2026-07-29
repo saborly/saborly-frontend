@@ -70,12 +70,12 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDu3clMHcTEFgq1a5tcrESS705RUK1kYd4',
-    appId: '1:420029681993:android:d09494f75ec913d5d68a98',
+    apiKey: 'AIzaSyBxqspgpuHxseF2UWfOtLlo6kh5HdFpezc',
+    appId: '1:420029681993:ios:96c329d1ed598928d68a98',
     messagingSenderId: '420029681993',
     projectId: 'saborly-397b6',
     storageBucket: 'saborly-397b6.firebasestorage.app',
-    iosBundleId: 'com.saborly.soely',
+    iosBundleId: 'com.saborley.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

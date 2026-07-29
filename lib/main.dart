@@ -226,7 +226,6 @@ class FoodKingApp extends StatefulWidget {
 class _FoodKingAppState extends State<FoodKingApp> {
   bool _notificationDialogScheduled = false;
   bool _isDialogShowing = false;
-  BuildContext? _rootContext;
 
   @override
   void initState() {
@@ -259,12 +258,16 @@ class _FoodKingAppState extends State<FoodKingApp> {
       final settings = await FirebaseMessaging.instance.getNotificationSettings();
       print('🔍 DEBUG: Current notification status: ${settings.authorizationStatus}');
       
-      // Save permission status
+      // If the OS-level permission is already authorized, mark the dialog as
+      // "asked" so it doesn't get shown again. Don't force it back to false
+      // when not authorized - that would overwrite an explicit "not now" from
+      // _savePermissionDenied() and make the dialog reappear on every launch.
       final isAuthorized = settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional;
-      widget.prefs.setBool('notification_permission_asked', isAuthorized);
-      
-      print('🔍 DEBUG: Saved permission_asked as: $isAuthorized');
+      if (isAuthorized) {
+        widget.prefs.setBool('notification_permission_asked', true);
+        print('🔍 DEBUG: Saved permission_asked as: true');
+      }
     }
   }
 
@@ -311,7 +314,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       
-      final context = _rootContext;
+      final context = AppRoutes.navigatorKey.currentContext;
       if (context == null) {
         print('🔍 DEBUG: Root context is null');
         _isDialogShowing = false;
@@ -384,37 +387,18 @@ class _FoodKingAppState extends State<FoodKingApp> {
   Future<void> _requestNotificationPermission() async {
     try {
       print('🔍 DEBUG: Requesting notification permission...');
-      
-      // Request permission
-      final settings = await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        announcement: false,
-        badge: true,
-        carPlay: false,
-        criticalAlert: false,
-        provisional: false,
-        sound: true,
-      );
 
-      print('🔍 DEBUG: Permission result: ${settings.authorizationStatus}');
-      
-      // Save that we asked for permission
-      widget.prefs.setBool('notification_permission_asked', true);
-      print('🔍 DEBUG: Saved permission_asked as true');
+      // Delegate to NotificationService so its internal token state is set
+      // and the token gets pushed to the backend immediately - requesting
+      // permission via FirebaseMessaging directly here left NotificationService
+      // unaware of the token until the next app restart.
+      final granted = await NotificationService.instance.requestPermissionWithDialog();
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        // Get FCM token
-        final token = await FirebaseMessaging.instance.getToken();
-        print('🔍 DEBUG: FCM Token: $token');
+      print('🔍 DEBUG: Permission granted: $granted');
 
-        // Save token to preferences
-        if (token != null) {
-          widget.prefs.setString('fcm_token', token);
-          print('🔍 DEBUG: Saved FCM token to prefs');
-        }
-
+      if (granted) {
         // Show success message
-        final context = _rootContext;
+        final context = AppRoutes.navigatorKey.currentContext;
         if (mounted && context != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -427,7 +411,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
       } else {
         // Permission denied
         print('🔍 DEBUG: Permission denied or provisional');
-        final context = _rootContext;
+        final context = AppRoutes.navigatorKey.currentContext;
         if (mounted && context != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -440,7 +424,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
       }
     } catch (e) {
       print('🔍 DEBUG: Error requesting notification permission: $e');
-      final context = _rootContext;
+      final context = AppRoutes.navigatorKey.currentContext;
       if (mounted && context != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -458,7 +442,7 @@ class _FoodKingAppState extends State<FoodKingApp> {
     widget.prefs.setBool('notification_permission_asked', true);
     print('🔍 DEBUG: Saved permission_asked as true (denied)');
     
-    final context = _rootContext;
+    final context = AppRoutes.navigatorKey.currentContext;
     if (mounted && context != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -600,17 +584,11 @@ class _FoodKingAppState extends State<FoodKingApp> {
                     },
                     routerConfig: AppRoutes.router,
                     builder: (context, child) {
-                      return Builder(
-                        builder: (context) {
-                          // Keep a stable context for dialogs/snackbars.
-                          _rootContext = context;
-                          return Directionality(
-                            textDirection: languageService.textDirection,
-                            child: AppBackButtonHandler(
-                              child: child ?? const SizedBox(),
-                            ),
-                          );
-                        },
+                      return Directionality(
+                        textDirection: languageService.textDirection,
+                        child: AppBackButtonHandler(
+                          child: child ?? const SizedBox(),
+                        ),
                       );
                     },
                   );

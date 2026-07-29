@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Saborly/shared/models/notification_model.dart';
+import 'package:Saborly/core/services/api_service.dart';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     if (dart.library.html) 'package:Saborly/core/services/web_notifications_stub.dart';
@@ -225,14 +226,16 @@ class NotificationService {
       }
       
       if (_fcmToken != null) {
-     
+
         await _saveFCMToken(_fcmToken!);
+        await _pushTokenToBackend(_fcmToken!);
       } else {
       }
 
       _messaging.onTokenRefresh.listen((newToken) {
         _fcmToken = newToken;
         _saveFCMToken(newToken);
+        _pushTokenToBackend(newToken);
       });
     } catch (e, stackTrace) {
    
@@ -374,6 +377,25 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('fcm_token', token);
+    } catch (e) {
+    }
+  }
+
+  /// Push a refreshed token to the backend so it doesn't go stale there.
+  /// FCM can rotate the token (reinstall, data clear, periodic rotation)
+  /// without a fresh login, and the backend only learns the token at login.
+  Future<void> _pushTokenToBackend(String token) async {
+    try {
+      if (ApiService().getAuthToken() == null) {
+        return;
+      }
+      await ApiService().updateFCMToken(
+        fcmToken: token,
+        deviceId: 'default',
+        platform: kIsWeb
+            ? 'web'
+            : (defaultTargetPlatform.name.toLowerCase()),
+      );
     } catch (e) {
     }
   }
