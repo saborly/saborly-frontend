@@ -420,6 +420,22 @@ Future<void> checkDeliveryAvailability() async {
     return '€${_deliveryFee!.toStringAsFixed(2)}';
   }
 
+  /// Prefills the delivery address with the location detected/selected on
+  /// the branch-selection screen, so checkout only needs apartment/instructions.
+  void seedFromDetectedLocation() {
+    if (_selectedAddress != null) return; // don't override a real choice
+    final lat = _apiService.selectedLat;
+    final lng = _apiService.selectedLng;
+    if (lat == null || lng == null) return;
+
+    selectAddress(DeliveryAddress(
+      id: '',
+      address: _apiService.selectedAddressText ?? 'Your detected location',
+      latitude: lat,
+      longitude: lng,
+    ));
+  }
+
   void clearAddress() {
     _selectedAddress = null;
     _deliveryDistance = null;

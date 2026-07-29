@@ -155,6 +155,7 @@ void main() async {
   // Initialize API Service first
   ApiService().initialize();
   await ApiService().loadBranchFromPrefs();
+  await ApiService().loadSelectedLocationFromPrefs();
 
   // Initialize Language Service and sync everything
   final languageService = LanguageService(prefs);

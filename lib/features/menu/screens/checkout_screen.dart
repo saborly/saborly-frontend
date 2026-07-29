@@ -48,7 +48,11 @@ void initState() {
     // Load branches and addresses
     checkoutProvider.loadBranches();
     await checkoutProvider.loadCurrentBranchCoords();
-    checkoutProvider.loadSavedAddresses();
+    await checkoutProvider.loadSavedAddresses();
+
+    // If the user hasn't picked/saved an address yet, prefill from the
+    // location they confirmed on the branch-selection screen.
+    checkoutProvider.seedFromDetectedLocation();
 
     // Update delivery fee based on current state
     checkoutProvider.updateDeliveryFee(cartProvider.subtotal);

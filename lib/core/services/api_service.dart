@@ -54,6 +54,50 @@ class ApiService {
     clearCache();
   }
 
+  double? _selectedLat;
+  double? _selectedLng;
+  String? _selectedAddressText;
+
+  double? get selectedLat => _selectedLat;
+  double? get selectedLng => _selectedLng;
+  String? get selectedAddressText => _selectedAddressText;
+
+  Future<void> loadSelectedLocationFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    _selectedLat = prefs.getDouble('loc_lat');
+    _selectedLng = prefs.getDouble('loc_lng');
+    _selectedAddressText = prefs.getString('loc_address');
+  }
+
+  Future<void> setSelectedLocation(double lat, double lng, {String? addressText}) async {
+    _selectedLat = lat;
+    _selectedLng = lng;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('loc_lat', lat);
+    await prefs.setDouble('loc_lng', lng);
+    if (addressText != null && addressText.isNotEmpty) {
+      _selectedAddressText = addressText;
+      await prefs.setString('loc_address', addressText);
+    }
+  }
+
+  /// Reverse-geocodes coordinates into a human-readable address via the
+  /// backend (which proxies Google's Geocoding API). Returns null on failure.
+  Future<String?> reverseGeocode(double lat, double lng) async {
+    try {
+      final response = await _dio.get(
+        '/addresses/reverse-geocode-public',
+        queryParameters: {'lat': lat, 'lng': lng},
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['address'] as String?;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // Response cache for GET requests (5 minutes TTL)
   final Map<String, _CachedResponse> _responseCache = {};
 

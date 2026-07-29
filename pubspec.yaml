@@ -51,6 +51,7 @@ dependencies:
   firebase_messaging: ^16.0.0
   permission_handler: ^11.0.1
   device_info_plus: ^12.2.0
+  geolocator: ^13.0.2
 
   # Responsive Design
   flutter_screenutil: ^5.9.0
