@@ -252,17 +252,23 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
             child: Center(
               child: SingleChildScrollView(
                 child: Container(
-                  constraints: const BoxConstraints(maxWidth: 420),
+                  constraints: const BoxConstraints(maxWidth: 560),
                   margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-                  padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 36.h),
+                  padding: EdgeInsets.symmetric(horizontal: 44.w, vertical: 40.h),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20.r),
+                    borderRadius: BorderRadius.circular(24.r),
+                    border: Border.all(color: const Color(0xFFF0EFF2)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
-                        blurRadius: 30,
-                        offset: const Offset(0, 10),
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 36,
+                        offset: const Offset(0, 14),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -305,16 +311,12 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16.r),
-          child: Image.asset(
-            'assets/images/logo3.png',
-            height: 84.h,
-            width: 84.h,
-            fit: BoxFit.cover,
-          ),
+        Image.asset(
+          'assets/images/logo3.png',
+          height: 96.h,
+          fit: BoxFit.contain,
         ),
-        SizedBox(height: 22.h),
+        SizedBox(height: 26.h),
         Text(
           'Select your order type',
           textAlign: TextAlign.center,
@@ -326,10 +328,17 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
         ),
         SizedBox(height: 12.h),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 26.w, vertical: 10.h),
+          padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 11.h),
           decoration: BoxDecoration(
             color: AppColors.primary,
             borderRadius: BorderRadius.circular(24.r),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.28),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Text(
             'Instant',
@@ -337,10 +346,11 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
               fontSize: 14.sp,
               fontWeight: FontWeight.w700,
               color: Colors.white,
+              letterSpacing: 0.3,
             ),
           ),
         ),
-        SizedBox(height: 26.h),
+        SizedBox(height: 30.h),
         Text(
           'Please select your location',
           textAlign: TextAlign.center,
@@ -399,13 +409,14 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
         ],
         SizedBox(
           width: double.infinity,
-          height: 52.h,
+          height: 54.h,
           child: ElevatedButton(
             onPressed: _canSubmit ? _onSelectPressed : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               disabledBackgroundColor: const Color(0xFFD8D8D8),
               elevation: 0,
+              shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14.r),
               ),
@@ -439,10 +450,13 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
       onTap: _isDetectingLocation ? null : _useMyLocation,
       borderRadius: BorderRadius.circular(30.r),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 13.h),
         decoration: BoxDecoration(
-          color: const Color(0xFFF0F0F2),
+          color: detected ? AppColors.primary.withOpacity(0.08) : const Color(0xFFF3F3F5),
           borderRadius: BorderRadius.circular(30.r),
+          border: Border.all(
+            color: detected ? AppColors.primary.withOpacity(0.35) : Colors.transparent,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -481,12 +495,12 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
   Widget _buildCityDropdown() {
     return Container(
       width: double.infinity,
-      height: 50.h,
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      height: 54.h,
+      padding: EdgeInsets.symmetric(horizontal: 18.w),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFD9D9D9)),
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: const Color(0xFFE2E2E5)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
