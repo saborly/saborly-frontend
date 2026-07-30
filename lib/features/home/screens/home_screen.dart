@@ -239,7 +239,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           canPop: false,
           onPopInvoked: (didPop) async {
             if (didPop) return;
-            
             final now = DateTime.now();
             final maxDuration = const Duration(seconds: 2);
             final isWarning = _lastPressedAt == null ||
