@@ -20,7 +20,6 @@ import 'package:Saborly/shared/widgets/ooter.dart';
 import 'package:Saborly/shared/widgets/promotional_banner_v2.dart';
 import 'package:Saborly/shared/widgets/search_bar_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../../shared/widgets/download_app_modal.dart';
 import 'home/widgets/categories_slider.dart';
 import 'home/widgets/featured_popular_items_section.dart';
@@ -31,8 +30,6 @@ import 'home/widgets/search_results_section.dart';
 import 'home/widgets/search_status_banner.dart';
 import 'home/widgets/section_header.dart';
 import 'home/widgets/showcase_shell.dart';
-
-
 
 
 
