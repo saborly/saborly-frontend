@@ -1520,23 +1520,86 @@ class ApiService {
   }
 
   String _handleDioError(DioException error) {
+    return ApiErrorClassifier.classify(error).message;
+  }
+}
+
+/// What kind of failure a request hit, independent of the human-readable
+/// message — lets a screen decide *how* to react (e.g. show a "Retry" button
+/// only for connection/server errors, not for validation errors) without
+/// re-deriving it from a DioException itself.
+enum ApiErrorType {
+  /// No network reachable at all (device offline, DNS failure, etc.)
+  noConnection,
+
+  /// Request/response took too long.
+  timeout,
+
+  /// Reached the server but it returned 5xx — the backend itself is
+  /// unhealthy/down, not a problem with this specific request.
+  serverDown,
+
+  /// Reached the server and it returned a 4xx — a problem with this
+  /// specific request (bad input, auth, not found, etc.), not an outage.
+  clientError,
+
+  /// Request was cancelled (e.g. a newer request superseded it).
+  cancelled,
+
+  /// Anything else unclassified.
+  unknown,
+}
+
+class ApiErrorClassifier {
+  ApiErrorClassifier._();
+
+  static ({ApiErrorType type, String message}) classify(DioException error) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return 'Connection timeout. Please check your internet connection.';
+        return (
+          type: ApiErrorType.timeout,
+          message: 'This is taking longer than expected. Please check your connection and try again.',
+        );
+
+      case DioExceptionType.connectionError:
+        return (
+          type: ApiErrorType.noConnection,
+          message: 'No internet connection. Please check your network and try again.',
+        );
+
       case DioExceptionType.badResponse:
-        if (error.response?.data != null) {
-          final message = error.response!.data['message'];
-          if (message != null) return message;
+        final statusCode = error.response?.statusCode ?? 0;
+        final serverMessage = error.response?.data is Map ? error.response!.data['message'] : null;
+
+        if (statusCode >= 500) {
+          return (
+            type: ApiErrorType.serverDown,
+            message: 'Our servers are temporarily unavailable. Please try again in a moment.',
+          );
         }
-        return 'Server error occurred (${error.response?.statusCode})';
+        return (
+          type: ApiErrorType.clientError,
+          message: serverMessage ?? 'Request failed (${statusCode == 0 ? 'unknown' : statusCode}).',
+        );
+
       case DioExceptionType.cancel:
-        return 'Request was cancelled';
+        return (type: ApiErrorType.cancelled, message: 'Request was cancelled.');
+
+      case DioExceptionType.badCertificate:
+        return (
+          type: ApiErrorType.noConnection,
+          message: 'Couldn\'t establish a secure connection. Please try again.',
+        );
+
       case DioExceptionType.unknown:
-        return 'Network error. Please check your internet connection.';
-      default:
-        return 'An unexpected error occurred';
+        // Dio surfaces raw socket/DNS failures (device offline, server
+        // unreachable) as `unknown` with the underlying error attached.
+        return (
+          type: ApiErrorType.noConnection,
+          message: 'No internet connection. Please check your network and try again.',
+        );
     }
   }
 }
@@ -1547,13 +1610,36 @@ class ApiResponse<T> {
   final bool isSuccess;
   final int? statusCode;
   final Map<String, dynamic>? rawData;
+  /// Optional — only populated when constructed via [ApiResponse.fromDioException].
+  /// Existing `ApiResponse.error(...)` call sites are unaffected and default
+  /// this to [ApiErrorType.unknown], so this is purely additive.
+  final ApiErrorType errorType;
 
   ApiResponse.success(this.data, {this.rawData, this.statusCode})
       : error = null,
-        isSuccess = true;
+        isSuccess = true,
+        errorType = ApiErrorType.unknown;
 
-  ApiResponse.error(this.error, {this.statusCode})
+  ApiResponse.error(this.error, {this.statusCode, this.errorType = ApiErrorType.unknown})
       : data = null,
         rawData = null,
         isSuccess = false;
+
+  /// Preferred way to build an error response directly from a caught
+  /// [DioException] — carries both the friendly message and the
+  /// [ApiErrorType] so callers can distinguish "no connection"/"server down"
+  /// from ordinary request errors without re-inspecting the exception.
+  factory ApiResponse.fromDioException(DioException e) {
+    final classified = ApiErrorClassifier.classify(e);
+    return ApiResponse.error(
+      classified.message,
+      statusCode: e.response?.statusCode,
+      errorType: classified.type,
+    );
+  }
+
+  bool get isConnectionOrServerError =>
+      errorType == ApiErrorType.noConnection ||
+      errorType == ApiErrorType.serverDown ||
+      errorType == ApiErrorType.timeout;
 }

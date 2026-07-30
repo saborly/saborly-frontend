@@ -10,8 +10,6 @@ import 'package:Saborly/core/services/language_service.dart';
 import 'package:Saborly/features/home/screens/home_screen.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
 import 'package:Saborly/shared/widgets/food_item_card.dart';
-
-
 class ItemsGridPage extends StatelessWidget {
   final ItemType itemType;
   final String titleKey;

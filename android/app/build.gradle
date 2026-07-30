@@ -13,7 +13,13 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.saborly.soely"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned explicitly (rather than relying on flutter.compileSdkVersion)
+    // so target API level is guaranteed regardless of which Flutter SDK
+    // version builds the release — Google Play requires apps to target
+    // Android 16 (API 36)+ from Aug 31, 2026. This matches what the
+    // installed Flutter SDK already defaults to, so it changes nothing
+    // about current app behavior; it just makes it explicit and future-proof.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -29,7 +35,7 @@ android {
     defaultConfig {
         applicationId = "com.saborly.soely"
         minSdkVersion = flutter.minSdkVersion // Updated from flutter.minSdkVersion to 23
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36 // Pinned — see compileSdk comment above
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/features/providers/auth_proveder.dart';
 
 import '../../../core/routes/app_routes.dart';
-import '../../../shared/widgets/custom_button.dart';
-import '../../../shared/widgets/custom_text_field.dart';
+import 'authreset/widgets/authreset_app_bar.dart';
+import 'authreset/widgets/password_requirements_list.dart';
+import 'authreset/widgets/reset_form_header.dart';
+import 'authreset/widgets/reset_header.dart';
+import 'authreset/widgets/reset_password_form.dart';
+import 'authreset/widgets/reset_success_content.dart';
+import 'authreset/widgets/sign_in_button.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String? token; // Reset token from email link
-  
+
   const ResetPasswordScreen({super.key, this.token});
 
   @override
@@ -41,24 +45,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: _isLargeScreen ? null : _buildAppBar(),
+      appBar: _isLargeScreen ? null : const AuthResetAppBar(),
       body: SafeArea(
         child: _isLargeScreen ? _buildLargeScreenLayout() : _buildSmallScreenLayout(),
-      ),
-    );
-  }
-
-  AppBar _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      leading: IconButton(
-        onPressed: () => context.go(AppRoutes.login),
-        icon: Icon(
-          Icons.arrow_back_ios,
-          color: AppColors.textDark,
-          size: 20.sp,
-        ),
       ),
     );
   }
@@ -113,7 +102,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   SizedBox(height: 20.h),
                   Text(
-                    _passwordReset 
+                    _passwordReset
                       ? AppStrings.get('passwordUpdatedDescription')
     : AppStrings.get('newPasswordRequirements'),
                     style: TextStyle(
@@ -124,13 +113,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   if (!_passwordReset) ...[
                     SizedBox(height: 60.h),
-                    _buildPasswordRequirements(),
+                    const PasswordRequirementsList(),
                   ],
                 ],
               ),
             ),
           ),
-          
+
           // Right side - Form section
           Expanded(
             flex: 4,
@@ -162,11 +151,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ],
                         ),
                         SizedBox(height: 20.h),
-                        _buildFormHeader(),
+                        ResetFormHeader(
+                          passwordReset: _passwordReset,
+                          isLargeScreen: _isLargeScreen,
+                        ),
                         SizedBox(height: 40.h),
-                        _passwordReset ? _buildSuccessContent() : _buildForm(),
+                        _passwordReset ? const ResetSuccessContent() : _buildForm(),
                         SizedBox(height: 40.h),
-                        if (_passwordReset) _buildSignInButton(),
+                        if (_passwordReset) const SignInButton(),
                       ],
                     ),
                   ),
@@ -186,381 +178,36 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 40.h),
-          _buildHeader(),
+          ResetHeader(passwordReset: _passwordReset),
           SizedBox(height: 40.h),
-          _passwordReset ? _buildSuccessContent() : _buildForm(),
+          _passwordReset ? const ResetSuccessContent() : _buildForm(),
           SizedBox(height: 32.h),
-          if (_passwordReset) _buildSignInButton(),
+          if (_passwordReset) const SignInButton(),
           SizedBox(height: 40.h),
         ],
       ),
-    );
-  }
-
-  Widget _buildPasswordRequirements() {
-   final requirements = [
-    AppStrings.get('passwordMinLength8'),
-    AppStrings.get('passwordUpperLower'),
-    AppStrings.get('passwordNumber'),
-    AppStrings.get('passwordSpecialChar'),
-  ];
-
-    return Column(
-      children: requirements.map((requirement) => Padding(
-        padding: EdgeInsets.only(bottom: 16.h),
-        child: Row(
-          children: [
-            Container(
-              width: 24.w,
-              height: 24.w,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Icon(
-                Icons.check,
-                color: AppColors.primary,
-                size: 16.sp,
-              ),
-            ),
-            SizedBox(width: 16.w),
-            Expanded(
-              child: Text(
-                requirement,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: AppColors.textMedium,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      )).toList(),
-    );
-  }
-
-  Widget _buildFormHeader() {
-    return Column(
-      children: [
-        Container(
-          width: 80.w,
-          height: 80.w,
-          decoration: BoxDecoration(
-            color: _passwordReset 
-              ? Colors.green.withOpacity(0.1) 
-              : AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          child: Icon(
-            _passwordReset ? Icons.check_circle : Icons.security,
-            color: _passwordReset ? Colors.green : AppColors.primary,
-            size: 40.sp,
-          ),
-        ),
-        SizedBox(height: 24.h),
-        Text(
-  _passwordReset ? AppStrings.get('passwordUpdated') : AppStrings.get('resetPassword'),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: _isLargeScreen ? 32.sp : 28.sp,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-            height: 1.2,
-          ),
-        ),
-        SizedBox(height: 12.h),
-        Text(
-         _passwordReset 
-    ? AppStrings.get('passwordChanged')
-    : AppStrings.get('createStrongPassword'),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16.sp,
-            color: AppColors.textLight,
-            height: 1.4,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 64.w,
-          height: 64.w,
-          decoration: BoxDecoration(
-            color: _passwordReset 
-              ? Colors.green.withOpacity(0.1) 
-              : AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16.r),
-          ),
-          child: Icon(
-            _passwordReset ? Icons.check_circle : Icons.security,
-            color: _passwordReset ? Colors.green : AppColors.primary,
-            size: 32.sp,
-          ),
-        ),
-        SizedBox(height: 24.h),
-        Text(
-  _passwordReset ? AppStrings.get('passwordUpdated') : AppStrings.get('resetPassword'),
-          style: TextStyle(
-            fontSize: 28.sp,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-            height: 1.2,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-           _passwordReset 
-    ? AppStrings.get('passwordChanged')
-    : AppStrings.get('createStrongPassword'),
-          style: TextStyle(
-            fontSize: 16.sp,
-            color: AppColors.textLight,
-            height: 1.4,
-          ),
-        ),
-      ],
     );
   }
 
   Widget _buildForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
-          // Password Fields - Responsive layout
-          _buildPasswordFields(),
-          SizedBox(height: 32.h),
-          
-          Consumer<AuthProvider>(
-            builder: (context, authProvider, child) {
-              return CustomButton(
-  text: AppStrings.get('updatePassword'),
-                isLoading: authProvider.isLoading,
-                onPressed: () => _handleResetPassword(context, authProvider),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPasswordFields() {
-    if (_isTablet) {
-      return Row(
-        children: [
-          Expanded(
-            child:
-         CustomTextField(
-  controller: _passwordController,
-  labelText: AppStrings.get('newPassword'),
-  obscureText: _obscurePassword,
-  prefixIcon: Icons.lock_outline,
-  suffixIcon: IconButton(
-    onPressed: () {
-      setState(() {
-        _obscurePassword = !_obscurePassword;
-      });
-    },
-    icon: Icon(
-      _obscurePassword ? Icons.visibility_off : Icons.visibility,
-      color: AppColors.textLight,
-    ),
-  ),
-  validator: (value) {
-    if (value == null || value.isEmpty) {
-      return AppStrings.get('pleaseEnterPassword');
-    }
-    if (value.length < 8) {
-      return AppStrings.get('passwordMinLength8Error');
-    }
-    if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]').hasMatch(value)) {
-      return AppStrings.get('passwordSecurityError');
-    }
-    return null;
-  },
-), ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child:
-        CustomTextField(
-  controller: _confirmPasswordController,
-  labelText: AppStrings.get('confirmPassword'),
-  obscureText: _obscureConfirmPassword,
-  prefixIcon: Icons.lock_outline,
-  suffixIcon: IconButton(
-    onPressed: () {
-      setState(() {
-        _obscureConfirmPassword = !_obscureConfirmPassword;
-      });
-    },
-    icon: Icon(
-      _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-      color: AppColors.textLight,
-    ),
-  ),
-  validator: (value) {
-    if (value == null || value.isEmpty) {
-      return AppStrings.get('pleaseEnterPassword');
-    }
-    if (value != _passwordController.text) {
-      return AppStrings.get('passwordsDontMatch');
-    }
-    return null;
-  },
-), ),
-        ],
-      );
-    } else {
-      return Column(
-        children: [
-          CustomTextField(
-            controller: _passwordController,
-            labelText: AppStrings.newPassword,
-            obscureText: _obscurePassword,
-            prefixIcon: Icons.lock_outline,
-            suffixIcon: IconButton(
-              onPressed: () {
-                setState(() {
-                  _obscurePassword = !_obscurePassword;
-                });
-              },
-              icon: Icon(
-                _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                color: AppColors.textLight,
-              ),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return AppStrings.pleaseEnterPassword;
-              }
-              if (value.length < 8) {
-                return 'Password must be at least 8 characters';
-              }
-              if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]').hasMatch(value)) {
-                return 'Password must meet security requirements';
-              }
-              return null;
-            },
-          ),
-          SizedBox(height: 20.h),
-          CustomTextField(
-            controller: _confirmPasswordController,
-            labelText: AppStrings.confirmPassword,
-            obscureText: _obscureConfirmPassword,
-            prefixIcon: Icons.lock_outline,
-            suffixIcon: IconButton(
-              onPressed: () {
-                setState(() {
-                  _obscureConfirmPassword = !_obscureConfirmPassword;
-                });
-              },
-              icon: Icon(
-                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                color: AppColors.textLight,
-              ),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return AppStrings.pleaseEnterPassword;
-              }
-              if (value != _passwordController.text) {
-                return AppStrings.passwordsDontMatch;
-              }
-              return null;
-            },
-          ),
-        ],
-      );
-    }
-  }
-
-  Widget _buildSuccessContent() {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(24.w),
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: Colors.green.withOpacity(0.2)),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 48.sp,
-              ),
-              SizedBox(height: 16.h),
-              Text(
-  AppStrings.get('passwordResetSuccess'),
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.green.shade700,
-                ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-  AppStrings.get('passwordResetSuccessDescription'),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: AppColors.textMedium,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 24.h),
-        
-        // Security tip
-        Container(
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: AppColors.primary.withOpacity(0.1)),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.security,
-                color: AppColors.primary,
-                size: 20.sp,
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Text(
-  AppStrings.get('passwordSecurityTip'),
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.textMedium,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSignInButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: CustomButton(
-  text: AppStrings.get('signInNow'),
-        onPressed: () => context.go(AppRoutes.login),
-      ),
+    return ResetPasswordForm(
+      formKey: _formKey,
+      isTablet: _isTablet,
+      passwordController: _passwordController,
+      confirmPasswordController: _confirmPasswordController,
+      obscurePassword: _obscurePassword,
+      obscureConfirmPassword: _obscureConfirmPassword,
+      onTogglePassword: () {
+        setState(() {
+          _obscurePassword = !_obscurePassword;
+        });
+      },
+      onToggleConfirmPassword: () {
+        setState(() {
+          _obscureConfirmPassword = !_obscureConfirmPassword;
+        });
+      },
+      onSubmit: _handleResetPassword,
     );
   }
 
@@ -571,11 +218,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       // Simulate API call - replace with actual implementation
       // await authProvider.resetPassword(widget.token, _passwordController.text);
       await Future.delayed(const Duration(seconds: 2));
-      
+
       setState(() {
         _passwordReset = true;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

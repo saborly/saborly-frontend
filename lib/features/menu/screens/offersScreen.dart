@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
-import 'package:Saborly/core/routes/app_routes.dart';
 import 'package:Saborly/core/services/language_service.dart';
 import 'package:Saborly/core/utils/responsive_utils.dart';
 import 'package:Saborly/features/providers/offer_provider.dart';
-import 'package:Saborly/shared/models/food_item.dart';
-import 'package:Saborly/shared/models/offer.dart';
-import 'package:Saborly/features/providers/cart_provider.dart';
-import 'package:Saborly/shared/widgets/food_item_card.dart';
 import 'package:Saborly/shared/widgets/ooter.dart';
+
+import 'offers/widgets/language_change_overlay.dart';
+import 'offers/widgets/offers_content.dart';
+import 'offers/widgets/offers_header_badge.dart';
+import 'offers/widgets/offers_loading_state.dart';
+import 'offers/widgets/offers_responsive.dart';
+import 'offers/widgets/offers_sliver_app_bar.dart';
 
 class OffersScreen extends StatefulWidget {
   const OffersScreen({super.key});
@@ -41,7 +42,7 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
       curve: Curves.easeInOut,
     );
     _animationController.forward();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadOffersWithCurrentLanguage();
     });
@@ -55,8 +56,8 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
       final languageService = context.read<LanguageService>();
       final offersProvider = context.read<OffersProvider>();
       final currentLanguage = languageService.currentLanguage;
-      
-      
+
+
       offersProvider.setLanguage(currentLanguage);
       offersProvider.loadOffers();
     }
@@ -73,7 +74,7 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
   /// ✅ Reload data when language changes - show loading
   void _onLanguageChanged() {
     if (mounted) {
-      
+
       // Show loading indicator
       setState(() {
         _isLoadingForLanguageChange = true;
@@ -82,7 +83,7 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
       final languageService = context.read<LanguageService>();
       final offersProvider = context.read<OffersProvider>();
       final currentLanguage = languageService.currentLanguage;
-      
+
       // Reload with new language
       offersProvider.setLanguage(currentLanguage);
       offersProvider.loadOffers().then((_) {
@@ -108,60 +109,17 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
       context.read<LanguageService>().removeListener(_onLanguageChanged);
     } catch (e) {
     }
-    
+
     _animationController.dispose();
     super.dispose();
   }
 
   // Responsive breakpoints
-  bool _isMobile(double width) => width < 600;
-  bool _isTablet(double width) => width >= 600 && width < 1000;
+  bool _isMobile(double width) => OffersResponsive.isMobile(width);
 
-  double _getMaxContentWidth(double screenWidth) {
-    if (screenWidth >= 1400) return 1280;
-    if (screenWidth >= 1000) return screenWidth * 0.88;
-    return screenWidth;
-  }
+  double _getMaxContentWidth(double screenWidth) => OffersResponsive.getMaxContentWidth(screenWidth);
 
-  double _getHorizontalPadding(double screenWidth) {
-    if (_isMobile(screenWidth)) return 16.w;
-    if (_isTablet(screenWidth)) return 32.w;
-    return 48.w;
-  }
-
-  int _getCrossAxisCount(double screenWidth) {
-    if (screenWidth < 500) return 1;
-    if (screenWidth < 800) return 3;
-    if (screenWidth < 1200) return 4;
-    return 5;
-  }
-
-  double _getChildAspectRatio(double screenWidth) {
-    if (_isMobile(screenWidth)) return 1.10;
-    if (_isTablet(screenWidth)) return 0.75;
-    return 0.78;
-  }
-
-  FoodItem _convertToFoodItem(FoodItemWithOffer item) {
-    return FoodItem(
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      imageUrl: item.imageUrl,
-      category: item.category.id,
-      isVeg: false,
-      offer: item.offer,
-      isFeatured: false,
-      isPopular: false,
-      rating: 0.0,
-      reviewCount: 0,
-      tags: [],
-      mealSizes: [],
-      extras: [],
-      addons: [],
-    );
-  }
+  double _getHorizontalPadding(double screenWidth) => OffersResponsive.getHorizontalPadding(screenWidth);
 
   @override
   Widget build(BuildContext context) {
@@ -205,7 +163,7 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
                     // ✅ Show loading if initial load or language change loading
                     if ((provider.isLoading && provider.itemsWithOffers.isEmpty) ||
                         _isLoadingForLanguageChange) {
-                      return _buildLoadingState();
+                      return const OffersLoadingState();
                     }
 
                     return LayoutBuilder(
@@ -225,7 +183,7 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
                           child: CustomScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             slivers: [
-                              if (!isWeb) _buildSliverAppBar(screenWidth),
+                              if (!isWeb) OffersSliverAppBar(screenWidth: screenWidth),
                               SliverToBoxAdapter(
                                 child: Container(
                                   decoration: BoxDecoration(
@@ -247,7 +205,7 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             SizedBox(height: _isMobile(screenWidth) ? 20.h : 40.h),
-                                            _buildHeader(screenWidth, provider),
+                                            OffersHeaderBadge(screenWidth: screenWidth),
                                             SizedBox(height: _isMobile(screenWidth) ? 24.h : 40.h),
                                           ],
                                         ),
@@ -264,7 +222,7 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
                                       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                                       child: FadeTransition(
                                         opacity: _fadeAnimation,
-                                        child: _buildContent(provider, screenWidth),
+                                        child: OffersContent(provider: provider, screenWidth: screenWidth),
                                       ),
                                     ),
                                   ),
@@ -284,564 +242,15 @@ class _OffersScreenState extends State<OffersScreen> with SingleTickerProviderSt
                     );
                   },
                 ),
-                
+
                 // ✅ Show overlay loading during language change
                 if (_isLoadingForLanguageChange)
-                  Positioned.fill(
-                    child: Container(
-                      color: Colors.black.withOpacity(0.3),
-                      child: Center(
-                        child: Container(
-                          padding: EdgeInsets.all(24.r),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                                strokeWidth: 3,
-                              ),
-                              SizedBox(height: 16.h),
-                              Text(
-                                'Changing language...',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  const LanguageChangeOverlay(),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-            strokeWidth: 3,
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            AppStrings.get('loadingOffers'),
-            style: GoogleFonts.poppins(
-              fontSize: 14.sp,
-              color: AppColors.textLight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSliverAppBar(double screenWidth) {
-    return SliverAppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      pinned: true,
-      surfaceTintColor: Colors.white,
-      leading: Container(
-        margin: EdgeInsets.all(8.r),
-        child: Material(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(12.r),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12.r),
-            onTap: () {
-              if (GoRouter.of(context).canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.home);
-              }
-            },
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textDark,
-              size: 20.sp,
-            ),
-          ),
-        ),
-      ),
-      title: Text(
-        AppStrings.get('specialOffers'),
-        style: GoogleFonts.poppins(
-          fontSize: _isMobile(screenWidth) ? 18.sp : 22.sp,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textDark,
-        ),
-      ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(
-          height: 1,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.transparent,
-                Colors.grey[200]!,
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(double screenWidth, OffersProvider provider) {
-    final isMobile = _isMobile(screenWidth);
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: isMobile ? screenWidth * 0.7 : 360.w,
-        ),
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 24.w,
-            vertical: isMobile ? 18.h : 22.h,
-          ),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary.withOpacity(0.12),
-                AppColors.primary.withOpacity(0.04),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.2),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(10.r),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.local_fire_department_rounded,
-                  color: Colors.white,
-                  size: isMobile ? 20.sp : 24.sp,
-                ),
-              ),
-              SizedBox(width: 16.w),
-              Container(
-                padding: EdgeInsets.all(10.r),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.local_offer_rounded,
-                  color: AppColors.primary,
-                  size: isMobile ? 20.sp : 24.sp,
-                ),
-              ),
-              SizedBox(width: 16.w),
-              Container(
-                padding: EdgeInsets.all(10.r),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.shopping_bag_rounded,
-                  color: AppColors.primary,
-                  size: isMobile ? 20.sp : 24.sp,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent(OffersProvider provider, double screenWidth) {
-    final hasItemOffers = provider.itemsWithOffers.isNotEmpty;
-    final hasAllOffers = provider.allOffers.isNotEmpty;
-
-    if (!hasItemOffers && !hasAllOffers) {
-      return _buildEmptyState(screenWidth);
-    }
-
-    final isMobile = _isMobile(screenWidth);
-    final edgePadding = EdgeInsets.only(
-      top: isMobile ? 12.h : 20.h,
-      bottom: isMobile ? 100.h : 120.h,
-    );
-
-    return Padding(
-      padding: edgePadding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Combo / banner offers
-          if (hasAllOffers) ...[
-            _buildOfferBanners(provider.allOffers, screenWidth),
-            if (hasItemOffers) SizedBox(height: isMobile ? 24.h : 32.h),
-          ],
-
-          // Food items with discounts
-          if (hasItemOffers) _buildItemsGrid(provider, screenWidth),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOfferBanners(List<OfferModel> offers, double screenWidth) {
-    final isMobile = _isMobile(screenWidth);
-    final isTablet = _isTablet(screenWidth);
-    final crossAxisCount = isMobile ? 1 : 2;
-    final aspectRatio = isMobile ? 2.2 : 2.5;
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: isMobile ? 12.w : (isTablet ? 16.w : 20.w),
-        mainAxisSpacing: isMobile ? 12.h : (isTablet ? 16.h : 20.h),
-        childAspectRatio: aspectRatio,
-      ),
-      itemCount: offers.length,
-      itemBuilder: (context, index) {
-        final offer = offers[index];
-        return TweenAnimationBuilder<double>(
-          duration: Duration(milliseconds: 300 + (index * 80)),
-          tween: Tween(begin: 0.0, end: 1.0),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, child) => Transform.scale(
-            scale: value,
-            child: Opacity(opacity: value, child: child),
-          ),
-          child: _buildOfferBannerCard(offer),
-        );
-      },
-    );
-  }
-
-  Widget _buildOfferBannerCard(OfferModel offer) {
-    final price = offer.comboPrice ?? offer.value ?? 0.0;
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: offer.gradientColors,
-        ),
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: offer.gradientColors.first.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // Background image
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16.r),
-              child: offer.imageUrl != null
-                  ? Image.network(
-                      offer.imageUrl!,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                      loadingBuilder: (_, child, progress) =>
-                          progress == null ? child : const Center(child: CircularProgressIndicator()),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ),
-
-          // Expiry badge
-          if (offer.expiryDate != null)
-            Positioned(
-              top: 12.h,
-              left: 16.w,
-              child: _buildExpiryBadge(offer),
-            ),
-
-          // Order Now button — bottom, full width
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Builder(
-              builder: (context) => GestureDetector(
-                onTap: () => _addComboToCart(context, offer, price),
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(16.r),
-                      bottomRight: Radius.circular(16.r),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.shopping_cart_rounded, size: 18.sp, color: Colors.white),
-                      SizedBox(width: 8.w),
-                      Text(
-                        price > 0
-                            ? 'Order Now — €${price.toStringAsFixed(2)}'
-                            : 'Order Now',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addComboToCart(BuildContext context, OfferModel offer, double price) {
-    final cart = context.read<CartProvider>();
-    final syntheticItem = FoodItem(
-      id: offer.id,
-      name: offer.title,
-      description: offer.description,
-      price: price,
-      imageUrl: offer.imageUrl ?? '',
-      category: 'combo',
-      tags: const [],
-      mealSizes: const [],
-      extras: const [],
-      addons: const [],
-    );
-
-    cart.addItem(foodItem: syntheticItem);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppStrings.get('addedToCart').replaceAll('{itemName}', offer.title),
-          style: GoogleFonts.poppins(fontSize: 13.sp, color: Colors.white),
-        ),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
-        margin: EdgeInsets.all(16.r),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Widget _buildExpiryBadge(OfferModel offer) {
-    final daysLeft = offer.expiryDate!.difference(DateTime.now()).inDays;
-    if (daysLeft < 0) return const SizedBox.shrink();
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.access_time, color: AppColors.primary, size: 12.sp),
-          SizedBox(width: 4.w),
-          Text(
-            daysLeft == 0
-                ? AppStrings.get('today')
-                : AppStrings.get('days').replaceAll('{days}', '$daysLeft'),
-            style: TextStyle(
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textDark,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildItemsGrid(OffersProvider provider, double screenWidth) {
-    final crossAxisCount = _getCrossAxisCount(screenWidth);
-    final isMobile = _isMobile(screenWidth);
-    final childAspectRatio = _getChildAspectRatio(screenWidth);
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: isMobile ? 12.w : (_isTablet(screenWidth) ? 16.w : 20.w),
-        mainAxisSpacing: isMobile ? 12.h : (_isTablet(screenWidth) ? 16.h : 20.h),
-        childAspectRatio: childAspectRatio,
-      ),
-      itemCount: provider.itemsWithOffers.length,
-      itemBuilder: (context, index) {
-        final item = provider.itemsWithOffers[index];
-        final foodItem = _convertToFoodItem(item);
-        return TweenAnimationBuilder<double>(
-          duration: Duration(milliseconds: 300 + (index * 50)),
-          tween: Tween(begin: 0.0, end: 1.0),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, child) => Transform.scale(
-            scale: value,
-            child: Opacity(opacity: value, child: child),
-          ),
-          child: FoodItemCard(
-            foodItem: foodItem,
-            showDescription: true,
-            onTap: () => context.push(AppRoutes.foodDetail, extra: foodItem),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildEmptyState(double screenWidth) {
-    final isMobile = _isMobile(screenWidth);
-
-    return Center(
-      child: Container(
-        margin: EdgeInsets.symmetric(
-          horizontal: isMobile ? 24.w : 48.w,
-          vertical: 60.h,
-        ),
-        padding: EdgeInsets.all(isMobile ? 40.r : 60.r),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(24.r),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.local_offer_outlined,
-                size: isMobile ? 64.sp : 80.sp,
-                color: AppColors.primary,
-              ),
-            ),
-            SizedBox(height: isMobile ? 24.h : 32.h),
-            Text(
-              AppStrings.get('noOffersAvailable'),
-              style: GoogleFonts.poppins(
-                fontSize: isMobile ? 20.sp : 24.sp,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-              ),
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              AppStrings.get('checkBackLaterOffers'),
-              style: GoogleFonts.poppins(
-                fontSize: isMobile ? 14.sp : 16.sp,
-                color: AppColors.textLight,
-                height: 1.6,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 32.h),
-            ElevatedButton.icon(
-              onPressed: () {
-                context.go(AppRoutes.home);
-              },
-              icon: Icon(Icons.home_rounded, size: 20.sp),
-              label: Text(
-                AppStrings.get('browseMenu'),
-                style: GoogleFonts.poppins(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(
-                  horizontal: 32.w,
-                  vertical: 16.h,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                elevation: 0,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

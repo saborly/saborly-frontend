@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'package:Saborly/core/utils/error_presenter.dart';
+import 'package:Saborly/shared/widgets/app_error_widget.dart';
 import 'package:Saborly/shared/widgets/notification_permission_dialog.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -129,7 +132,35 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-void main() async {
+void main() {
+  // Global safety net: a single unexpected error anywhere in the app (a bad
+  // network response, a null field from a flaky backend, etc.) must not be
+  // able to crash the whole app or leave it on a blank/frozen screen.
+  // FlutterError.onError covers errors thrown during widget build/layout/
+  // paint; runZonedGuarded's error callback covers everything else
+  // (unawaited Futures, timers, stream callbacks) that would otherwise
+  // become an uncaught, app-terminating zone error.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('⚠️ Flutter error caught (isolated, app continues): ${details.exceptionAsString()}');
+  };
+  // Swaps Flutter's default red/gray exception screen for an on-brand one —
+  // see AppErrorWidget. Debug builds still print the real error above.
+  ErrorWidget.builder = (details) => AppErrorWidget(details: details);
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('⚠️ Uncaught platform error caught (isolated, app continues): $error');
+    showGenericErrorSnackbar();
+    return true; // handled — prevents the engine from treating this as fatal
+  };
+
+  runZonedGuarded(_runApp, (error, stack) {
+    debugPrint('⚠️ Uncaught zone error caught (isolated, app continues): $error');
+    showGenericErrorSnackbar();
+  });
+}
+
+Future<void> _runApp() async {
   usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
 

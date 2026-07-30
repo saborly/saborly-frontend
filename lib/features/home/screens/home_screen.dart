@@ -10,17 +10,11 @@ import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/core/routes/app_routes.dart';
 import 'package:Saborly/core/services/language_service.dart';
 import 'package:Saborly/core/utils/responsive_utils.dart';
-import 'package:Saborly/features/providers/checkout_provider.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
-import 'package:Saborly/features/providers/notification_provider.dart';
 import 'package:Saborly/features/providers/offer_provider.dart';
 import 'package:Saborly/features/home/widgets/mobile_categories_section.dart';
 import 'package:Saborly/features/home/widgets/web/web_google_reviews_section.dart';
-import 'package:Saborly/features/home/widgets/web/web_hero_section.dart';
-import 'package:Saborly/features/home/widgets/web/web_popular_dishes_section.dart';
-import 'package:Saborly/shared/widgets/food_category_card.dart';
 import 'package:Saborly/shared/widgets/food_item_card.dart';
-import 'package:Saborly/shared/widgets/language_selector.dart';
 import 'package:Saborly/shared/widgets/offersSection.dart';
 import 'package:Saborly/shared/widgets/ooter.dart';
 import 'package:Saborly/shared/widgets/promotional_banner_v2.dart';
@@ -28,6 +22,15 @@ import 'package:Saborly/shared/widgets/search_bar_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../shared/widgets/download_app_modal.dart';
+import 'home/widgets/categories_slider.dart';
+import 'home/widgets/featured_popular_items_section.dart';
+import 'home/widgets/hero_intro_section.dart';
+import 'home/widgets/home_error_banner.dart';
+import 'home/widgets/home_mobile_app_bar.dart';
+import 'home/widgets/search_results_section.dart';
+import 'home/widgets/search_status_banner.dart';
+import 'home/widgets/section_header.dart';
+import 'home/widgets/showcase_shell.dart';
 
 
 
@@ -266,7 +269,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           },
           child: Scaffold(
             backgroundColor: AppColors.background,
-            appBar: isWeb || isTalet ? null : _buildMobileAppBar(),
+            appBar: isWeb || isTalet
+                ? null
+                : HomeMobileAppBar(
+                    onClearSearchSilently: _clearSearchSilently,
+                    onClearSearch: _clearSearch,
+                  ),
             body: Consumer2<HomeProvider, OffersProvider>(
               builder: (context, homeProvider, offersProvider, child) {
                 if (homeProvider.isLoading && 
@@ -313,9 +321,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         const DynamicPromotionalBanner(),
                                       SizedBox(height: isWeb ? 28.h : 18.h),
 
+                                      // ── Connection/server error (nothing loaded at all) ──
+                                      if (!homeProvider.isInSearchMode &&
+                                          homeProvider.error != null &&
+                                          homeProvider.categories.isEmpty &&
+                                          homeProvider.featuredItems.isEmpty &&
+                                          homeProvider.popularItems.isEmpty) ...[
+                                        HomeErrorBanner(onRetry: () => _refreshHomeData(force: true)),
+                                        SizedBox(height: isWeb ? 28.h : 18.h),
+                                      ],
+
                                       // ── Categories (2nd section on both web & mobile) ──
                                       if (!homeProvider.isInSearchMode) ...[
-                                        _buildSectionHeader(
+                                        SectionHeader(
                                           AppStrings.get('ourMenu'),
                                           kicker: 'Categories',
                                           isWeb: isWeb,
@@ -326,8 +344,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 14.h),
                                         if (isWeb)
-                                          _buildShowcaseShell(
-                                            child: _buildCategoriesSlider(homeProvider, context, isWeb),
+                                          ShowcaseShell(
+                                            child: CategoriesSlider(
+                                              provider: homeProvider,
+                                              isWeb: isWeb,
+                                              onClearSearchSilently: _clearSearchSilently,
+                                            ),
                                           )
                                         else
                                           MobileCategoriesSection(
@@ -341,7 +363,10 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                       ],
 
                                       if (!isWeb) ...[
-                                        _buildHeroIntro(isWeb),
+                                        HeroIntroSection(
+                                          isWeb: isWeb,
+                                          onClearSearchSilently: _clearSearchSilently,
+                                        ),
                                         SizedBox(height: 18.h),
                                         SearchBarWidget(
                                           controller: _searchController,
@@ -349,33 +374,49 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         ),
                                         SizedBox(height: 16.h),
                                         if (homeProvider.isInSearchMode)
-                                          _buildSearchStatusBanner(homeProvider),
+                                          SearchStatusBanner(
+                                            provider: homeProvider,
+                                            onClear: _clearSearch,
+                                          ),
                                       ],
 
                                       if (homeProvider.isInSearchMode) ...[
                                         SizedBox(height: 24.h),
-                                        _buildSearchResults(
-                                          homeProvider,
-                                          isSmallScreen,
-                                          isTablet,
-                                          isDesktop,
+                                        SearchResultsSection(
+                                          resultsKey: _searchResultsKey,
+                                          provider: homeProvider,
+                                          isSmallScreen: isSmallScreen,
+                                          isTablet: isTablet,
+                                          isDesktop: isDesktop,
+                                          onClearSearchSilently: _clearSearchSilently,
+                                          onClearSearch: _clearSearch,
                                         ),
                                       ] else ...[
                                         // ── Hero (web: shown after categories) ──
                                         if (isWeb) ...[
-                                          _buildHeroIntro(isWeb),
+                                          HeroIntroSection(
+                                            isWeb: isWeb,
+                                            onClearSearchSilently: _clearSearchSilently,
+                                          ),
                                           SizedBox(height: 48.h),
                                         ],
 
-                                        _buildSectionHeader(
+                                        SectionHeader(
                                           AppStrings.get('featuredItems'),
                                           kicker: 'Top Picks',
                                           isWeb: isWeb,
                                           onViewAll: () => _navigateToFeaturedPage(context, homeProvider),
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
-                                        _buildShowcaseShell(
-                                          child: _buildFeaturedItems(homeProvider, isSmallScreen, isTablet, isDesktop, isWeb),
+                                        ShowcaseShell(
+                                          child: FeaturedItemsSection(
+                                            provider: homeProvider,
+                                            isSmallScreen: isSmallScreen,
+                                            isTablet: isTablet,
+                                            isDesktop: isDesktop,
+                                            isWeb: isWeb,
+                                            onClearSearchSilently: _clearSearchSilently,
+                                          ),
                                         ),
                                         SizedBox(height: isWeb ? 48.h : 24.h),
 
@@ -385,19 +426,26 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           SizedBox(height: isWeb ? 48.h : 24.h),
                                         ],
 
-                                        _buildSectionHeader(
+                                        SectionHeader(
                                           AppStrings.get('mostPopularItems'),
                                           kicker: 'Trending Now',
                                           isWeb: isWeb,
                                           onViewAll: () => _navigateToPopularPage(context, homeProvider),
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
-                                        _buildShowcaseShell(
-                                          child: _buildPopularItems(homeProvider, isSmallScreen, isTablet, isDesktop, isWeb),
+                                        ShowcaseShell(
+                                          child: PopularItemsSection(
+                                            provider: homeProvider,
+                                            isSmallScreen: isSmallScreen,
+                                            isTablet: isTablet,
+                                            isDesktop: isDesktop,
+                                            isWeb: isWeb,
+                                            onClearSearchSilently: _clearSearchSilently,
+                                          ),
                                         ),
 
                                         SizedBox(height: isWeb ? 48.h : 28.h),
-                                        _buildSectionHeader(
+                                        SectionHeader(
                                           'What People Are Saying',
                                           kicker: 'Google Reviews',
                                           isWeb: isWeb,
@@ -429,380 +477,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildHeroIntro(bool isWeb) {
-    if (isWeb) {
-      return WebHeroSection(
-        onOrderNow: () {
-          _clearSearchSilently();
-          context.go(AppRoutes.menu);
-        },
-        onViewOffers: () {
-          _clearSearchSilently();
-          context.go(AppRoutes.offer);
-        },
-      );
-    }
-
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.14),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            'Fresh burgers, bold deals',
-            style: GoogleFonts.manrope(
-              color: Colors.white,
-              fontSize: isWeb ? 14.sp : 12.sp,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        SizedBox(height: 14.h),
-        Text(
-          'Crave-worthy meals made to feel fast, warm, and premium.',
-          style: GoogleFonts.breeSerif(
-            fontSize: isWeb ? 36.sp : 24.sp,
-            height: 1.15,
-            color: Colors.white,
-          ),
-        ),
-        SizedBox(height: 10.h),
-        Text(
-          'Browse favorites, jump into offers, and order in a cleaner experience across web and mobile.',
-          style: GoogleFonts.manrope(
-            fontSize: isWeb ? 15.sp : 13.sp,
-            height: 1.5,
-            color: Colors.white.withOpacity(0.84),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(height: 22.h),
-        Wrap(
-          spacing: 12.w,
-          runSpacing: 12.h,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                _clearSearchSilently();
-                context.go(AppRoutes.menu);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.primaryDark,
-                elevation: 0,
-                padding: EdgeInsets.symmetric(
-                  horizontal: isWeb ? 26.w : 22.w,
-                  vertical: isWeb ? 16.h : 13.h,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Order Now',
-                    style: GoogleFonts.manrope(
-                      fontSize: isWeb ? 15.sp : 14.sp,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  SizedBox(width: 6.w),
-                  Icon(Icons.arrow_forward_rounded, size: isWeb ? 18.sp : 16.sp),
-                ],
-              ),
-            ),
-            OutlinedButton(
-              onPressed: () {
-                _clearSearchSilently();
-                context.go(AppRoutes.offer);
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: BorderSide(color: Colors.white.withOpacity(0.6), width: 1.5),
-                padding: EdgeInsets.symmetric(
-                  horizontal: isWeb ? 24.w : 20.w,
-                  vertical: isWeb ? 16.h : 13.h,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-              ),
-              child: Text(
-                'View Offers',
-                style: GoogleFonts.manrope(
-                  fontSize: isWeb ? 15.sp : 14.sp,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (!isWeb) ...[
-          SizedBox(height: 20.h),
-          Row(
-            children: [
-              Expanded(child: _HeroStat(icon: Icons.star_rounded, label: '4.8 Rating')),
-              SizedBox(width: 10.w),
-              Expanded(child: _HeroStat(icon: Icons.delivery_dining_rounded, label: '30 min Delivery')),
-            ],
-          ),
-        ],
-      ],
-    );
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(isWeb ? 40.w : 20.w),
-      decoration: BoxDecoration(
-        gradient: AppColors.heroGradient,
-        borderRadius: BorderRadius.circular(28.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryDark.withOpacity(0.22),
-            blurRadius: 24.r,
-            offset: Offset(0, 12.h),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -20.w,
-            top: -16.h,
-            child: Container(
-              width: isWeb ? 150.w : 110.w,
-              height: isWeb ? 150.w : 110.w,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          if (isWeb)
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(flex: 6, child: content),
-                  SizedBox(width: 32.w),
-                  Expanded(flex: 5, child: _HeroGraphic()),
-                ],
-              ),
-            )
-          else
-            content,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShowcaseShell({required Widget child}) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 16.w),
-          decoration: BoxDecoration(
-            gradient: AppColors.surfaceGradient,
-            borderRadius: BorderRadius.circular(28.r),
-            border: Border.all(color: Colors.white.withOpacity(0.95), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadow.withOpacity(0.15),
-                blurRadius: 18.r,
-                offset: Offset(0, 10.h),
-              ),
-            ],
-          ),
-          child: child,
-        ),
-        // Small branded accent tab so each panel reads as distinct, not a
-        // repeated identical box.
-        Positioned(
-          top: -3.h,
-          left: 28.w,
-          child: Container(
-            width: 46.w,
-            height: 6.h,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [AppColors.secondary, AppColors.primary]),
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchStatusBanner(HomeProvider provider) {
-    final totalResults = provider.searchResults.length;
-    
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        gradient: AppColors.surfaceGradient,
-        borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(
-          color: AppColors.border,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withOpacity(0.18),
-            blurRadius: 14.r,
-            offset: Offset(0, 6.h),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search, color: AppColors.primary, size: 20.sp),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Searching for "${provider.lastSearchQuery}"',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  provider.isSearchLoading 
-                      ? 'Loading...'
-                      : '$totalResults ${totalResults == 1 ? 'result' : 'results'} found',
-                  style: TextStyle(fontSize: 12.sp, color: AppColors.textMedium),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: _clearSearch,
-            icon: Icon(Icons.close, color: AppColors.textDark, size: 20.sp),
-            padding: EdgeInsets.zero,
-            constraints: BoxConstraints(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchResults(
-    HomeProvider provider,
-    bool isSmallScreen,
-    bool isTablet,
-    bool isDesktop,
-  ) {
-    if (provider.isSearchLoading) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(40.h),
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-          ),
-        ),
-      );
-    }
-
-    if (provider.searchResults.isEmpty) {
-      return _buildNoResultsView();
-    }
-
-    int crossAxisCount = isSmallScreen ? 1 : (isTablet ? 3 : 5);
-    double childAspectRatio = isSmallScreen ? 1.10 : (isTablet ? 0.8 : 0.75);
-
-    return Column(
-      key: _searchResultsKey,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Search Results',
-          style: TextStyle(
-            fontSize: 24.sp,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-            letterSpacing: -0.5,
-          ),
-        ),
-        SizedBox(height: 16.h),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: isSmallScreen ? 8.w : (isTablet ? 16.w : 20.w),
-            mainAxisSpacing: isSmallScreen ? 8.h : (isTablet ? 16.h : 20.h),
-            childAspectRatio: childAspectRatio,
-          ),
-          itemCount: provider.searchResults.length,
-          itemBuilder: (context, index) {
-            final item = provider.searchResults[index];
-            return FoodItemCard(
-              key: ValueKey('search_${item.id}'),
-              foodItem: item,
-              onTap: () {
-                _clearSearchSilently();
-                context.push(AppRoutes.foodDetail, extra: item);
-              },
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNoResultsView() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 60.h),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 80.sp, color: AppColors.textLight),
-            SizedBox(height: 24.h),
-            Text(
-              'No Results Found',
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-              ),
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              'Try searching with different keywords',
-              style: TextStyle(fontSize: 14.sp, color: AppColors.textMedium),
-            ),
-            SizedBox(height: 24.h),
-            TextButton.icon(
-              onPressed: _clearSearch,
-              icon: Icon(Icons.clear_all, size: 20.sp),
-              label: Text('Clear Search', style: TextStyle(fontSize: 16.sp)),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -842,482 +516,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     return 60.w;
   }
 
-  PreferredSizeWidget _buildMobileAppBar() {
-    return AppBar(
-      backgroundColor: AppColors.background,
-      elevation: 0,
-      toolbarHeight: 78.h,
-      automaticallyImplyLeading: false,
-      title: Consumer<CheckoutProvider>(
-        builder: (context, checkoutProvider, _) {
-          final locationText = _getLocationLabel(checkoutProvider);
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLogo(context),
-              SizedBox(height: 2.h),
-              GestureDetector(
-                onTap: () => context.go(AppRoutes.checkout),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.location_on_outlined,
-                      color: AppColors.secondary,
-                      size: 14.sp,
-                    ),
-                    SizedBox(width: 4.w),
-                    Expanded(
-                      child: Text(
-                        locationText,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textMedium,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-      actions: [
-        Padding(
-          padding: EdgeInsets.only(right: 4.w),
-          child: LanguageSelector(showLabel: false, isCompact: true),
-        ),
-        Consumer<NotificationProvider>(
-          builder: (context, notificationProvider, _) {
-            final unreadCount = notificationProvider.unreadCount;
-
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    _clearSearchSilently();
-                    context.push(AppRoutes.notifications);
-                  },
-                  icon: Icon(
-                    Icons.notifications_outlined,
-                    color: AppColors.textDark,
-                    size: 24.sp,
-                  ),
-                ),
-                if (unreadCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: EdgeInsets.all(4.w),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      constraints:
-                          BoxConstraints(minWidth: 16.w, minHeight: 16.h),
-                      child: Text(
-                        unreadCount > 99 ? '99+' : '$unreadCount',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 8.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  String _getLocationLabel(CheckoutProvider checkoutProvider) {
-    final selectedAddress = checkoutProvider.selectedAddress;
-    if (selectedAddress != null) {
-      final label = selectedAddress.type?.trim();
-      final address = selectedAddress.address.trim();
-
-      if (label != null && label.isNotEmpty && address.isNotEmpty) {
-        return '$label • $address';
-      }
-      if (address.isNotEmpty) {
-        return address;
-      }
-      if (label != null && label.isNotEmpty) {
-        return label;
-      }
-    }
-
-    final selectedBranch = checkoutProvider.selectedBranch;
-    if (selectedBranch != null) {
-      return '${AppStrings.pickupLocation}: ${selectedBranch.name}';
-    }
-
-    return '${AppStrings.pickupLocation}: Saborly Barcelona';
-  }
-
-  Widget _buildLogo(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        _clearSearch();
-        context.go(AppRoutes.home);
-      },
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 2.w),
-        child: Hero(
-          tag: 'app_logo',
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 48.h, maxWidth: 140.w),
-            child: AspectRatio(
-              aspectRatio: 3,
-              child: Image.asset(
-                'assets/images/logo3.png',
-                fit: BoxFit.contain,
-                semanticLabel: AppStrings.get('appLogo'),
-                errorBuilder: (context, error, stackTrace) => Icon(
-                  Icons.error_outline,
-                  size: 24.sp,
-                  color: Colors.redAccent,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll, bool isWeb = false, String? kicker}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (kicker != null) ...[
-                Text(
-                  kicker.toUpperCase(),
-                  style: GoogleFonts.manrope(
-                    fontSize: 11.5.sp,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                    letterSpacing: 1.4,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-              ],
-              Text(
-                title,
-                style: GoogleFonts.breeSerif(
-                  fontSize: isWeb ? 32.sp : 24.sp,
-                  color: AppColors.textDark,
-                  letterSpacing: -0.5,
-                  height: 1.2,
-                ),
-              ),
-              if (isWeb) ...[
-                SizedBox(height: 8.h),
-                Container(
-                  width: 84.w,
-                  height: 4.h,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.secondary, AppColors.primary],
-                    ),
-                    borderRadius: BorderRadius.circular(999.r),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        if (onViewAll != null)
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap: onViewAll,
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isWeb ? 20.w : 12.w,
-                  vertical: isWeb ? 12.h : 8.h,
-                ),
-                decoration: BoxDecoration(
-                  gradient: isWeb ? AppColors.surfaceGradient : null,
-                  color: isWeb ? null : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: isWeb ? Border.all(
-                    color: AppColors.border,
-                    width: 1.5,
-                  ) : null,
-                  boxShadow: isWeb ? [
-                    BoxShadow(
-                      color: AppColors.shadow.withOpacity(0.18),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ] : null,
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      AppStrings.viewAll,
-                      style: GoogleFonts.manrope(
-                        fontSize: isWeb ? 16.sp : 14.sp,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    SizedBox(width: 6.w),
-                    Icon(
-                      Icons.arrow_forward,
-                      size: isWeb ? 18.sp : 16.sp,
-                      color: AppColors.primary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildCategoriesSlider(HomeProvider provider, BuildContext context, bool isWeb) {
-    if (provider.categories.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return SizedBox(
-      height: isWeb ? 140.h : 122.h,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: provider.categories.length,
-        itemBuilder: (context, index) {
-          final category = provider.categories[index];
-          final isLast = index == provider.categories.length - 1;
-          return Padding(
-            padding: EdgeInsets.only(right: isLast ? 0 : (isWeb ? 16.w : 15.w)),
-            child: FoodCategoryCard(
-              category: category,
-              onTap: () {
-                _clearSearchSilently();
-                context.push(AppRoutes.menu, extra: {'category': category.id});
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildFeaturedItems(
-    HomeProvider provider,
-    bool isSmallScreen,
-    bool isTablet,
-    bool isDesktop,
-    bool isWeb,
-  ) {
-    if (provider.featuredItems.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    int crossAxisCount = isSmallScreen ? 1 : (isTablet ? 3 : 5);
-    double childAspectRatio = isSmallScreen ? 1.35 : (isTablet ? 0.78 : 0.72);
-    int maxItems = isSmallScreen ? 4 : (isTablet ? 6 : 10);
-    int itemCount = provider.featuredItems.length > maxItems ? maxItems : provider.featuredItems.length;
-    final items = provider.featuredItems.take(itemCount).toList();
-
-    return WebPopularDishesSection(
-      items: items,
-      crossAxisCount: crossAxisCount,
-      childAspectRatio: childAspectRatio,
-      spacing: isSmallScreen ? 14 : 20,
-      onTap: (item) {
-        _clearSearchSilently();
-        context.push(AppRoutes.foodDetail, extra: item);
-      },
-    );
-  }
-
-  Widget _buildPopularItems(
-    HomeProvider provider,
-    bool isSmallScreen,
-    bool isTablet,
-    bool isDesktop,
-    bool isWeb,
-  ) {
-    if (provider.popularItems.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    int maxItems = isSmallScreen ? 4 : (isTablet ? 6 : 10);
-    int itemCount = provider.popularItems.length > maxItems ? maxItems : provider.popularItems.length;
-    int crossAxisCount = isSmallScreen ? 1 : (isTablet ? 3 : 5);
-    double childAspectRatio = isSmallScreen ? 1.35 : (isTablet ? 0.78 : 0.72);
-    final items = provider.popularItems.take(itemCount).toList();
-
-    return WebPopularDishesSection(
-      items: items,
-      crossAxisCount: crossAxisCount,
-      childAspectRatio: childAspectRatio,
-      spacing: isSmallScreen ? 14 : 20,
-      onTap: (item) {
-        _clearSearchSilently();
-        context.push(AppRoutes.foodDetail, extra: item);
-      },
-    );
-  }
-}
-
-/// Small icon+label chip used in the hero (e.g. "4.8 Rating"). Both the
-/// compact mobile row and the floating chips on the web hero graphic reuse
-/// this so the stat styling stays consistent.
-class _HeroStat extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _HeroStat({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.14),
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: Colors.white.withOpacity(0.18)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15.sp, color: AppColors.secondary),
-          SizedBox(width: 6.w),
-          Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.manrope(
-                color: Colors.white,
-                fontSize: 11.5.sp,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Decorative vector/icon-based graphic for the right side of the web hero.
-/// Layered rounded panels with food icons + floating stat chips — no photo
-/// assets exist in the project that fit the brand, so this stays icon-based.
-class _HeroGraphic extends StatelessWidget {
-  const _HeroGraphic();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 260.h,
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 220.w,
-            height: 220.w,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Positioned(
-            left: 10.w,
-            top: 10.h,
-            child: _HeroIconTile(
-              icon: Icons.lunch_dining_rounded,
-              color: AppColors.secondary,
-              size: 78.w,
-            ),
-          ),
-          Positioned(
-            right: 6.w,
-            top: 46.h,
-            child: _HeroIconTile(
-              icon: Icons.local_pizza_rounded,
-              color: Colors.white,
-              size: 66.w,
-            ),
-          ),
-          Positioned(
-            bottom: 18.h,
-            left: 40.w,
-            child: _HeroIconTile(
-              icon: Icons.icecream_rounded,
-              color: Colors.white,
-              size: 58.w,
-            ),
-          ),
-          Positioned(
-            top: -6.h,
-            right: 24.w,
-            child: const _HeroStat(icon: Icons.star_rounded, label: '4.8 Rating'),
-          ),
-          Positioned(
-            bottom: -4.h,
-            right: 0,
-            child: const _HeroStat(icon: Icons.delivery_dining_rounded, label: '30 min Delivery'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroIconTile extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final double size;
-
-  const _HeroIconTile({required this.icon, required this.color, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color.withOpacity(color == Colors.white ? 0.16 : 1),
-        borderRadius: BorderRadius.circular(size * 0.32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Icon(
-        icon,
-        size: size * 0.5,
-        color: color == Colors.white ? Colors.white : AppColors.primaryDark,
-      ),
-    );
-  }
 }
 
 class ItemsGridPage extends StatelessWidget {
