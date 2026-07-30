@@ -810,8 +810,7 @@ Widget _buildDeliveryTypeBanner(CheckoutProvider checkoutProvider) {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      AppStrings.get('orderPlacedSuccessfully') ?? 
-                      'Order Placed Successfully! 🎉',
+                      AppStrings.get('orderPlacedSuccessfully'),
                       style: TextStyle(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w600,

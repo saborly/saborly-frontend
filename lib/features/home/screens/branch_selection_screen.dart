@@ -92,8 +92,12 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
       _blockedMessage = null;
     });
 
+    // Generous outer bound: the browser's own permission prompt on a first
+    // ever request blocks detectUserLocation() for as long as the user takes
+    // to respond, which can exceed a short timeout here and abort a flow
+    // that would otherwise have succeeded (see geolocation_service_web.dart).
     final coords = await detectUserLocation()
-        .timeout(const Duration(seconds: 10), onTimeout: () => null);
+        .timeout(const Duration(seconds: 26), onTimeout: () => null);
 
     if (!mounted) return;
 

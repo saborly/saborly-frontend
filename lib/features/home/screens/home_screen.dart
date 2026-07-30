@@ -14,6 +14,7 @@ import 'package:Saborly/features/providers/checkout_provider.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
 import 'package:Saborly/features/providers/notification_provider.dart';
 import 'package:Saborly/features/providers/offer_provider.dart';
+import 'package:Saborly/features/home/widgets/mobile_categories_section.dart';
 import 'package:Saborly/features/home/widgets/web/web_google_reviews_section.dart';
 import 'package:Saborly/features/home/widgets/web/web_hero_section.dart';
 import 'package:Saborly/features/home/widgets/web/web_popular_dishes_section.dart';
@@ -31,7 +32,9 @@ import '../../../shared/widgets/download_app_modal.dart';
 
 
 
+
 class HomeScreen extends StatefulWidget {
+
   static final RouteObserver<ModalRoute<void>> routeObserver =
       RouteObserver<ModalRoute<void>>();
 
@@ -40,6 +43,7 @@ class HomeScreen extends StatefulWidget {
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
+
 
 enum ItemType {
   featured,
@@ -309,6 +313,33 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         const DynamicPromotionalBanner(),
                                       SizedBox(height: isWeb ? 28.h : 18.h),
 
+                                      // ── Categories (2nd section on both web & mobile) ──
+                                      if (!homeProvider.isInSearchMode) ...[
+                                        _buildSectionHeader(
+                                          AppStrings.get('ourMenu'),
+                                          kicker: 'Categories',
+                                          isWeb: isWeb,
+                                          onViewAll: () {
+                                            _clearSearchSilently();
+                                            context.go(AppRoutes.menu);
+                                          },
+                                        ),
+                                        SizedBox(height: isWeb ? 24.h : 14.h),
+                                        if (isWeb)
+                                          _buildShowcaseShell(
+                                            child: _buildCategoriesSlider(homeProvider, context, isWeb),
+                                          )
+                                        else
+                                          MobileCategoriesSection(
+                                            categories: homeProvider.categories,
+                                            onTap: (category) {
+                                              _clearSearchSilently();
+                                              context.push(AppRoutes.menu, extra: {'category': category.id});
+                                            },
+                                          ),
+                                        SizedBox(height: isWeb ? 48.h : 24.h),
+                                      ],
+
                                       if (!isWeb) ...[
                                         _buildHeroIntro(isWeb),
                                         SizedBox(height: 18.h),
@@ -330,21 +361,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           isDesktop,
                                         ),
                                       ] else ...[
-                                        _buildSectionHeader(
-                                          AppStrings.get('ourMenu'),
-                                          kicker: 'Categories',
-                                          isWeb: isWeb,
-                                          onViewAll: () {
-                                            _clearSearchSilently();
-                                            context.go(AppRoutes.menu);
-                                          },
-                                        ),
-                                        SizedBox(height: isWeb ? 24.h : 16.h),
-                                        _buildShowcaseShell(
-                                          child: _buildCategoriesSlider(homeProvider, context, isWeb),
-                                        ),
-                                        SizedBox(height: isWeb ? 48.h : 24.h),
-
                                         // ── Hero (web: shown after categories) ──
                                         if (isWeb) ...[
                                           _buildHeroIntro(isWeb),
@@ -380,16 +396,14 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           child: _buildPopularItems(homeProvider, isSmallScreen, isTablet, isDesktop, isWeb),
                                         ),
 
-                                        if (isWeb) ...[
-                                          SizedBox(height: 48.h),
-                                          _buildSectionHeader(
-                                            'What People Are Saying',
-                                            kicker: 'Google Reviews',
-                                            isWeb: isWeb,
-                                          ),
-                                          SizedBox(height: 24.h),
-                                          const WebGoogleReviewsSection(),
-                                        ],
+                                        SizedBox(height: isWeb ? 48.h : 28.h),
+                                        _buildSectionHeader(
+                                          'What People Are Saying',
+                                          kicker: 'Google Reviews',
+                                          isWeb: isWeb,
+                                        ),
+                                        SizedBox(height: isWeb ? 24.h : 16.h),
+                                        const WebGoogleReviewsSection(),
                                       ],
 
                                       SizedBox(height: isWeb ? 64.h : 32.h),
@@ -1087,14 +1101,16 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
 
     return SizedBox(
-      height: isWeb ? 140.h : 120.h,
+      height: isWeb ? 140.h : 122.h,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemCount: provider.categories.length,
         itemBuilder: (context, index) {
           final category = provider.categories[index];
+          final isLast = index == provider.categories.length - 1;
           return Padding(
-            padding: EdgeInsets.only(right: isWeb ? 16.w : 12.w),
+            padding: EdgeInsets.only(right: isLast ? 0 : (isWeb ? 16.w : 15.w)),
             child: FoodCategoryCard(
               category: category,
               onTap: () {
@@ -1120,42 +1136,19 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     }
 
     int crossAxisCount = isSmallScreen ? 1 : (isTablet ? 3 : 5);
-    double childAspectRatio = isSmallScreen ? 1.10 : (isTablet ? 0.8 : 0.75);
+    double childAspectRatio = isSmallScreen ? 1.35 : (isTablet ? 0.78 : 0.72);
     int maxItems = isSmallScreen ? 4 : (isTablet ? 6 : 10);
     int itemCount = provider.featuredItems.length > maxItems ? maxItems : provider.featuredItems.length;
     final items = provider.featuredItems.take(itemCount).toList();
 
-    if (isWeb) {
-      return WebPopularDishesSection(
-        items: items,
-        crossAxisCount: crossAxisCount,
-        onTap: (item) {
-          _clearSearchSilently();
-          context.push(AppRoutes.foodDetail, extra: item);
-        },
-      );
-    }
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: isSmallScreen ? 8.w : (isTablet ? 16.w : 20.w),
-        mainAxisSpacing: isSmallScreen ? 8.h : (isTablet ? 16.h : 20.h),
-        childAspectRatio: childAspectRatio,
-      ),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        final item = provider.featuredItems[index];
-        return FoodItemCard(
-          key: ValueKey('featured_${item.id}'),
-          foodItem: item,
-          onTap: () {
-            _clearSearchSilently();
-            context.push(AppRoutes.foodDetail, extra: item);
-          },
-        );
+    return WebPopularDishesSection(
+      items: items,
+      crossAxisCount: crossAxisCount,
+      childAspectRatio: childAspectRatio,
+      spacing: isSmallScreen ? 14 : 20,
+      onTap: (item) {
+        _clearSearchSilently();
+        context.push(AppRoutes.foodDetail, extra: item);
       },
     );
   }
@@ -1174,40 +1167,17 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     int maxItems = isSmallScreen ? 4 : (isTablet ? 6 : 10);
     int itemCount = provider.popularItems.length > maxItems ? maxItems : provider.popularItems.length;
     int crossAxisCount = isSmallScreen ? 1 : (isTablet ? 3 : 5);
-    double childAspectRatio = isSmallScreen ? 1.10 : (isTablet ? 0.8 : 0.75);
+    double childAspectRatio = isSmallScreen ? 1.35 : (isTablet ? 0.78 : 0.72);
     final items = provider.popularItems.take(itemCount).toList();
 
-    if (isWeb) {
-      return WebPopularDishesSection(
-        items: items,
-        crossAxisCount: crossAxisCount,
-        onTap: (item) {
-          _clearSearchSilently();
-          context.push(AppRoutes.foodDetail, extra: item);
-        },
-      );
-    }
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: isSmallScreen ? 8.w : (isTablet ? 16.w : 20.w),
-        mainAxisSpacing: isSmallScreen ? 8.h : (isTablet ? 16.h : 20.h),
-        childAspectRatio: childAspectRatio,
-      ),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        final item = provider.popularItems[index];
-        return FoodItemCard(
-          key: ValueKey('popular_${item.id}'),
-          foodItem: item,
-          onTap: () {
-            _clearSearchSilently();
-            context.push(AppRoutes.foodDetail, extra: item);
-          },
-        );
+    return WebPopularDishesSection(
+      items: items,
+      crossAxisCount: crossAxisCount,
+      childAspectRatio: childAspectRatio,
+      spacing: isSmallScreen ? 14 : 20,
+      onTap: (item) {
+        _clearSearchSilently();
+        context.push(AppRoutes.foodDetail, extra: item);
       },
     );
   }

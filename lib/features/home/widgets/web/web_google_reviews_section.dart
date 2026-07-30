@@ -165,7 +165,14 @@ class _PlaceCard extends StatelessWidget {
                       children: [
                         Icon(Icons.location_on_outlined, size: 13.sp, color: AppColors.muted),
                         SizedBox(width: 3.w),
-                        Text(place.location, style: GoogleFonts.manrope(fontSize: 12.sp, color: AppColors.muted)),
+                        Expanded(
+                          child: Text(
+                            place.location,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.manrope(fontSize: 12.sp, color: AppColors.muted),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -176,27 +183,29 @@ class _PlaceCard extends StatelessWidget {
           ),
           SizedBox(height: 14.h),
 
-          Row(
+          Wrap(
+            spacing: 10.w,
+            runSpacing: 6.h,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (place.rating != null) ...[
-                Icon(Icons.star_rounded, size: 16.sp, color: AppColors.secondary),
-                SizedBox(width: 4.w),
-                Text('${place.rating!.toStringAsFixed(1)}', style: GoogleFonts.manrope(fontSize: 13.sp, fontWeight: FontWeight.w800, color: AppColors.textDark)),
-                SizedBox(width: 4.w),
-                Text('(${place.reviewCount})', style: GoogleFonts.manrope(fontSize: 12.5.sp, color: AppColors.muted)),
-                SizedBox(width: 10.w),
-                _dot(),
-                SizedBox(width: 10.w),
-              ],
-              if (place.priceRange != null) ...[
+              if (place.rating != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star_rounded, size: 16.sp, color: AppColors.secondary),
+                    SizedBox(width: 4.w),
+                    Text('${place.rating!.toStringAsFixed(1)}', style: GoogleFonts.manrope(fontSize: 13.sp, fontWeight: FontWeight.w800, color: AppColors.textDark)),
+                    SizedBox(width: 4.w),
+                    Text('(${place.reviewCount})', style: GoogleFonts.manrope(fontSize: 12.5.sp, color: AppColors.muted)),
+                  ],
+                ),
+              if (place.priceRange != null)
                 Text(place.priceRange!, style: GoogleFonts.manrope(fontSize: 12.5.sp, color: AppColors.muted, fontWeight: FontWeight.w600)),
-                SizedBox(width: 10.w),
-                _dot(),
-                SizedBox(width: 10.w),
-              ],
-              Flexible(
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 140.w),
                 child: Text(
                   place.category,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.manrope(fontSize: 12.5.sp, color: AppColors.muted, fontWeight: FontWeight.w600),
                 ),
@@ -263,8 +272,6 @@ class _PlaceCard extends StatelessWidget {
       builder: (context) => _AllReviewsDialog(place: place),
     );
   }
-
-  Widget _dot() => Container(width: 3.w, height: 3.w, decoration: BoxDecoration(color: AppColors.muted, shape: BoxShape.circle));
 
   Widget _openBadge(bool open) {
     return Container(

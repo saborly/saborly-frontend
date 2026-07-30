@@ -36,7 +36,8 @@ if [ "$SKIP_BUILD" = false ]; then
     flutter clean
     flutter pub get
     flutter build web --release \
-        --no-web-resources-cdn
+        --no-web-resources-cdn \
+        --no-tree-shake-icons
     echo "   ✅ Build complete → $BUILD_DIR/"
 else
     echo ""

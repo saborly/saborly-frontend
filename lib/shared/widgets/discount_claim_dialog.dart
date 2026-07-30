@@ -109,12 +109,21 @@ class _ClaimDiscountDialogState extends State<_ClaimDiscountDialog> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                '🎉 Discount claimed successfully!',
-                style: GoogleFonts.poppins(
-                  fontSize: 14.sp,
-                  color: Colors.white,
-                ),
+              content: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.celebration_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 8.w),
+                  Flexible(
+                    child: Text(
+                      'Discount claimed successfully!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14.sp,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,

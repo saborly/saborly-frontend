@@ -2893,7 +2893,7 @@ List<Widget> _buildHoursList(bool isWeb) {
                         SizedBox(width: 8.w),
                         Expanded(
                           child: Text(
-                            '🎉 20% first-order discount will be applied!',
+                            '20% first-order discount will be applied!',
                             style: TextStyle(
                               fontSize: 13.sp,
                               fontWeight: FontWeight.w600,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
@@ -47,6 +48,10 @@ class FoodCategoryCard extends StatelessWidget {
           }
         }
 
+        // Single radius shared by the container AND the image clip so no
+        // sliver of the gradient background ever peeks out at the corners.
+        final avatarRadius = (30.r * (iconSize / baseIconSize)).clamp(16.r, 30.r);
+
         return GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
@@ -68,54 +73,21 @@ class FoodCategoryCard extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        colorScheme.primary,
-                        colorScheme.secondary,
-                      ],
+                      colors: [colorScheme.primary, colorScheme.secondary],
                     ),
-                    borderRadius: BorderRadius.circular((30.r * (iconSize / baseIconSize)).clamp(16.r, 30.r)),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.65),
-                      width: 2,
-                    ),
+                    borderRadius: BorderRadius.circular(avatarRadius),
                     boxShadow: [
                       BoxShadow(
-                        color: colorScheme.primary.withOpacity(0.4),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
-                        spreadRadius: -6,
+                        color: colorScheme.primary.withOpacity(0.28),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                        spreadRadius: -4,
                       ),
                     ],
                   ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: -12,
-                        right: -10,
-                        child: Container(
-                          width: iconSize * 0.42,
-                          height: iconSize * 0.42,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular((30.r * (iconSize / baseIconSize)).clamp(16.r, 30.r)),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white.withOpacity(0.26),
-                              Colors.white.withOpacity(0.03),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Center(child: _buildIcon(iconSize, context)),
-                    ],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(avatarRadius),
+                    child: _buildIcon(iconSize, context),
                   ),
                 ),
                 SizedBox(height: spacing),
@@ -145,14 +117,14 @@ class FoodCategoryCard extends StatelessWidget {
 
   Widget _buildIcon(double iconSize, BuildContext context) {
     if (category.imageUrl.startsWith('http')) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(24.r),
-        child: Image.network(
-          category.imageUrl,
-          width: iconSize,
-          height: iconSize,
-          fit: BoxFit.cover,
-        ),
+      return CachedNetworkImage(
+        imageUrl: category.imageUrl,
+        width: iconSize,
+        height: iconSize,
+        fit: BoxFit.cover,
+        fadeInDuration: const Duration(milliseconds: 200),
+        placeholder: (_, __) => _buildIconFallback(iconSize, context),
+        errorWidget: (_, __, ___) => _buildIconFallback(iconSize, context),
       );
     }
     return _buildIconFallback(iconSize, context);
