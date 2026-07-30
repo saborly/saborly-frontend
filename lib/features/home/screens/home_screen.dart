@@ -228,11 +228,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     if (screenWidth >= 1200) return 1200;
     return screenWidth * 0.95;
   }
+  
 
   @override
   Widget build(BuildContext context) {
     final isWeb = ResponsiveUtils.isWeb(context);
     final isTalet = ResponsiveUtils.isTablet(context);
+
 
     return Consumer<LanguageService>(
       builder: (context, languageService, _) {
