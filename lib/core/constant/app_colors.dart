@@ -41,6 +41,10 @@ class AppColors {
   static const Color duetCombos = Color(0xFFFFF3E0);
   static const Color whopper = Color(0xFFE3F2FD);
   
+  // Premium homepage tokens
+  static const Color premiumAccent = Color(0xFFFFF7F2);
+  static const Color muted = Color(0xFF6B7280);
+
   // Additional Colors
   static const Color border = Color(0xFFE7D3BD);
   static const Color divider = Color(0xFFF0E1D2);

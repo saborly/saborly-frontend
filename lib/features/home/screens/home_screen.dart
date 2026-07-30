@@ -14,6 +14,9 @@ import 'package:Saborly/features/providers/checkout_provider.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
 import 'package:Saborly/features/providers/notification_provider.dart';
 import 'package:Saborly/features/providers/offer_provider.dart';
+import 'package:Saborly/features/home/widgets/web/web_google_reviews_section.dart';
+import 'package:Saborly/features/home/widgets/web/web_hero_section.dart';
+import 'package:Saborly/features/home/widgets/web/web_popular_dishes_section.dart';
 import 'package:Saborly/shared/widgets/food_category_card.dart';
 import 'package:Saborly/shared/widgets/food_item_card.dart';
 import 'package:Saborly/shared/widgets/language_selector.dart';
@@ -301,15 +304,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                       // ── Promotional Banner (Aligned with content) ──
                                       if (!homeProvider.isInSearchMode)
                                         const DynamicPromotionalBanner(),
-                                      // Top spacing: generous after banner on web,
-                                      // compact on mobile
-                                      SizedBox(height: isWeb ? 28.h : 18.h),
-
-                                      _buildHeroIntro(isWeb),
-
                                       SizedBox(height: isWeb ? 28.h : 18.h),
 
                                       if (!isWeb) ...[
+                                        _buildHeroIntro(isWeb),
+                                        SizedBox(height: 18.h),
                                         SearchBarWidget(
                                           controller: _searchController,
                                           onSearch: _handleSearch,
@@ -330,6 +329,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                       ] else ...[
                                         _buildSectionHeader(
                                           AppStrings.get('ourMenu'),
+                                          kicker: 'Categories',
                                           isWeb: isWeb,
                                           onViewAll: () {
                                             _clearSearchSilently();
@@ -342,14 +342,21 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                         ),
                                         SizedBox(height: isWeb ? 48.h : 24.h),
 
+                                        // ── Hero (web: shown after categories) ──
+                                        if (isWeb) ...[
+                                          _buildHeroIntro(isWeb),
+                                          SizedBox(height: 48.h),
+                                        ],
+
                                         _buildSectionHeader(
                                           AppStrings.get('featuredItems'),
+                                          kicker: 'Top Picks',
                                           isWeb: isWeb,
                                           onViewAll: () => _navigateToFeaturedPage(context, homeProvider),
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
                                         _buildShowcaseShell(
-                                          child: _buildFeaturedItems(homeProvider, isSmallScreen, isTablet, isDesktop),
+                                          child: _buildFeaturedItems(homeProvider, isSmallScreen, isTablet, isDesktop, isWeb),
                                         ),
                                         SizedBox(height: isWeb ? 48.h : 24.h),
 
@@ -361,13 +368,25 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
                                         _buildSectionHeader(
                                           AppStrings.get('mostPopularItems'),
+                                          kicker: 'Trending Now',
                                           isWeb: isWeb,
                                           onViewAll: () => _navigateToPopularPage(context, homeProvider),
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
                                         _buildShowcaseShell(
-                                          child: _buildPopularItems(homeProvider, isSmallScreen, isTablet, isDesktop),
+                                          child: _buildPopularItems(homeProvider, isSmallScreen, isTablet, isDesktop, isWeb),
                                         ),
+
+                                        if (isWeb) ...[
+                                          SizedBox(height: 48.h),
+                                          _buildSectionHeader(
+                                            'What People Are Saying',
+                                            kicker: 'Google Reviews',
+                                            isWeb: isWeb,
+                                          ),
+                                          SizedBox(height: 24.h),
+                                          const WebGoogleReviewsSection(),
+                                        ],
                                       ],
 
                                       SizedBox(height: isWeb ? 64.h : 32.h),
@@ -397,9 +416,136 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 
   Widget _buildHeroIntro(bool isWeb) {
+    if (isWeb) {
+      return WebHeroSection(
+        onOrderNow: () {
+          _clearSearchSilently();
+          context.go(AppRoutes.menu);
+        },
+        onViewOffers: () {
+          _clearSearchSilently();
+          context.go(AppRoutes.offer);
+        },
+      );
+    }
+
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.14),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            'Fresh burgers, bold deals',
+            style: GoogleFonts.manrope(
+              color: Colors.white,
+              fontSize: isWeb ? 14.sp : 12.sp,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        SizedBox(height: 14.h),
+        Text(
+          'Crave-worthy meals made to feel fast, warm, and premium.',
+          style: GoogleFonts.breeSerif(
+            fontSize: isWeb ? 36.sp : 24.sp,
+            height: 1.15,
+            color: Colors.white,
+          ),
+        ),
+        SizedBox(height: 10.h),
+        Text(
+          'Browse favorites, jump into offers, and order in a cleaner experience across web and mobile.',
+          style: GoogleFonts.manrope(
+            fontSize: isWeb ? 15.sp : 13.sp,
+            height: 1.5,
+            color: Colors.white.withOpacity(0.84),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 22.h),
+        Wrap(
+          spacing: 12.w,
+          runSpacing: 12.h,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                _clearSearchSilently();
+                context.go(AppRoutes.menu);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primaryDark,
+                elevation: 0,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWeb ? 26.w : 22.w,
+                  vertical: isWeb ? 16.h : 13.h,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Order Now',
+                    style: GoogleFonts.manrope(
+                      fontSize: isWeb ? 15.sp : 14.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(width: 6.w),
+                  Icon(Icons.arrow_forward_rounded, size: isWeb ? 18.sp : 16.sp),
+                ],
+              ),
+            ),
+            OutlinedButton(
+              onPressed: () {
+                _clearSearchSilently();
+                context.go(AppRoutes.offer);
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: BorderSide(color: Colors.white.withOpacity(0.6), width: 1.5),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWeb ? 24.w : 20.w,
+                  vertical: isWeb ? 16.h : 13.h,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+              ),
+              child: Text(
+                'View Offers',
+                style: GoogleFonts.manrope(
+                  fontSize: isWeb ? 15.sp : 14.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (!isWeb) ...[
+          SizedBox(height: 20.h),
+          Row(
+            children: [
+              Expanded(child: _HeroStat(icon: Icons.star_rounded, label: '4.8 Rating')),
+              SizedBox(width: 10.w),
+              Expanded(child: _HeroStat(icon: Icons.delivery_dining_rounded, label: '30 min Delivery')),
+            ],
+          ),
+        ],
+      ],
+    );
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isWeb ? 28.w : 20.w),
+      padding: EdgeInsets.all(isWeb ? 40.w : 20.w),
       decoration: BoxDecoration(
         gradient: AppColors.heroGradient,
         borderRadius: BorderRadius.circular(28.r),
@@ -425,77 +571,60 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               ),
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.14),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  'Fresh burgers, bold deals',
-                  style: GoogleFonts.manrope(
-                    color: Colors.white,
-                    fontSize: isWeb ? 14.sp : 12.sp,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              SizedBox(height: 14.h),
-              Text(
-                'Crave-worthy meals made to feel fast, warm, and premium.',
-                style: GoogleFonts.breeSerif(
-                  fontSize: isWeb ? 30.sp : 22.sp,
-                  height: 1.15,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(height: 10.h),
-              Text(
-                'Browse favorites, jump into offers, and order in a cleaner experience across web and mobile.',
-                style: GoogleFonts.manrope(
-                  fontSize: isWeb ? 15.sp : 13.sp,
-                  height: 1.5,
-                  color: Colors.white.withOpacity(0.84),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: 16.h),
-              Wrap(
-                spacing: 10.w,
-                runSpacing: 10.h,
-                children: const [
-                  _HeroPill(label: 'Fast delivery'),
-                  _HeroPill(label: 'Fresh offers'),
-                  _HeroPill(label: 'Mobile-first flow'),
+          if (isWeb)
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(flex: 6, child: content),
+                  SizedBox(width: 32.w),
+                  Expanded(flex: 5, child: _HeroGraphic()),
                 ],
               ),
-            ],
-          ),
+            )
+          else
+            content,
         ],
       ),
     );
   }
 
   Widget _buildShowcaseShell({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        gradient: AppColors.surfaceGradient,
-        borderRadius: BorderRadius.circular(28.r),
-        border: Border.all(color: Colors.white.withOpacity(0.95), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow.withOpacity(0.15),
-            blurRadius: 18.r,
-            offset: Offset(0, 10.h),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 16.w),
+          decoration: BoxDecoration(
+            gradient: AppColors.surfaceGradient,
+            borderRadius: BorderRadius.circular(28.r),
+            border: Border.all(color: Colors.white.withOpacity(0.95), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadow.withOpacity(0.15),
+                blurRadius: 18.r,
+                offset: Offset(0, 10.h),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: child,
+          child: child,
+        ),
+        // Small branded accent tab so each panel reads as distinct, not a
+        // repeated identical box.
+        Positioned(
+          top: -3.h,
+          left: 28.w,
+          child: Container(
+            width: 46.w,
+            height: 6.h,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [AppColors.secondary, AppColors.primary]),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -852,7 +981,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     );
   }
 
-  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll, bool isWeb = false}) {
+  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll, bool isWeb = false, String? kicker}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -861,6 +990,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (kicker != null) ...[
+                Text(
+                  kicker.toUpperCase(),
+                  style: GoogleFonts.manrope(
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                    letterSpacing: 1.4,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+              ],
               Text(
                 title,
                 style: GoogleFonts.breeSerif(
@@ -969,6 +1110,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     bool isSmallScreen,
     bool isTablet,
     bool isDesktop,
+    bool isWeb,
   ) {
     if (provider.featuredItems.isEmpty) {
       return const SizedBox.shrink();
@@ -978,6 +1120,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     double childAspectRatio = isSmallScreen ? 1.10 : (isTablet ? 0.8 : 0.75);
     int maxItems = isSmallScreen ? 4 : (isTablet ? 6 : 10);
     int itemCount = provider.featuredItems.length > maxItems ? maxItems : provider.featuredItems.length;
+    final items = provider.featuredItems.take(itemCount).toList();
+
+    if (isWeb) {
+      return WebPopularDishesSection(
+        items: items,
+        crossAxisCount: crossAxisCount,
+        onTap: (item) {
+          _clearSearchSilently();
+          context.push(AppRoutes.foodDetail, extra: item);
+        },
+      );
+    }
 
     return GridView.builder(
       shrinkWrap: true,
@@ -1008,6 +1162,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     bool isSmallScreen,
     bool isTablet,
     bool isDesktop,
+    bool isWeb,
   ) {
     if (provider.popularItems.isEmpty) {
       return const SizedBox.shrink();
@@ -1017,6 +1172,18 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     int itemCount = provider.popularItems.length > maxItems ? maxItems : provider.popularItems.length;
     int crossAxisCount = isSmallScreen ? 1 : (isTablet ? 3 : 5);
     double childAspectRatio = isSmallScreen ? 1.10 : (isTablet ? 0.8 : 0.75);
+    final items = provider.popularItems.take(itemCount).toList();
+
+    if (isWeb) {
+      return WebPopularDishesSection(
+        items: items,
+        crossAxisCount: crossAxisCount,
+        onTap: (item) {
+          _clearSearchSilently();
+          context.push(AppRoutes.foodDetail, extra: item);
+        },
+      );
+    }
 
     return GridView.builder(
       shrinkWrap: true,
@@ -1043,27 +1210,138 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   }
 }
 
-class _HeroPill extends StatelessWidget {
+/// Small icon+label chip used in the hero (e.g. "4.8 Rating"). Both the
+/// compact mobile row and the floating chips on the web hero graphic reuse
+/// this so the stat styling stays consistent.
+class _HeroStat extends StatelessWidget {
+  final IconData icon;
   final String label;
 
-  const _HeroPill({required this.label});
+  const _HeroStat({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: Colors.white.withOpacity(0.18)),
       ),
-      child: Text(
-        label,
-        style: GoogleFonts.manrope(
-          color: Colors.white,
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w700,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15.sp, color: AppColors.secondary),
+          SizedBox(width: 6.w),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.manrope(
+                color: Colors.white,
+                fontSize: 11.5.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Decorative vector/icon-based graphic for the right side of the web hero.
+/// Layered rounded panels with food icons + floating stat chips — no photo
+/// assets exist in the project that fit the brand, so this stays icon-based.
+class _HeroGraphic extends StatelessWidget {
+  const _HeroGraphic();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 260.h,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 220.w,
+            height: 220.w,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+          ),
+          Positioned(
+            left: 10.w,
+            top: 10.h,
+            child: _HeroIconTile(
+              icon: Icons.lunch_dining_rounded,
+              color: AppColors.secondary,
+              size: 78.w,
+            ),
+          ),
+          Positioned(
+            right: 6.w,
+            top: 46.h,
+            child: _HeroIconTile(
+              icon: Icons.local_pizza_rounded,
+              color: Colors.white,
+              size: 66.w,
+            ),
+          ),
+          Positioned(
+            bottom: 18.h,
+            left: 40.w,
+            child: _HeroIconTile(
+              icon: Icons.icecream_rounded,
+              color: Colors.white,
+              size: 58.w,
+            ),
+          ),
+          Positioned(
+            top: -6.h,
+            right: 24.w,
+            child: const _HeroStat(icon: Icons.star_rounded, label: '4.8 Rating'),
+          ),
+          Positioned(
+            bottom: -4.h,
+            right: 0,
+            child: const _HeroStat(icon: Icons.delivery_dining_rounded, label: '30 min Delivery'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroIconTile extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  const _HeroIconTile({required this.icon, required this.color, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color.withOpacity(color == Colors.white ? 0.16 : 1),
+        borderRadius: BorderRadius.circular(size * 0.32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Icon(
+        icon,
+        size: size * 0.5,
+        color: color == Colors.white ? Colors.white : AppColors.primaryDark,
       ),
     );
   }

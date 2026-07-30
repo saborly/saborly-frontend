@@ -98,6 +98,21 @@ class ApiService {
     }
   }
 
+  /// Rating/review summary per branch, proxied server-side from Google
+  /// Places (see saborly-backend `/api/v1/reviews/google`) so the API key
+  /// never reaches the client. Returns an empty list on any failure.
+  Future<List<Map<String, dynamic>>> fetchGoogleReviews() async {
+    try {
+      final response = await _dio.get('/reviews/google');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return List<Map<String, dynamic>>.from(response.data['places'] ?? []);
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
   // Response cache for GET requests (5 minutes TTL)
   final Map<String, _CachedResponse> _responseCache = {};
 
