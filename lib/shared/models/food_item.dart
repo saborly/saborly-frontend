@@ -348,10 +348,17 @@ class MealSize extends Equatable {
       if (value is String) return value.isNotEmpty ? value : fallback;
       if (value is Map) {
         final lang = currentLanguage ?? LanguageService.english;
-        return value[lang]?.toString() ?? 
-               value[LanguageService.english]?.toString() ?? 
-               value[LanguageService.spanish]?.toString() ?? 
-               fallback;
+        for (final langCode in [
+          lang,
+          LanguageService.english,
+          LanguageService.spanish,
+          LanguageService.catalan,
+          LanguageService.arabic,
+          LanguageService.french,
+        ]) {
+          final v = value[langCode];
+          if (v != null && v.toString().isNotEmpty) return v.toString();
+        }
       }
       return fallback;
     }
@@ -392,10 +399,17 @@ class Extra extends Equatable {
       if (value is String) return value.isNotEmpty ? value : fallback;
       if (value is Map) {
         final lang = currentLanguage ?? LanguageService.english;
-        return value[lang]?.toString() ?? 
-               value[LanguageService.english]?.toString() ?? 
-               value[LanguageService.spanish]?.toString() ?? 
-               fallback;
+        for (final langCode in [
+          lang,
+          LanguageService.english,
+          LanguageService.spanish,
+          LanguageService.catalan,
+          LanguageService.arabic,
+          LanguageService.french,
+        ]) {
+          final v = value[langCode];
+          if (v != null && v.toString().isNotEmpty) return v.toString();
+        }
       }
       return fallback;
     }
@@ -443,10 +457,17 @@ class Addon extends Equatable {
       if (value is String) return value.isNotEmpty ? value : fallback;
       if (value is Map) {
         final lang = currentLanguage ?? LanguageService.english;
-        return value[lang]?.toString() ?? 
-               value[LanguageService.english]?.toString() ?? 
-               value[LanguageService.spanish]?.toString() ?? 
-               fallback;
+        for (final langCode in [
+          lang,
+          LanguageService.english,
+          LanguageService.spanish,
+          LanguageService.catalan,
+          LanguageService.arabic,
+          LanguageService.french,
+        ]) {
+          final v = value[langCode];
+          if (v != null && v.toString().isNotEmpty) return v.toString();
+        }
       }
       return fallback;
     }
