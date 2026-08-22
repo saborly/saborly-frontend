@@ -104,12 +104,21 @@ class OfferBannerCard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16.r),
               child: offer.imageUrl != null
-                  ? Image.network(
-                      offer.imageUrl!,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                      loadingBuilder: (_, child, progress) =>
-                          progress == null ? child : const Center(child: CircularProgressIndicator()),
+                  ? LayoutBuilder(
+                      builder: (context, constraints) {
+                        final dpr = MediaQuery.of(context).devicePixelRatio;
+                        final targetWidth = constraints.maxWidth.isFinite
+                            ? (constraints.maxWidth * dpr).round()
+                            : null;
+                        return Image.network(
+                          offer.imageUrl!,
+                          fit: BoxFit.contain,
+                          cacheWidth: targetWidth,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          loadingBuilder: (_, child, progress) =>
+                              progress == null ? child : const Center(child: CircularProgressIndicator()),
+                        );
+                      },
                     )
                   : const SizedBox.shrink(),
             ),

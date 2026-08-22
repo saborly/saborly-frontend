@@ -17,39 +17,49 @@ class FoodImageSection extends StatelessWidget {
       height: double.infinity,
       child: Hero(
         tag: 'food_${foodItem.id}',
-        child: kIsWeb
-            ? Image.network(
-                foodItem.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: const Color(0xFFF0F0F0),
-                  child: Icon(
-                    Icons.restaurant_rounded,
-                    size: 80.sp,
-                    color: Colors.grey[400],
-                  ),
-                ),
-              )
-            : CachedNetworkImage(
-                imageUrl: foodItem.imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: const Color(0xFFF0F0F0),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final dpr = MediaQuery.of(context).devicePixelRatio;
+            final targetWidth = constraints.maxWidth.isFinite
+                ? (constraints.maxWidth * dpr).round()
+                : null;
+            return kIsWeb
+                ? Image.network(
+                    foodItem.imageUrl,
+                    fit: BoxFit.cover,
+                    cacheWidth: targetWidth,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: const Color(0xFFF0F0F0),
+                      child: Icon(
+                        Icons.restaurant_rounded,
+                        size: 80.sp,
+                        color: Colors.grey[400],
+                      ),
                     ),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFFF0F0F0),
-                  child: Icon(
-                    Icons.restaurant_rounded,
-                    size: 80.sp,
-                    color: Colors.grey[400],
-                  ),
-                ),
-              ),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: foodItem.imageUrl,
+                    fit: BoxFit.cover,
+                    memCacheWidth: targetWidth,
+                    placeholder: (context, url) => Container(
+                      color: const Color(0xFFF0F0F0),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: const Color(0xFFF0F0F0),
+                      child: Icon(
+                        Icons.restaurant_rounded,
+                        size: 80.sp,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  );
+          },
+        ),
       ),
     );
   }

@@ -116,34 +116,44 @@ class _AddonCard extends StatelessWidget {
               if (addon.imageUrl.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(14.r)),
-                  child: kIsWeb
-                      ? Image.network(
-                          addon.imageUrl,
-                          height: isLargeScreen ? 140.h : 100.h,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            height: isLargeScreen ? 140.h : 100.h,
-                            color: const Color(0xFFF0F0F0),
-                            child: Icon(Icons.fastfood_rounded, size: 40.sp, color: Colors.grey[400]),
-                          ),
-                        )
-                      : CachedNetworkImage(
-                          imageUrl: addon.imageUrl,
-                          height: isLargeScreen ? 140.h : 100.h,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            height: isLargeScreen ? 140.h : 100.h,
-                            color: const Color(0xFFF0F0F0),
-                            child: const Center(child: CircularProgressIndicator()),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            height: isLargeScreen ? 140.h : 100.h,
-                            color: const Color(0xFFF0F0F0),
-                            child: Icon(Icons.fastfood_rounded, size: 40.sp, color: Colors.grey[400]),
-                          ),
-                        ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final dpr = MediaQuery.of(context).devicePixelRatio;
+                      final targetWidth = constraints.maxWidth.isFinite
+                          ? (constraints.maxWidth * dpr).round()
+                          : null;
+                      return kIsWeb
+                          ? Image.network(
+                              addon.imageUrl,
+                              height: isLargeScreen ? 140.h : 100.h,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              cacheWidth: targetWidth,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                height: isLargeScreen ? 140.h : 100.h,
+                                color: const Color(0xFFF0F0F0),
+                                child: Icon(Icons.fastfood_rounded, size: 40.sp, color: Colors.grey[400]),
+                              ),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: addon.imageUrl,
+                              height: isLargeScreen ? 140.h : 100.h,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              memCacheWidth: targetWidth,
+                              placeholder: (context, url) => Container(
+                                height: isLargeScreen ? 140.h : 100.h,
+                                color: const Color(0xFFF0F0F0),
+                                child: const Center(child: CircularProgressIndicator()),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                height: isLargeScreen ? 140.h : 100.h,
+                                color: const Color(0xFFF0F0F0),
+                                child: Icon(Icons.fastfood_rounded, size: 40.sp, color: Colors.grey[400]),
+                              ),
+                            );
+                    },
+                  ),
                 ),
               Expanded(
                 child: Padding(

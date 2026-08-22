@@ -144,8 +144,10 @@ class _FoodDetailScreenState extends State<FoodDetailScreen>
     super.dispose();
   }
 
-  bool get _isLargeScreen => MediaQuery.of(context).size.width > 768;
-  bool get _isDesktop => MediaQuery.of(context).size.width > 1200;
+  // Computed once per build() (below) instead of re-querying MediaQuery on
+  // every one of the ~10 places these are read during a single build pass.
+  bool _isLargeScreen = false;
+  bool _isDesktop = false;
 
   // ✅ Platform-aware discount calculations
 double get _effectivePrice {
@@ -165,6 +167,9 @@ bool get _hasActiveOffer => _currentFoodItem.hasActiveOfferForPlatform(_currentP
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    _isLargeScreen = screenWidth > 768;
+    _isDesktop = screenWidth > 1200;
     return Consumer<LanguageService>(
       builder: (context, languageService, _) {
         return Scaffold(

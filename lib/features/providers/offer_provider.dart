@@ -367,6 +367,14 @@ class OffersProvider extends ChangeNotifier {
       await initialize();
     }
 
+    // ✅ Stale-while-revalidate: paint instantly from last session's data
+    // (persisted on disk) while the real network fetch runs underneath —
+    // same pattern as HomeProvider. Offers previously had zero caching at
+    // any level (these calls don't go through ApiService's Dio instance,
+    // so they also skip its in-memory response cache), making this screen
+    // the least-cached data in the app despite loading on every Home visit.
+    await _hydrateOffersFromDiskCache();
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -415,7 +423,8 @@ class OffersProvider extends ChangeNotifier {
           _allOffers = offersJson
               .map((json) => _parseOfferFromApi(json))
               .toList();
-          
+          _saveOffersJsonToDisk(offersJson);
+
           if (kDebugMode) {
             print('✅ Loaded ${_allOffers.length} offers for $platform');
             final filtered = _filterClaimedOffers(_allOffers);
@@ -458,6 +467,7 @@ class OffersProvider extends ChangeNotifier {
           
           if (itemsJson.isEmpty) {
             _itemsWithOffers = [];
+            _saveItemsWithOffersJsonToDisk(itemsJson);
           } else {
             _itemsWithOffers = itemsJson
                 .map((json) {
@@ -475,7 +485,8 @@ class OffersProvider extends ChangeNotifier {
                 })
                 .whereType<FoodItemWithOffer>()
                 .toList();
-            
+            _saveItemsWithOffersJsonToDisk(itemsJson);
+
             if (kDebugMode) {
               print('✅ Loaded ${_itemsWithOffers.length} items with offers');
               final filtered = _filterClaimedItemOffers(_itemsWithOffers);
@@ -495,6 +506,72 @@ class OffersProvider extends ChangeNotifier {
         print('❌ Error loading items with offers: $e');
       }
       _itemsWithOffers = [];
+    }
+  }
+
+  // ==================== ✅ PERSISTENT DISK CACHE (stale-while-revalidate) ====================
+  //
+  // Cache the *raw* API JSON (not the parsed domain objects) so hydration
+  // re-runs the exact same parsing code (_parseOfferFromApi /
+  // FoodItemWithOffer.fromJson) as a live network response would — this
+  // guarantees hydrated data is byte-identical to what the network path
+  // produces, rather than depending on a separate serialize/deserialize
+  // round-trip that could drift out of sync with the parsers over time.
+
+  String get _diskKeyOffersJson => 'offers_cache_v1_offers_$_currentLanguage';
+  String get _diskKeyItemsWithOffersJson => 'offers_cache_v1_items_$_currentLanguage';
+
+  Future<void> _saveOffersJsonToDisk(List<dynamic> offersJson) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_diskKeyOffersJson, json.encode(offersJson));
+    } catch (_) {
+      // Disk cache is a best-effort optimization — never let it break loading.
+    }
+  }
+
+  Future<void> _saveItemsWithOffersJsonToDisk(List<dynamic> itemsJson) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_diskKeyItemsWithOffersJson, json.encode(itemsJson));
+    } catch (_) {
+      // Best-effort — ignore.
+    }
+  }
+
+  Future<void> _hydrateOffersFromDiskCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      bool changed = false;
+
+      final offersJsonStr = prefs.getString(_diskKeyOffersJson);
+      if (offersJsonStr != null) {
+        final decoded = json.decode(offersJsonStr) as List<dynamic>;
+        _allOffers = decoded.map((j) => _parseOfferFromApi(j)).toList();
+        changed = true;
+      }
+
+      final itemsJsonStr = prefs.getString(_diskKeyItemsWithOffersJson);
+      if (itemsJsonStr != null) {
+        final decoded = json.decode(itemsJsonStr) as List<dynamic>;
+        _itemsWithOffers = decoded
+            .map((j) {
+              try {
+                return FoodItemWithOffer.fromJson(j, currentLanguage: _currentLanguage);
+              } catch (_) {
+                return null;
+              }
+            })
+            .whereType<FoodItemWithOffer>()
+            .toList();
+        changed = true;
+      }
+
+      if (changed) {
+        notifyListeners();
+      }
+    } catch (_) {
+      // Corrupt/missing cache — fall through to the normal network load.
     }
   }
 

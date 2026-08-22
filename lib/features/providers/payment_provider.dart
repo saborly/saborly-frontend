@@ -58,14 +58,27 @@ class PaymentProvider extends ChangeNotifier {
   void _updatePaymentMethodBasedOnDeliveryType() {
     if (_checkoutProvider != null) {
       final deliveryType = _checkoutProvider!.deliveryType;
-      
+
+      final PaymentMethod newMethod;
+      final CodPaymentType? newCodType;
       if (deliveryType == DeliveryType.pickup) {
-        _selectedPaymentMethod = PaymentMethod.shop;
-        _codPaymentType = null;
+        newMethod = PaymentMethod.shop;
+        newCodType = null;
       } else {
-        _selectedPaymentMethod = PaymentMethod.cashOnDelivery;
-        _codPaymentType = CodPaymentType.cash;
+        newMethod = PaymentMethod.cashOnDelivery;
+        newCodType = CodPaymentType.cash;
       }
+
+      // `initialize()` (and therefore this) is called from CheckoutScreen's
+      // build() on every rebuild, not just once — only notify listeners when
+      // the computed values actually change, so unrelated rebuilds of the
+      // checkout screen don't ripple into every Consumer<PaymentProvider>.
+      if (newMethod == _selectedPaymentMethod && newCodType == _codPaymentType) {
+        return;
+      }
+
+      _selectedPaymentMethod = newMethod;
+      _codPaymentType = newCodType;
       notifyListeners();
     }
   }

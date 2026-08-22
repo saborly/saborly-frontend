@@ -283,21 +283,30 @@ class _OffersSectionState extends State<OffersSection> {
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16.r),
-                child: Image.network(
-                  offer.imageUrl ?? 'https://via.placeholder.com/400x200.png?text=Offer',
-                  fit: BoxFit.contain,
-                  colorBlendMode: BlendMode.darken,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey[300],
-                    child: Icon(
-                      Icons.broken_image,
-                      size: 32.sp,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const Center(child: CircularProgressIndicator());
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final dpr = MediaQuery.of(context).devicePixelRatio;
+                    final targetWidth = constraints.maxWidth.isFinite
+                        ? (constraints.maxWidth * dpr).round()
+                        : null;
+                    return Image.network(
+                      offer.imageUrl ?? 'https://via.placeholder.com/400x200.png?text=Offer',
+                      fit: BoxFit.contain,
+                      colorBlendMode: BlendMode.darken,
+                      cacheWidth: targetWidth,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[300],
+                        child: Icon(
+                          Icons.broken_image,
+                          size: 32.sp,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(child: CircularProgressIndicator());
+                      },
+                    );
                   },
                 ),
               ),

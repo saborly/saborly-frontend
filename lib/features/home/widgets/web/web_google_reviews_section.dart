@@ -442,7 +442,12 @@ class _ReviewRow extends StatelessWidget {
         CircleAvatar(
           radius: 20.r,
           backgroundColor: AppColors.premiumAccent,
-          backgroundImage: review.authorPhoto != null ? NetworkImage(review.authorPhoto!) : null,
+          backgroundImage: review.authorPhoto != null
+              ? ResizeImage(
+                  NetworkImage(review.authorPhoto!),
+                  width: (40.r * MediaQuery.of(context).devicePixelRatio).round(),
+                )
+              : null,
           child: review.authorPhoto == null
               ? Text(
                   review.author.isNotEmpty ? review.author[0].toUpperCase() : '?',

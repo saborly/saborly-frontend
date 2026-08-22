@@ -83,7 +83,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
     final offersProvider = context.read<OffersProvider>();
     final currentLanguage = context.read<LanguageService>().currentLanguage;
 
-    final dataFuture = Future.wait([
+    // Note: no extra setState() here — HomeProvider/OffersProvider already
+    // call notifyListeners(), which the Consumer2 below rebuilds on. An
+    // additional setState() was rebuilding the whole screen a second time
+    // on every load.
+    Future.wait([
       force
           ? homeProvider.loadHomeData()
           : (homeProvider.hasInitialized
@@ -91,10 +95,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               : homeProvider.initializeIfNeeded(currentLanguage)),
       offersProvider.loadOffers(),
     ]);
-
-    dataFuture.then((_) {
-      if (mounted) setState(() {});
-    });
 
     if (kIsWeb) {
       _checkAndShowDownloadModal();

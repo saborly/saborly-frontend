@@ -178,10 +178,19 @@ class _DishCardState extends State<_DishCard> {
                         scale: _hovering ? 1.07 : 1.0,
                         duration: const Duration(milliseconds: 260),
                         child: item.imageUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: item.imageUrl,
-                                fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => Container(color: AppColors.accentSand),
+                            ? LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final dpr = MediaQuery.of(context).devicePixelRatio;
+                                  final targetWidth = constraints.maxWidth.isFinite
+                                      ? (constraints.maxWidth * dpr).round()
+                                      : null;
+                                  return CachedNetworkImage(
+                                    imageUrl: item.imageUrl,
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: targetWidth,
+                                    errorWidget: (_, __, ___) => Container(color: AppColors.accentSand),
+                                  );
+                                },
                               )
                             : Container(color: AppColors.accentSand),
                       ),
@@ -328,6 +337,7 @@ class _DishCardHorizontalState extends State<_DishCardHorizontal> {
                         ? CachedNetworkImage(
                             imageUrl: item.imageUrl,
                             fit: BoxFit.cover,
+                            memCacheWidth: (imageSize * MediaQuery.of(context).devicePixelRatio).round(),
                             errorWidget: (_, __, ___) => Container(color: AppColors.accentSand),
                           )
                         : Container(color: AppColors.accentSand),

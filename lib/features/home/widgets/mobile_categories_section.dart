@@ -107,6 +107,8 @@ class _MobileCategoryChipState extends State<_MobileCategoryChip> {
                             imageUrl: widget.category.imageUrl,
                             fit: BoxFit.cover,
                             fadeInDuration: const Duration(milliseconds: 200),
+                            memCacheWidth:
+                                (avatarSize * MediaQuery.of(context).devicePixelRatio).round(),
                             placeholder: (_, __) => _iconFallback(scheme),
                             errorWidget: (_, __, ___) => _iconFallback(scheme),
                           )

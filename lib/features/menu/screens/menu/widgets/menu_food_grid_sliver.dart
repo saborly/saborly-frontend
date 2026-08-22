@@ -63,6 +63,15 @@ class MenuFoodGridSliver extends StatelessWidget {
         : (screenWidth >= 600 ? 0.7 : 1.10);
     final isWeb = screenWidth >= 1200;
 
+    // Was a GridView.builder(shrinkWrap: true, physics: NeverScrollable...)
+    // inside a SliverToBoxAdapter — shrinkWrap forces Flutter to lay out
+    // every single item up front to measure a finite height (defeating
+    // .builder's laziness entirely), so every visit to Menu built and
+    // kicked off image loads for up to 100 items instead of only the
+    // ~6-8 actually visible on screen. DecoratedSliver applies the exact
+    // same BoxDecoration to a real lazy sliver instead, so the grid still
+    // scrolls inside one continuous rounded/gradient/shadowed card, but
+    // items are now built on demand as the user scrolls.
     return SliverPadding(
       padding: EdgeInsets.fromLTRB(
         isWeb ? 48.w : 16.w,
@@ -70,39 +79,39 @@ class MenuFoodGridSliver extends StatelessWidget {
         isWeb ? 48.w : 16.w,
         32.h,
       ),
-      sliver: SliverToBoxAdapter(
-        child: Container(
+      sliver: DecoratedSliver(
+        decoration: BoxDecoration(
+          gradient: AppColors.surfaceGradient,
+          borderRadius: BorderRadius.circular(28.r),
+          border: Border.all(color: Colors.white.withOpacity(0.96), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow.withOpacity(0.16),
+              blurRadius: 20.r,
+              offset: Offset(0, 10.h),
+            ),
+          ],
+        ),
+        sliver: SliverPadding(
           padding: EdgeInsets.all(isWeb ? 18.w : 12.w),
-          decoration: BoxDecoration(
-            gradient: AppColors.surfaceGradient,
-            borderRadius: BorderRadius.circular(28.r),
-            border: Border.all(color: Colors.white.withOpacity(0.96), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadow.withOpacity(0.16),
-                blurRadius: 20.r,
-                offset: Offset(0, 10.h),
-              ),
-            ],
-          ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+          sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
               crossAxisSpacing: 20.w,
               mainAxisSpacing: 20.h,
               childAspectRatio: aspectRatio,
             ),
-            itemCount: provider.foodItems.length,
-            itemBuilder: (context, index) {
-              final item = provider.foodItems[index];
-              return FoodItemCard(
-                foodItem: item,
-                showDescription: true,
-                onTap: () => context.push(AppRoutes.foodDetail, extra: item),
-              );
-            },
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final item = provider.foodItems[index];
+                return FoodItemCard(
+                  foodItem: item,
+                  showDescription: true,
+                  onTap: () => context.push(AppRoutes.foodDetail, extra: item),
+                );
+              },
+              childCount: provider.foodItems.length,
+            ),
           ),
         ),
       ),

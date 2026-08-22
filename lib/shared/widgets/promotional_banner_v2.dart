@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/services/banner_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -326,19 +327,46 @@ class _SlideState extends State<_Slide> {
         onTap: widget.onTap,
         splashColor: Colors.white.withOpacity(0.1),
         highlightColor: Colors.transparent,
-        child: Image.network(
-          widget.imageUrl,
-          fit: BoxFit.cover,
-          filterQuality: FilterQuality.medium,
-          errorBuilder: (_, __, ___) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() => _error = true);
-            });
-            return const SizedBox.shrink();
-          },
-          loadingBuilder: (_, child, progress) {
-            if (progress == null) return child;
-            return Container(color: const Color(0xFFFBF4EE));
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final dpr = MediaQuery.of(context).devicePixelRatio;
+            final targetWidth = constraints.maxWidth.isFinite
+                ? (constraints.maxWidth * dpr).round()
+                : null;
+
+            // CachedNetworkImage persists banner images to disk so
+            // navigating back to Home doesn't re-download them every time.
+            if (!kIsWeb) {
+              return CachedNetworkImage(
+                imageUrl: widget.imageUrl,
+                fit: BoxFit.cover,
+                memCacheWidth: targetWidth,
+                errorWidget: (_, __, ___) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() => _error = true);
+                  });
+                  return const SizedBox.shrink();
+                },
+                placeholder: (_, __) => Container(color: const Color(0xFFFBF4EE)),
+              );
+            }
+
+            return Image.network(
+              widget.imageUrl,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.medium,
+              cacheWidth: targetWidth,
+              errorBuilder: (_, __, ___) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _error = true);
+                });
+                return const SizedBox.shrink();
+              },
+              loadingBuilder: (_, child, progress) {
+                if (progress == null) return child;
+                return Container(color: const Color(0xFFFBF4EE));
+              },
+            );
           },
         ),
       ),

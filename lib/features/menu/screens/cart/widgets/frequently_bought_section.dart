@@ -95,6 +95,7 @@ class FrequentlyBoughtSection extends StatelessWidget {
                               width: isWeb ? 110 : 70.w,
                               height: isWeb ? 110 : 70.h,
                               fit: BoxFit.cover,
+                              cacheWidth: ((isWeb ? 110 : 70.w) * MediaQuery.of(context).devicePixelRatio).round(),
                               errorBuilder: (context, error, stackTrace) => Container(
                                 width: isWeb ? 110 : 70.w,
                                 height: isWeb ? 110 : 70.h,

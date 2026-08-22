@@ -186,15 +186,32 @@ Future<void> checkDeliveryAvailability() async {
   }
 
   // ✅ NEW: Periodic check for restaurant hours (call this in initState)
+  //
+  // CheckoutProvider is an app-root singleton (never disposed until app
+  // exit), but this used to be called from CheckoutScreen.initState() on
+  // every visit — with no re-entrancy guard, each visit spawned its own
+  // permanent, self-perpetuating minute-interval polling chain that never
+  // stopped, so N visits meant N chains running forever. Guard it so only
+  // one chain is ever running at a time.
+  bool _hoursMonitoringStarted = false;
   void startHoursMonitoring() {
+    if (_hoursMonitoringStarted) {
+      // Already running — still refresh immediately for this visit.
+      _checkRestaurantHours();
+      return;
+    }
+    _hoursMonitoringStarted = true;
+    _pollHoursMonitoring();
+  }
+
+  void _pollHoursMonitoring() {
     // Check immediately
     _checkRestaurantHours();
-    
+
     // Check every minute
     Future.delayed(Duration(minutes: 1), () {
       if (!_disposed) {
-        _checkRestaurantHours();
-        startHoursMonitoring();
+        _pollHoursMonitoring();
       }
     });
   }

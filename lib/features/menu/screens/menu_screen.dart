@@ -122,6 +122,16 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
         final screenWidth = constraints.maxWidth;
         final isWeb = screenWidth >= 1200;
 
+        // Hoisted out of Consumer<MenuProvider>'s builder below: neither of
+        // these takes `provider`, so constructing them here (only re-run
+        // when layout constraints change) instead of inside the builder
+        // (re-run on every notifyListeners — every search keystroke, filter
+        // toggle, sort change) avoids rebuilding them on unrelated updates.
+        final webHeaderSliver = isWeb
+            ? MenuWebHeaderSliver(screenWidth: screenWidth, onFilterTap: _showFilterDialog)
+            : null;
+        final footerSliver = isWeb ? MenuFooterSliver(isDesktop: screenWidth >= 1200) : null;
+
         return PopScope(
           canPop: kIsWeb, // ✅ On web, allow browser back; on mobile, double-tap to exit
           onPopInvokedWithResult: (didPop, _) async {
@@ -177,11 +187,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
 
                 return CustomScrollView(
                   slivers: [
-                    if (isWeb)
-                      MenuWebHeaderSliver(
-                        screenWidth: screenWidth,
-                        onFilterTap: _showFilterDialog,
-                      ),
+                    if (webHeaderSliver != null) webHeaderSliver,
                     if (!isWeb) MenuSearchSectionSliver(provider: provider),
                     MenuCategoryTabsSliver(
                       tabController: _tabController,
@@ -195,7 +201,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                       screenWidth: screenWidth,
                       onEmptyStateRetry: () => context.read<MenuProvider>().loadFoodItems(categoryId: _selectedCategoryId),
                     ),
-                    if (isWeb) MenuFooterSliver(isDesktop: screenWidth >= 1200),
+                    if (footerSliver != null) footerSliver,
                   ],
                 );
               },

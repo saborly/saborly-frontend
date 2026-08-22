@@ -38,7 +38,7 @@ class CartItemsList extends StatelessWidget {
 
               return Column(
                 children: [
-                  _buildCartItem(item, cartProvider, isWeb),
+                  _buildCartItem(context, item, cartProvider, isWeb),
                   if (!isLast)
                     Divider(
                       height: 1,
@@ -56,7 +56,7 @@ class CartItemsList extends StatelessWidget {
     );
   }
 
-  Widget _buildCartItem(CartItem cartItem, CartProvider cartProvider, bool isWeb) {
+  Widget _buildCartItem(BuildContext context, CartItem cartItem, CartProvider cartProvider, bool isWeb) {
     return Padding(
       padding: EdgeInsets.all(isWeb ? 28 : 16.w),
       child: Row(
@@ -79,6 +79,7 @@ class CartItemsList extends StatelessWidget {
                 width: isWeb ? 130 : 80.w,
                 height: isWeb ? 130 : 80.h,
                 fit: BoxFit.cover,
+                cacheWidth: ((isWeb ? 130 : 80.w) * MediaQuery.of(context).devicePixelRatio).round(),
                 errorBuilder: (context, error, stackTrace) => Container(
                   width: isWeb ? 130 : 80.w,
                   height: isWeb ? 130 : 80.h,

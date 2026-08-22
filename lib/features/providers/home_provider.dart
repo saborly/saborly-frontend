@@ -1,6 +1,9 @@
 // lib/features/providers/home_provider.dart - OPTIMIZED FOR SPEED
 
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/language_service.dart';
 import '../../shared/models/food_category.dart';
@@ -60,11 +63,17 @@ class HomeProvider extends ChangeNotifier {
 
   Future<void> initializeIfNeeded(String systemLanguage) async {
     if (_hasInitialized) return;
-    
+
     _currentLanguage = systemLanguage;
     _apiService.setLanguage(systemLanguage);
     _hasInitialized = true;
-    
+
+    // ✅ Stale-while-revalidate: paint instantly from last session's data
+    // (persisted on disk) while the real network fetch runs underneath —
+    // this is what actually removes the loading spinner on every visit
+    // (cold start / web reload), not just repeat navigation.
+    await _hydrateFromDiskCache();
+
     await loadHomeData();
   }
 
@@ -80,7 +89,9 @@ class HomeProvider extends ChangeNotifier {
     if (_isInSearchMode && _lastSearchQuery.isNotEmpty) {
       performSearch(_lastSearchQuery);
     } else {
-      loadHomeData();
+      // Paint instantly with this language's last cached snapshot (if any)
+      // while the fresh fetch for the new language runs underneath.
+      _hydrateFromDiskCache().then((_) => loadHomeData());
     }
   }
 
@@ -223,6 +234,7 @@ class HomeProvider extends ChangeNotifier {
       final response = await _apiService.getCategories();
       if (response.isSuccess && response.data != null) {
         _categories = response.data!;
+        _saveCategoriesToDisk(_categories);
         return true;
       }
       return false;
@@ -234,13 +246,14 @@ class HomeProvider extends ChangeNotifier {
   Future<bool> _fetchFeaturedItems() async {
     try {
       final response = await _apiService.getFoodItems(featured: true, limit: 20);
-      
+
       if (response.isSuccess && response.data != null) {
         final parsedItems = _parseFoodItems(response.data);
         _featuredItems = _mergeOffersIntoItems(parsedItems);
+        _saveFoodItemsToDisk(_diskKeyFeatured, parsedItems);
         return true;
       }
-      
+
       return false;
     } catch (e) {
       return false;
@@ -250,16 +263,86 @@ class HomeProvider extends ChangeNotifier {
   Future<bool> _fetchPopularItems() async {
     try {
       final response = await _apiService.getFoodItems(popular: true, limit: 20);
-      
+
       if (response.isSuccess && response.data != null) {
         final parsedItems = _parseFoodItems(response.data);
         _popularItems = _mergeOffersIntoItems(parsedItems);
+        _saveFoodItemsToDisk(_diskKeyPopular, parsedItems);
         return true;
       }
-      
+
       return false;
     } catch (e) {
       return false;
+    }
+  }
+
+  // ==================== ✅ PERSISTENT DISK CACHE (stale-while-revalidate) ====================
+  //
+  // The Dio-level response cache in ApiService only lives in memory, so it's
+  // gone on every cold start / web page reload — the exact moments the home
+  // screen felt slowest. This mirrors the same JSON to disk so the *next*
+  // app launch can paint instantly with last session's data while a fresh
+  // network fetch quietly replaces it underneath (offers are intentionally
+  // excluded — they change often and are cheap to wait for).
+
+  String get _diskKeyCategories => 'home_cache_v1_categories_$_currentLanguage';
+  String get _diskKeyFeatured => 'home_cache_v1_featured_$_currentLanguage';
+  String get _diskKeyPopular => 'home_cache_v1_popular_$_currentLanguage';
+
+  Future<void> _saveCategoriesToDisk(List<FoodCategory> categories) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encoded = jsonEncode(categories.map((c) => c.toMap()).toList());
+      await prefs.setString(_diskKeyCategories, encoded);
+    } catch (_) {
+      // Disk cache is a best-effort optimization — never let it break loading.
+    }
+  }
+
+  Future<void> _saveFoodItemsToDisk(String key, List<FoodItem> items) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encoded = jsonEncode(items.map((i) => i.toMap()).toList());
+      await prefs.setString(key, encoded);
+    } catch (_) {
+      // Best-effort — ignore.
+    }
+  }
+
+  Future<void> _hydrateFromDiskCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      final categoriesJson = prefs.getString(_diskKeyCategories);
+      if (categoriesJson != null) {
+        final decoded = jsonDecode(categoriesJson) as List;
+        _categories = decoded
+            .map((m) => FoodCategory.fromMap(m as Map<String, dynamic>))
+            .toList();
+      }
+
+      final featuredJson = prefs.getString(_diskKeyFeatured);
+      if (featuredJson != null) {
+        final decoded = jsonDecode(featuredJson) as List;
+        _featuredItems = decoded
+            .map((m) => FoodItem.fromMap(m as Map<String, dynamic>))
+            .toList();
+      }
+
+      final popularJson = prefs.getString(_diskKeyPopular);
+      if (popularJson != null) {
+        final decoded = jsonDecode(popularJson) as List;
+        _popularItems = decoded
+            .map((m) => FoodItem.fromMap(m as Map<String, dynamic>))
+            .toList();
+      }
+
+      if (categoriesJson != null || featuredJson != null || popularJson != null) {
+        notifyListeners();
+      }
+    } catch (_) {
+      // Corrupt/missing cache — fall through to the normal network load.
     }
   }
 

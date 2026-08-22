@@ -123,6 +123,7 @@ class FoodCategoryCard extends StatelessWidget {
         height: iconSize,
         fit: BoxFit.cover,
         fadeInDuration: const Duration(milliseconds: 200),
+        memCacheWidth: (iconSize * MediaQuery.of(context).devicePixelRatio).round(),
         placeholder: (_, __) => _buildIconFallback(iconSize, context),
         errorWidget: (_, __, ___) => _buildIconFallback(iconSize, context),
       );

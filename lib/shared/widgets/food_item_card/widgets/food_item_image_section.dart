@@ -61,46 +61,59 @@ class FoodItemImageSection extends StatelessWidget {
     return Stack(
       children: [
         SizedBox.expand(
-          child: kIsWeb
-              ? Image.network(
-                  foodItem.imageUrl.isNotEmpty
-                      ? foodItem.imageUrl
-                      : 'https://picsum.photos/200/200?random=${foodItem.id}',
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.medium,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: AppColors.shimmer,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: AppColors.primaryDark,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Decode at roughly the on-screen pixel size instead of full
+              // source resolution — full-res food photos in a small grid
+              // card were the main cause of scroll jank / high memory use.
+              final dpr = MediaQuery.of(context).devicePixelRatio;
+              final targetWidth = constraints.maxWidth.isFinite
+                  ? (constraints.maxWidth * dpr).round()
+                  : null;
+              final imageUrl = foodItem.imageUrl.isNotEmpty
+                  ? foodItem.imageUrl
+                  : 'https://picsum.photos/200/200?random=${foodItem.id}';
+
+              return kIsWeb
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.medium,
+                      cacheWidth: targetWidth,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: AppColors.shimmer,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: AppColors.primaryDark,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildImageError(cardSize, screenWidth),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      fadeInDuration: const Duration(milliseconds: 200),
+                      memCacheWidth: targetWidth,
+                      placeholder: (context, url) => Container(
+                        color: AppColors.shimmer,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: AppColors.primaryDark,
+                          ),
                         ),
                       ),
+                      errorWidget: (context, url, error) =>
+                          _buildImageError(cardSize, screenWidth),
                     );
-                  },
-                  errorBuilder: (context, error, stackTrace) =>
-                      _buildImageError(cardSize, screenWidth),
-                )
-              : CachedNetworkImage(
-                  imageUrl: foodItem.imageUrl.isNotEmpty
-                      ? foodItem.imageUrl
-                      : 'https://picsum.photos/200/200?random=${foodItem.id}',
-                  fit: BoxFit.cover,
-                  fadeInDuration: const Duration(milliseconds: 200),
-                  placeholder: (context, url) => Container(
-                    color: AppColors.shimmer,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                  ),
-                  errorWidget: (context, url, error) =>
-                      _buildImageError(cardSize, screenWidth),
-                ),
+            },
+          ),
         ),
         Positioned(
           top: CardSizing.getPadding(cardSize, screenWidth),
