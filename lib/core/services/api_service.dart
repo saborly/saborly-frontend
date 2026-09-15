@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Saborly/core/constant/api_constants.dart';
 import 'package:Saborly/core/services/notification_service.dart';
 import 'package:Saborly/shared/models/order.dart';
+import 'package:Saborly/shared/models/order_tracking_info.dart';
 import '../../shared/models/food_item.dart';
 import '../../shared/models/food_category.dart';
 
@@ -1072,6 +1073,31 @@ class ApiService {
       );
     } catch (e) {
       return ApiResponse.error('Error fetching order: $e');
+    }
+  }
+
+  /// REST fallback / initial paint for the live tracking screen — used before
+  /// the socket connects, and if it disconnects for more than a few seconds.
+  /// Cache-busted like [getOrder] so it never returns a stale driver position.
+  Future<ApiResponse<OrderTrackingInfo>> getOrderTracking(String orderId) async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final response = await _dio.get('${ApiConstants.orders}/$orderId/tracking?_t=$timestamp');
+
+      if (response.statusCode == 200 && response.data?['tracking'] != null) {
+        return ApiResponse.success(
+          OrderTrackingInfo.fromMap(response.data['tracking']),
+          statusCode: response.statusCode,
+        );
+      }
+      return ApiResponse.error(
+        response.data?['message'] ?? 'Failed to fetch tracking info',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      return ApiResponse.error(_handleDioError(e), statusCode: e.response?.statusCode);
+    } catch (e) {
+      return ApiResponse.error('Error fetching order tracking: $e');
     }
   }
 // Add these methods to your ApiService class

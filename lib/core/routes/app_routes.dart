@@ -14,6 +14,7 @@ import 'package:Saborly/features/menu/screens/notifications_screen.dart';
 import 'package:Saborly/features/menu/screens/offersScreen.dart';
 import 'package:Saborly/features/menu/screens/order_history.dart';
 import 'package:Saborly/features/menu/screens/order_status.dart';
+import 'package:Saborly/features/order_tracking/screens/order_tracking_screen.dart';
 import 'package:Saborly/features/menu/screens/ourfaq.dart';
 import 'package:Saborly/features/menu/screens/ourprivacy.dart';
 import 'package:Saborly/features/menu/screens/payment_scree.dart';
@@ -48,6 +49,7 @@ static const String faq = '/faq';
   static const String notifications = '/notifications'; // ✅ ADD THIS
 
   static const String orderStatus = '/order-status/:orderId';
+  static const String orderTracking = '/order-tracking/:orderId';
   static const String emailVerification = '/email-verification';
  static const String about = '/about';
   static const String contact = '/contact';
@@ -72,7 +74,7 @@ static const String faq = '/faq';
       final isLoggedIn = authProvider.isAuthenticated;
 
       // Routes that require authentication
-      final protectedRoutes = [checkout, payment, orderStatus, profile];
+      final protectedRoutes = [checkout, payment, orderStatus, orderTracking, profile];
       final isProtectedRoute = protectedRoutes.contains(state.matchedLocation);
 
       if (isProtectedRoute && !isLoggedIn) {
@@ -227,6 +229,14 @@ GoRoute(
         builder: (context, state) {
           final orderId = state.pathParameters['orderId'] ?? '';
           return OrderStatusScreen(orderId: orderId);
+        },
+      ),
+      GoRoute(
+        path: orderTracking,
+        name: 'order-tracking',
+        builder: (context, state) {
+          final orderId = state.pathParameters['orderId'] ?? '';
+          return OrderTrackingScreen(orderId: orderId);
         },
       ),
     ],

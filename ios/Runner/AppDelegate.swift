@@ -2,6 +2,7 @@ import UIKit
 import Flutter
 import FirebaseCore
 import FirebaseMessaging
+import GoogleMaps
 import UserNotifications
 
 @main
@@ -12,6 +13,9 @@ import UserNotifications
   ) -> Bool {
     // Initialize Firebase
     FirebaseApp.configure()
+
+    // TODO: replace with a real, restricted Google Maps API key before release.
+    GMSServices.provideAPIKey("YOUR_GOOGLE_MAPS_API_KEY_HERE")
 
     // Must be set before the app finishes launching so foreground
     // notifications are handled correctly.

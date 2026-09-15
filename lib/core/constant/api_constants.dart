@@ -67,9 +67,10 @@ static const String googleSignInWeb = '/auth/google-signin-web';
   // File upload
   static const String uploadImage = '/upload/image';
   
-  // WebSocket endpoints (if using real-time features)
-  static const String socketUrl = 'ws://localhost:3000';
-  // For production: static const String socketUrl = 'wss://your-api-domain.com';
+  // Socket.IO endpoint for live order/driver tracking — same host as
+  // [baseUrl], without the /api/v1 REST prefix (Socket.IO attaches to the
+  // root of the Express app in saborly-backend/server.js).
+  static const String socketUrl = 'https://api.saborly.es';
   
   // Request timeouts
   static const int connectTimeout = 30000; // 30 seconds

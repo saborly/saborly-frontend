@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
 import '../../../../../shared/models/order.dart';
@@ -31,6 +32,10 @@ class OrderDeliveryTimeCard extends StatelessWidget {
     final isCancelled = order.status == OrderStatus.cancelled;
     final isOutForDelivery = order.status == OrderStatus.outForDelivery;
     final isReadyForPickup = isPickupOrder && order.status == OrderStatus.ready;
+    final hasActiveDriver = !isPickupOrder &&
+        (order.status == OrderStatus.driverpickup ||
+            order.status == OrderStatus.pickup ||
+            isOutForDelivery);
 
     return Container(
       padding: EdgeInsets.all(isDesktop ? 48 : (isTablet ? 40 : 32)),
@@ -155,6 +160,29 @@ class OrderDeliveryTimeCard extends StatelessWidget {
               ],
             ),
           ),
+          if (hasActiveDriver) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/order-tracking/${order.id}'),
+                icon: const Icon(Icons.map_rounded, color: Colors.white),
+                label: Text(
+                  AppStrings.trackOrder,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: Colors.white.withOpacity(0.6), width: 1.4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

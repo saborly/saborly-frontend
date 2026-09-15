@@ -40,8 +40,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
   static const double mobileBreakpoint = 600;
   static const double tabletBreakpoint = 900;
   static const double desktopBreakpoint = 1200;
-
-  Order? _lastOrder;
+  OrderProvider? _orderProvider;
 
   @override
   void initState() {
@@ -50,101 +49,71 @@ class _OrderStatusScreenState extends State<OrderStatusScreen> {
       _loadOrder();
       _startPolling();
       _startClock();
-      _setupOrderListener();
     });
   }
 
-  void _setupOrderListener() {
-    // Listen to provider changes
-    final provider = context.read<OrderProvider>();
-    provider.addListener(_onProviderChanged);
-  }
-
-  void _onProviderChanged() {
-    final provider = context.read<OrderProvider>();
-    final currentOrder = provider.currentOrder;
-
-    // Check if order actually changed
-    if (currentOrder != null && currentOrder != _lastOrder) {
-      debugPrint('🔔 Provider changed - Order status: ${currentOrder.status}');
-      _lastOrder = currentOrder;
-      if (mounted) {
-        setState(() {
-          // Force rebuild
-        });
-      }
-    }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Capture the provider once, while the element is still active.
+    // Never reach through `context` from a timer or from dispose().
+    _orderProvider = context.read<OrderProvider>();
   }
 
   @override
   void dispose() {
-    final provider = context.read<OrderProvider>();
-    provider.removeListener(_onProviderChanged);
     _pollingTimer?.cancel();
     _clockTimer?.cancel();
+    _orderProvider = null;
     super.dispose();
   }
 
   void _loadOrder() {
     if (widget.orderId.isNotEmpty) {
-      context.read<OrderProvider>().loadOrder(widget.orderId);
+      _orderProvider?.loadOrder(widget.orderId);
     }
   }
 
   void _startPolling() {
-    _pollingTimer?.cancel(); // Cancel any existing timer
+    _pollingTimer?.cancel();
     debugPrint('🔄 Starting order status polling (every 5 seconds)');
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (!mounted) {
-        debugPrint('⚠️ Widget not mounted, stopping polling');
+      final provider = _orderProvider;
+      if (!mounted || provider == null) {
         timer.cancel();
         return;
       }
 
-      final provider = context.read<OrderProvider>();
       final currentOrder = provider.currentOrder;
+      final isFinal = currentOrder != null &&
+          (currentOrder.status == OrderStatus.delivered ||
+              currentOrder.status == OrderStatus.cancelled ||
+              currentOrder.status == OrderStatus.refunded);
 
-      debugPrint('⏰ Polling check - Current status: ${currentOrder?.status}');
-
-      // Continue polling if order is active (not delivered/cancelled/refunded)
-      if (currentOrder != null &&
-          currentOrder.status != OrderStatus.delivered &&
-          currentOrder.status != OrderStatus.cancelled &&
-          currentOrder.status != OrderStatus.refunded) {
-        // Load order in silent mode (won't show loading indicator)
-        debugPrint('📡 Polling: Fetching order ${widget.orderId}...');
-        provider.loadOrder(widget.orderId, silent: true).then((_) {
-          debugPrint('✅ Polling: Order fetched successfully');
-          // Force a rebuild after loading
-          if (mounted) {
-            setState(() {
-              debugPrint('🔄 Polling: setState() called to force rebuild');
-              // Trigger rebuild to show updated status
-            });
-          }
-        }).catchError((error) {
-          // Log error but don't stop polling
-          debugPrint('⚠️ Error polling order status: $error');
-        });
-      } else {
-        // Stop polling if order is in final state
-        debugPrint(
-            '✅ Order in final state (${currentOrder?.status}), stopping polling');
+      if (isFinal) {
+        debugPrint('✅ Order in final state, stopping polling');
         timer.cancel();
+        _clockTimer?.cancel();
+        return;
       }
+
+      // No setState here — Consumer<OrderProvider> already rebuilds
+      // when the provider calls notifyListeners().
+      provider.loadOrder(widget.orderId, silent: true).catchError((error) {
+        debugPrint('⚠️ Error polling order status: $error');
+      });
     });
   }
 
   void _startClock() {
-    _clockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _currentTime = DateTime.now();
-        });
+    _clockTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
       }
+      setState(() => _currentTime = DateTime.now());
     });
   }
-
   // Responsive getters
   double get screenWidth => MediaQuery.of(context).size.width;
   bool get isMobile => screenWidth < mobileBreakpoint;
