@@ -118,4 +118,13 @@
             </intent-filter>
         </receiver>
     </application>
+
+    <!-- Lets canLaunchUrl() detect WhatsApp for the "Message driver" button
+         (order_tracking_screen.dart) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="whatsapp"/>
+        </intent>
+    </queries>
 </manifest>

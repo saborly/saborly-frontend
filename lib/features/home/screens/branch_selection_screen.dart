@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -76,10 +77,16 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
       if (list.length == 1 && list.first['isActive'] == true) {
         await _finalizeSelection('${list.first['_id']}', lat: null, lng: null);
       }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _branchLoadError = ApiErrorClassifier.classify(e).message;
+        _loadingBranches = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _branchLoadError = e.toString();
+        _branchLoadError = 'Something went wrong. Please try again.';
         _loadingBranches = false;
       });
     }
@@ -282,15 +289,59 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
                           child: const Center(child: CircularProgressIndicator()),
                         )
                       : _branchLoadError != null
-                          ? Text(
-                              'Could not load branches. Check connection and try again.\n$_branchLoadError',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                fontSize: 13.sp,
-                                color: Colors.redAccent,
-                              ),
-                            )
+                          ? _buildLoadError()
                           : _buildForm(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadError() {
+    return Padding(
+      padding: EdgeInsets.all(24.w),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.cloud_off_rounded, size: 40.sp, color: AppColors.textLight),
+          SizedBox(height: 14.h),
+          Text(
+            _branchLoadError ?? 'Something went wrong. Please try again.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              fontSize: 13.5.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF1A1A2E),
+            ),
+          ),
+          SizedBox(height: 20.h),
+          SizedBox(
+            height: 46.h,
+            child: ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _loadingBranches = true;
+                  _branchLoadError = null;
+                });
+                _loadBranches();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 28.w),
+              ),
+              child: Text(
+                'Try Again',
+                style: GoogleFonts.poppins(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
               ),
             ),

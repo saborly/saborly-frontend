@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -55,6 +56,18 @@ class _OrderTrackingViewState extends State<_OrderTrackingView> {
                 )
               : _buildContent(context, tracking!, provider),
     );
+  }
+
+  Future<void> _openWhatsApp(String phone) async {
+    final digits = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    const message = "Hi, I'm reaching out about my Saborly delivery.";
+    final appUri = Uri.parse('whatsapp://send?phone=$digits&text=${Uri.encodeComponent(message)}');
+    if (await canLaunchUrl(appUri)) {
+      await launchUrl(appUri);
+      return;
+    }
+    final webUri = Uri.parse('https://wa.me/$digits?text=${Uri.encodeComponent(message)}');
+    await launchUrl(webUri, mode: LaunchMode.externalApplication);
   }
 
   Widget _buildContent(BuildContext context, OrderTrackingInfo tracking, OrderTrackingProvider provider) {
@@ -209,12 +222,19 @@ class _OrderTrackingViewState extends State<_OrderTrackingView> {
                     ],
                   ),
                 ),
-                if (tracking.driverPhone != null && tracking.driverPhone!.isNotEmpty)
+                if (tracking.driverPhone != null && tracking.driverPhone!.isNotEmpty) ...[
+                  IconButton(
+                    onPressed: () => _openWhatsApp(tracking.driverPhone!),
+                    style: IconButton.styleFrom(backgroundColor: const Color(0xFF25D366).withOpacity(0.1)),
+                    icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Color(0xFF25D366)),
+                  ),
+                  const SizedBox(width: 8),
                   IconButton(
                     onPressed: () => launchUrl(Uri(scheme: 'tel', path: tracking.driverPhone)),
                     style: IconButton.styleFrom(backgroundColor: AppColors.primary.withOpacity(0.1)),
                     icon: const Icon(Icons.call_rounded, color: AppColors.primary),
                   ),
+                ],
               ],
             ),
           ],
