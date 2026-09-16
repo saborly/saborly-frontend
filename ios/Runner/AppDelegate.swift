@@ -14,8 +14,8 @@ import UserNotifications
     // Initialize Firebase
     FirebaseApp.configure()
 
-    // TODO: replace with a real, restricted Google Maps API key before release.
-    GMSServices.provideAPIKey("YOUR_GOOGLE_MAPS_API_KEY_HERE")
+    // Google Maps API key — confirm in Google Cloud Console that it is restricted to this app's bundle ID.
+    GMSServices.provideAPIKey("AIzaSyBm9avA0tYY4_hJLubWfZ4IP9zq-D3YcCU")
 
     // Must be set before the app finishes launching so foreground
     // notifications are handled correctly.
