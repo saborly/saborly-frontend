@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
@@ -122,27 +123,67 @@ class _OrderTrackingViewState extends State<_OrderTrackingView> {
         if (provider.usingFallbackPolling) _buildFallbackBanner(),
         if (tracking.isStale) _buildStaleBanner(),
         Expanded(
-          child: GoogleMap(
-            initialCameraPosition: CameraPosition(target: initialCenter, zoom: 14),
-            markers: markers,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            onMapCreated: (c) => _mapController = c,
-            polylines: (branch != null && destination != null)
-                ? {
-                    Polyline(
-                      polylineId: const PolylineId('route'),
-                      points: [branch, destination],
-                      color: AppColors.primary.withOpacity(0.35),
-                      width: 3,
-                      patterns: [PatternItem.dash(14), PatternItem.gap(10)],
-                    ),
-                  }
-                : {},
+          child: Stack(
+            children: [
+              GoogleMap(
+                initialCameraPosition: CameraPosition(target: initialCenter, zoom: 14),
+                markers: markers,
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                onMapCreated: (c) => _mapController = c,
+                polylines: (branch != null && destination != null)
+                    ? {
+                        Polyline(
+                          polylineId: const PolylineId('route'),
+                          points: [branch, destination],
+                          color: AppColors.primary.withOpacity(0.35),
+                          width: 3,
+                          patterns: [PatternItem.dash(14), PatternItem.gap(10)],
+                        ),
+                      }
+                    : {},
+              ),
+              if (!tracking.isTerminal && tracking.estimatedDeliveryTime != null)
+                Positioned(top: 16, left: 16, right: 16, child: _buildEtaBadge(tracking.estimatedDeliveryTime!)),
+            ],
           ),
         ),
         _buildInfoPanel(tracking),
       ],
+    );
+  }
+
+  Widget _buildEtaBadge(DateTime estimatedDeliveryTime) {
+    final minutesLeft = estimatedDeliveryTime.difference(DateTime.now()).inMinutes;
+    final arrivalTime = DateFormat.jm().format(estimatedDeliveryTime);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 16, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.12), shape: BoxShape.circle),
+            child: const Icon(Icons.access_time_filled_rounded, size: 18, color: AppColors.primary),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                minutesLeft > 0 ? 'Arriving in $minutesLeft min' : 'Arriving any moment',
+                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.textDark),
+              ),
+              Text('Estimated by $arrivalTime', style: TextStyle(fontSize: 11.5, color: AppColors.textMedium)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

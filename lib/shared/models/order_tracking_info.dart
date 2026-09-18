@@ -23,6 +23,7 @@ class OrderTrackingInfo {
   final double? destinationLatitude;
   final double? destinationLongitude;
   final String? destinationAddress;
+  final DateTime? estimatedDeliveryTime;
   final DateTime updatedAt;
 
   OrderTrackingInfo({
@@ -46,6 +47,7 @@ class OrderTrackingInfo {
     this.destinationLatitude,
     this.destinationLongitude,
     this.destinationAddress,
+    this.estimatedDeliveryTime,
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now();
 
@@ -77,6 +79,9 @@ class OrderTrackingInfo {
       destinationLatitude: (destination?['latitude'] as num?)?.toDouble(),
       destinationLongitude: (destination?['longitude'] as num?)?.toDouble(),
       destinationAddress: destination?['address'] as String?,
+      estimatedDeliveryTime: map['estimatedDeliveryTime'] != null
+          ? DateTime.tryParse(map['estimatedDeliveryTime'].toString())
+          : null,
     );
   }
 
@@ -104,6 +109,7 @@ class OrderTrackingInfo {
       destinationLatitude: destinationLatitude,
       destinationLongitude: destinationLongitude,
       destinationAddress: destinationAddress,
+      estimatedDeliveryTime: estimatedDeliveryTime,
       updatedAt: DateTime.now(),
     );
   }
@@ -131,6 +137,7 @@ class OrderTrackingInfo {
       destinationLatitude: destinationLatitude,
       destinationLongitude: destinationLongitude,
       destinationAddress: destinationAddress,
+      estimatedDeliveryTime: estimatedDeliveryTime,
       updatedAt: DateTime.now(),
     );
   }
