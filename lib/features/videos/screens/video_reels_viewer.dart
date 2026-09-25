@@ -160,8 +160,14 @@ class _VideoReelsViewerState extends State<VideoReelsViewer> with WidgetsBinding
       await controller.setVolume(_muted ? 0 : 1);
       if (i == _index) await controller.play();
       if (mounted) setState(() {});
-    }).catchError((Object _) {
-      // Surfaced through value.hasError and handled in _onControllerUpdate.
+    }).catchError((Object error) {
+      // Most failures also set value.hasError (handled in _onControllerUpdate),
+      // but some only throw here — e.g. a web build missing the player's web
+      // plugin — which would otherwise leave an endless spinner.
+      if (mounted && _controllers[i] == controller && !controller.value.hasError) {
+        debugPrint('Video "${_videos[i].id}" failed to initialize: $error');
+        scheduleMicrotask(() => _handleError(i, controller));
+      }
     });
   }
 

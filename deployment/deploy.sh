@@ -48,6 +48,14 @@ else
     fi
 fi
 
+# A build with stale plugin registration still succeeds, but videos never
+# load on the site — refuse to deploy it.
+if ! grep -q "canplaythrough" "$BUILD_DIR/main.dart.js"; then
+    echo "   ❌ Error: the video player is missing from $BUILD_DIR/main.dart.js."
+    echo "      Run: flutter clean && flutter pub get, then deploy again."
+    exit 1
+fi
+
 # ── Step 2: Upload to VPS ─────────────────────────────────────
 echo ""
 echo "▶ [2/3] Syncing files to VPS..."

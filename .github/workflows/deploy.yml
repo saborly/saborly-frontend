@@ -25,7 +25,7 @@ jobs:
       - name: 🐦 Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.0'   # pin to match your local version
+          flutter-version: '3.41.6'   # pin to match your local version (video_player needs >= 3.38)
           channel: 'stable'
           cache: true
 
@@ -34,11 +34,20 @@ jobs:
         run: flutter pub get
 
       # ── 4. Build Flutter Web ──────────────────────────────────
+      # Same flags as deployment/deploy.sh. (--web-renderer was removed in
+      # Flutter 3.29; --no-web-resources-cdn is what self-hosts canvaskit/.)
       - name: 🏗️ Build Flutter Web (release)
         run: |
           flutter build web --release \
-            --web-renderer canvaskit \
-            --dart-define=FLUTTER_WEB_CANVASKIT_URL=canvaskit/
+            --no-web-resources-cdn \
+            --no-tree-shake-icons
+
+      # A build that silently misses a plugin's web implementation doesn't
+      # fail — the feature just never works (videos spun forever this way).
+      - name: 🔍 Verify video player is bundled
+        run: |
+          grep -q "canplaythrough" build/web/main.dart.js \
+            || { echo "::error::video_player_web is missing from the web build"; exit 1; }
 
       # ── 5. Setup SSH ──────────────────────────────────────────
       - name: 🔑 Configure SSH
