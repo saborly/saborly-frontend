@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/services/api_service.dart';
+import 'package:Saborly/core/utils/time_utils.dart';
 
 /// One Google Place's rating/review summary, as returned by
 /// `GET /api/v1/reviews/google` on the backend (which proxies Google Places
@@ -15,7 +19,6 @@ class GooglePlaceSummary {
   final int reviewCount;
   final String? priceRange;
   final String category;
-  final bool? openNow;
   final String? mapsUrl;
   final List<GoogleReviewSnippet> reviews;
 
@@ -26,7 +29,6 @@ class GooglePlaceSummary {
     required this.reviewCount,
     required this.priceRange,
     required this.category,
-    required this.openNow,
     this.mapsUrl,
     required this.reviews,
   });
@@ -39,7 +41,6 @@ class GooglePlaceSummary {
       reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
       priceRange: json['priceRange']?.toString(),
       category: json['category']?.toString() ?? '',
-      openNow: json['openNow'] as bool?,
       mapsUrl: json['mapsUrl']?.toString(),
       reviews: (json['reviews'] as List? ?? [])
           .map((r) => GoogleReviewSnippet.fromJson(r as Map<String, dynamic>))
@@ -74,26 +75,105 @@ class GoogleReviewSnippet {
   }
 }
 
+enum _OpenState { open, closingSoon, closed }
+
+/// Open/closed status for the branch cards, derived from the same schedule
+/// ([TimeUtils], Spain time) that gates checkout — so the badge always agrees
+/// with whether an order can actually be placed. Google's `open_now` isn't
+/// used: it's missing for some listings and would be stale behind the
+/// backend's 12h cache.
+class _OpenStatus {
+  final _OpenState state;
+
+  /// e.g. "Closes 11:00 PM", "Opens tomorrow at 12:00 PM".
+  final String detail;
+
+  const _OpenStatus(this.state, this.detail);
+
+  static const _closingSoonWindow = Duration(minutes: 60);
+
+  factory _OpenStatus.now() {
+    final untilClose = TimeUtils.durationUntilClosing();
+    if (untilClose != null) {
+      final closesAtMidnight = TimeUtils.getTodayHours()?['close'] == '24:00';
+      return _OpenStatus(
+        untilClose <= _closingSoonWindow ? _OpenState.closingSoon : _OpenState.open,
+        closesAtMidnight ? 'Closes at midnight' : 'Closes ${TimeUtils.getClosingTimeText()}',
+      );
+    }
+
+    final next = TimeUtils.getNextOpeningTime();
+    if (next == null) return const _OpenStatus(_OpenState.closed, '');
+
+    final spainNow = TimeUtils.getSpainTime();
+    final daysAway = DateTime.utc(next.year, next.month, next.day)
+        .difference(DateTime.utc(spainNow.year, spainNow.month, spainNow.day))
+        .inDays;
+    final day = switch (daysAway) {
+      0 => 'today',
+      1 => 'tomorrow',
+      _ => DateFormat('EEEE').format(next),
+    };
+    return _OpenStatus(_OpenState.closed, 'Opens $day at ${DateFormat('h:mm a').format(next)}');
+  }
+
+  @override
+  bool operator ==(Object other) => other is _OpenStatus && other.state == state && other.detail == detail;
+
+  @override
+  int get hashCode => Object.hash(state, detail);
+}
+
 /// "What people are saying on Google" — pulls live rating/review data for
-/// each active branch through the backend proxy. Fails silently (renders
-/// nothing) if the backend/API key isn't configured yet, so it's safe to
-/// ship ahead of that being wired up.
+/// each active branch through the backend proxy. Retries briefly, then fails
+/// silently (renders nothing, [header] included) if the backend/API key
+/// isn't available, so the page never shows a heading with no reviews.
 class WebGoogleReviewsSection extends StatefulWidget {
-  const WebGoogleReviewsSection({super.key});
+  /// Shown above the cards, and hidden along with them when there's nothing
+  /// to show.
+  final Widget? header;
+
+  const WebGoogleReviewsSection({super.key, this.header});
 
   @override
   State<WebGoogleReviewsSection> createState() => _WebGoogleReviewsSectionState();
 }
 
 class _WebGoogleReviewsSectionState extends State<WebGoogleReviewsSection> {
+  static const _retryDelays = [Duration(seconds: 2), Duration(seconds: 5)];
+
   late final Future<List<GooglePlaceSummary>> _future;
+  late final Timer _statusTimer;
+  _OpenStatus _status = _OpenStatus.now();
 
   @override
   void initState() {
     super.initState();
-    _future = ApiService().fetchGoogleReviews().then(
-          (raw) => raw.map(GooglePlaceSummary.fromJson).toList(),
-        );
+    _future = _loadPlaces();
+    // Re-evaluate so the badge flips at opening/closing time without a reload.
+    _statusTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      final next = _OpenStatus.now();
+      if (next != _status) setState(() => _status = next);
+    });
+  }
+
+  /// An empty result means the request failed (timeout, rate limit, Google
+  /// lookup error) — every active branch has a listing — so retry a couple
+  /// of times before giving up.
+  Future<List<GooglePlaceSummary>> _loadPlaces() async {
+    var raw = await ApiService().fetchGoogleReviews();
+    for (final delay in _retryDelays) {
+      if (raw.isNotEmpty || !mounted) break;
+      await Future.delayed(delay);
+      raw = await ApiService().fetchGoogleReviews();
+    }
+    return raw.map(GooglePlaceSummary.fromJson).toList();
+  }
+
+  @override
+  void dispose() {
+    _statusTimer.cancel();
+    super.dispose();
   }
 
   @override
@@ -102,30 +182,40 @@ class _WebGoogleReviewsSectionState extends State<WebGoogleReviewsSection> {
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return SizedBox(height: 220.h, child: const Center(child: CircularProgressIndicator()));
+          return _withHeader(SizedBox(height: 220.h, child: const Center(child: CircularProgressIndicator())));
         }
 
         final places = snapshot.data ?? [];
         if (places.isEmpty) return const SizedBox.shrink();
 
-        return LayoutBuilder(builder: (context, constraints) {
+        return _withHeader(LayoutBuilder(builder: (context, constraints) {
           final columns = constraints.maxWidth > 900 ? 2 : 1;
           final cardWidth = columns == 1 ? constraints.maxWidth : (constraints.maxWidth - 20.w) / 2;
 
           return Wrap(
             spacing: 20.w,
             runSpacing: 20.h,
-            children: places.map((p) => SizedBox(width: cardWidth, child: _PlaceCard(place: p))).toList(),
+            children: places.map((p) => SizedBox(width: cardWidth, child: _PlaceCard(place: p, status: _status))).toList(),
           );
-        });
+        }));
       },
+    );
+  }
+
+  Widget _withHeader(Widget child) {
+    final header = widget.header;
+    if (header == null) return child;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [header, child],
     );
   }
 }
 
 class _PlaceCard extends StatelessWidget {
   final GooglePlaceSummary place;
-  const _PlaceCard({required this.place});
+  final _OpenStatus status;
+  const _PlaceCard({required this.place, required this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +268,7 @@ class _PlaceCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (place.openNow != null) _openBadge(place.openNow!),
+              _openBadge(),
             ],
           ),
           SizedBox(height: 14.h),
@@ -210,6 +300,15 @@ class _PlaceCard extends StatelessWidget {
                   style: GoogleFonts.manrope(fontSize: 12.5.sp, color: AppColors.muted, fontWeight: FontWeight.w600),
                 ),
               ),
+              if (status.detail.isNotEmpty)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.schedule_rounded, size: 14.sp, color: AppColors.muted),
+                    SizedBox(width: 4.w),
+                    Text(status.detail, style: GoogleFonts.manrope(fontSize: 12.5.sp, color: AppColors.muted, fontWeight: FontWeight.w600)),
+                  ],
+                ),
             ],
           ),
 
@@ -273,16 +372,33 @@ class _PlaceCard extends StatelessWidget {
     );
   }
 
-  Widget _openBadge(bool open) {
+  Widget _openBadge() {
+    final (label, color) = switch (status.state) {
+      _OpenState.open => ('Open now', AppColors.accentLeaf),
+      _OpenState.closingSoon => ('Closing soon', AppColors.warning),
+      _OpenState.closed => ('Closed', AppColors.error),
+    };
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 5.h),
       decoration: BoxDecoration(
-        color: open ? AppColors.accentLeaf.withOpacity(0.12) : AppColors.error.withOpacity(0.10),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        open ? 'Open now' : 'Closed',
-        style: GoogleFonts.manrope(fontSize: 11.sp, fontWeight: FontWeight.w800, color: open ? AppColors.accentLeaf : AppColors.error),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6.w,
+            height: 6.w,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          SizedBox(width: 5.w),
+          Text(
+            label,
+            style: GoogleFonts.manrope(fontSize: 11.sp, fontWeight: FontWeight.w800, color: color),
+          ),
+        ],
       ),
     );
   }

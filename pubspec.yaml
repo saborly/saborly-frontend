@@ -63,6 +63,7 @@ dependencies:
   google_sign_in: ^6.2.1
   google_sign_in_web: ^0.12.4+2
   sign_in_with_apple: ^7.0.1
+  video_player: ^2.11.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -95,6 +96,10 @@ flutter:
     - assets/images/catalan_flag.png
     - assets/images/arabic_flag.png
     - assets/images/french_flag.png
+    # Only the optimized copies and their posters ship with the app — the
+    # original downloads in assets/videos/ are intentionally not listed.
+    - assets/videos/optimized/
+    - assets/videos/posters/
 
     
     # - images/a_dot_ham.jpeg

@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -95,268 +94,69 @@ class _DownloadAppModalState extends State<DownloadAppModal>
     }
   }
 
+
+  // Sizes are plain logical pixels rather than ScreenUtil units: the design
+  // size switches at the 600/1200px web breakpoints, which made .w/.h values
+  // jump and stretch the logo. A dialog reads better with fixed sizes plus a
+  // compact variant for phones and short viewports.
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 600;
-    final modalWidth = isSmallScreen ? screenWidth * 0.9 : 500.0;
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 420 || size.height < 720;
+    final radius = BorderRadius.circular(compact ? 20 : 24);
 
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Material(
         color: Colors.black54,
-        child: Center(
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Container(
-              width: modalWidth,
-              margin: EdgeInsets.symmetric(horizontal: 20.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 40,
-                    offset: const Offset(0, 20),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  // Decorative gradient background
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 180.h,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppColors.primary,
-                            AppColors.primary.withValues(alpha: 0.8),
-                          ],
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: radius,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 40,
+                          offset: const Offset(0, 20),
                         ),
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(24.r),
-                          topRight: Radius.circular(24.r),
-                        ),
-                      ),
+                      ],
                     ),
-                  ),
-
-                  // Close button with countdown ring
-                  Positioned(
-                    top: 12.h,
-                    right: 12.w,
-                    child: GestureDetector(
-                      onTap: _closeModal,
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: SizedBox(
-                          width: 44.w,
-                          height: 44.w,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Countdown ring
-                              AnimatedBuilder(
-                                animation: _countdownCtrl,
-                                builder: (_, __) => CircularProgressIndicator(
-                                  value: _countdownCtrl.value,
-                                  strokeWidth: 2.5,
-                                  backgroundColor:
-                                      Colors.white.withValues(alpha: 0.25),
-                                  valueColor:
-                                      const AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                ),
-                              ),
-                              // Inner circle + icon + seconds
-                              Container(
-                                width: 34.w,
-                                height: 34.w,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.20),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 13.sp,
-                                    ),
-                                    Text(
-                                      '$_secondsLeft',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 9.sp,
-                                        fontWeight: FontWeight.w700,
-                                        height: 1.0,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Content
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(32.w, 40.h, 32.w, 32.h),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Stack(
                       children: [
-                        // App icon/image
-                        Container(
-                          width: 100.w,
-                          height: 100.h,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24.r),
-                            child: Image.asset(
-                              'assets/images/logo3.png',
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Icon(
-                                Icons.restaurant_menu,
-                                size: 50.sp,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: 100.h),
-
-                        // Discount badge
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 20.w,
-                            vertical: 10.h,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                const Color(0xFFFF6B6B),
-                                const Color(0xFFFF8E53),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(50.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
+                        // Scrolls when the viewport is too short for the card.
+                        SingleChildScrollView(
+                          child: Column(
                             mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Icon(
-                                Icons.local_offer,
-                                color: Colors.white,
-                                size: 18.sp,
-                              ),
-                              SizedBox(width: 8.w),
-                              Text(
-                                'Get 20% OFF',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
+                              _buildHeader(compact),
+                              Padding(
+                                padding: compact
+                                    ? const EdgeInsets.fromLTRB(20, 20, 20, 20)
+                                    : const EdgeInsets.fromLTRB(32, 28, 32, 30),
+                                child: _buildBody(compact),
                               ),
                             ],
                           ),
                         ),
-
-                        SizedBox(height: 20.h),
-
-                        // Title
-                        Text(
-                          'Download our app',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 28.sp,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark,
-                            height: 1.2,
-                          ),
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: _buildCloseButton(),
                         ),
-
-                        SizedBox(height: 12.h),
-
-                        // Description
-                        Text(
-                          'Order from our mobile app and save on your first order!',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.textMedium,
-                            height: 1.5,
-                          ),
-                        ),
-
-                        SizedBox(height: 32.h),
-
-                        // Store buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _StoreButton(
-                                onTap: () => _launchStore('ios'),
-                                icon: Icons.apple,
-                                storeName: 'App Store',
-                                tagline: 'Download on the',
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            Expanded(
-                              child: _StoreButton(
-                                onTap: () => _launchStore('android'),
-                                icon: Icons.play_arrow_rounded,
-                                storeName: 'Google Play',
-                                tagline: 'Get it on',
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        SizedBox(height: 24.h),
-
-                        // Features
-                        _buildFeature(Icons.delivery_dining, 'Fast Delivery'),
-                        SizedBox(height: 12.h),
-                        _buildFeature(Icons.percent, 'Exclusive Deals'),
-                        SizedBox(height: 12.h),
-                        _buildFeature(Icons.notifications_active, 'Order Tracking'),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -365,25 +165,254 @@ class _DownloadAppModalState extends State<DownloadAppModal>
     );
   }
 
-  Widget _buildFeature(IconData icon, String text) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          icon,
-          size: 20.sp,
-          color: AppColors.primary,
+  Widget _buildHeader(bool compact) {
+    final logoSize = compact ? 72.0 : 100.0;
+    return Container(
+      alignment: Alignment.center,
+      padding: EdgeInsets.symmetric(vertical: compact ? 20 : 34),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary,
+            AppColors.primary.withValues(alpha: 0.8),
+          ],
         ),
-        SizedBox(width: 8.w),
-        Text(
-          text,
-          style: GoogleFonts.poppins(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textMedium,
+      ),
+      child: Container(
+        width: logoSize,
+        height: logoSize,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(compact ? 20 : 24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Image.asset(
+          'assets/images/logo3.png',
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Icon(
+            Icons.restaurant_menu,
+            size: logoSize / 2,
+            color: AppColors.primary,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCloseButton() {
+    return Semantics(
+      button: true,
+      label: 'Close',
+      child: GestureDetector(
+        onTap: _closeModal,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Countdown ring
+                SizedBox.expand(
+                  child: AnimatedBuilder(
+                    animation: _countdownCtrl,
+                    builder: (_, __) => CircularProgressIndicator(
+                      value: _countdownCtrl.value,
+                      strokeWidth: 2.5,
+                      backgroundColor: Colors.white.withValues(alpha: 0.25),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                ),
+                // Inner circle + icon + seconds
+                Container(
+                  width: 31,
+                  height: 31,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.close, color: Colors.white, size: 13),
+                      Text(
+                        '$_secondsLeft',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          height: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(bool compact) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Discount badge
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 16 : 20,
+            vertical: compact ? 8 : 10,
+          ),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+            ),
+            borderRadius: BorderRadius.circular(50),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFF6B6B).withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.local_offer, color: Colors.white, size: compact ? 16 : 18),
+              const SizedBox(width: 8),
+              Text(
+                'Get 20% OFF',
+                style: GoogleFonts.poppins(
+                  fontSize: compact ? 14 : 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        SizedBox(height: compact ? 16 : 20),
+
+        // Title
+        Text(
+          'Download our app',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: compact ? 23 : 28,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textDark,
+            height: 1.2,
+          ),
+        ),
+
+        SizedBox(height: compact ? 8 : 12),
+
+        // Description
+        Text(
+          'Order from our mobile app and save on your first order!',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: compact ? 13.5 : 15,
+            fontWeight: FontWeight.w400,
+            color: AppColors.textMedium,
+            height: 1.5,
+          ),
+        ),
+
+        SizedBox(height: compact ? 20 : 28),
+
+        // Store buttons: side by side when there's room, stacked on phones.
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final appStore = _StoreButton(
+              onTap: () => _launchStore('ios'),
+              icon: Icons.apple,
+              storeName: 'App Store',
+              tagline: 'Download on the',
+            );
+            final googlePlay = _StoreButton(
+              onTap: () => _launchStore('android'),
+              icon: Icons.play_arrow_rounded,
+              storeName: 'Google Play',
+              tagline: 'Get it on',
+            );
+
+            if (constraints.maxWidth < 360) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  appStore,
+                  const SizedBox(height: 10),
+                  googlePlay,
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: appStore),
+                const SizedBox(width: 14),
+                Expanded(child: googlePlay),
+              ],
+            );
+          },
+        ),
+
+        SizedBox(height: compact ? 20 : 24),
+
+        // Features
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildFeature(Icons.delivery_dining, 'Fast Delivery'),
+            _buildFeature(Icons.percent, 'Exclusive Deals'),
+            _buildFeature(Icons.notifications_active, 'Order Tracking'),
+          ],
+        ),
       ],
+    );
+  }
+
+  Widget _buildFeature(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textMedium,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -418,10 +447,11 @@ class _StoreButtonState extends State<_StoreButton> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+          constraints: const BoxConstraints(minHeight: 54),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
           decoration: BoxDecoration(
             color: _isHovered ? AppColors.textDark : Colors.black,
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               if (_isHovered)
                 BoxShadow(
@@ -431,37 +461,44 @@ class _StoreButtonState extends State<_StoreButton> {
                 ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                widget.icon,
-                color: Colors.white,
-                size: 28.sp,
-              ),
-              SizedBox(width: 10.w),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          // Scales the label down instead of overflowing on tight widths.
+          child: Center(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    widget.tagline,
-                    style: GoogleFonts.poppins(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  Text(
-                    widget.storeName,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+                  Icon(widget.icon, color: Colors.white, size: 26),
+                  const SizedBox(width: 10),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.tagline,
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withValues(alpha: 0.8),
+                          height: 1.2,
+                        ),
+                      ),
+                      Text(
+                        widget.storeName,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

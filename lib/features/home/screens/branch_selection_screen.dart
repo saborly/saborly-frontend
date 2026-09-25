@@ -14,6 +14,12 @@ import 'package:Saborly/core/services/geolocation_service.dart';
 /// to be allowed. Matches CheckoutProvider.maxDeliveryDistance.
 const double _maxBranchDistanceKm = 3.5;
 
+// Neutral tokens for the city/region picker.
+const Color _ink = Color(0xFF1A1A2E);
+const Color _inkMuted = Color(0xFF6B7280);
+const Color _inkHint = Color(0xFF9CA3AF);
+const Color _fieldBorder = Color(0xFFE4E4E7);
+
 class BranchSelectionScreen extends StatefulWidget {
   const BranchSelectionScreen({super.key});
 
@@ -35,6 +41,8 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
 
   // Manual city/region fallback
   String? _selectedCityBranchId;
+  final MenuController _cityMenuController = MenuController();
+  bool _cityMenuOpen = false;
 
   bool _isSubmitting = false;
   String? _blockedMessage;
@@ -547,47 +555,298 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
     );
   }
 
+  void _onCitySelected(String id) {
+    setState(() {
+      _selectedCityBranchId = id;
+      // Manual city choice overrides a stale GPS fix.
+      _detectedLat = null;
+      _detectedLng = null;
+      _blockedMessage = null;
+    });
+  }
+
+  String _branchName(Map<String, dynamic> b) => '${b['name'] ?? 'Branch'}'.trim();
+
+  /// Street address shown under the branch name, or null when the branch
+  /// has none (or it just repeats the name).
+  String? _branchAddress(Map<String, dynamic> b) {
+    final loc = '${b['location'] ?? ''}'.trim();
+    if (loc.isEmpty || loc.toLowerCase() == _branchName(b).toLowerCase()) return null;
+    return loc;
+  }
+
   Widget _buildCityDropdown() {
-    return Container(
-      width: double.infinity,
-      height: 54.h,
-      padding: EdgeInsets.symmetric(horizontal: 18.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: const Color(0xFFE2E2E5)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedCityBranchId,
-          isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textLight),
-          hint: Text(
-            'Select City / Region',
-            style: GoogleFonts.poppins(fontSize: 14.sp, color: AppColors.textLight),
+    final branches = _branches.where((b) => b['isActive'] == true).toList();
+    final selected = branches.firstWhere(
+      (b) => '${b['_id']}' == _selectedCityBranchId,
+      orElse: () => {},
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        return MenuAnchor(
+          controller: _cityMenuController,
+          // Without this the panel shrinks to its content instead of
+          // matching the field's width.
+          crossAxisUnconstrained: false,
+          onOpen: () {
+            if (mounted) setState(() => _cityMenuOpen = true);
+          },
+          onClose: () {
+            if (mounted) setState(() => _cityMenuOpen = false);
+          },
+          alignmentOffset: Offset(0, 6.h),
+          style: MenuStyle(
+            backgroundColor: const WidgetStatePropertyAll(Colors.white),
+            surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+            shadowColor: WidgetStatePropertyAll(Colors.black.withOpacity(0.28)),
+            elevation: const WidgetStatePropertyAll(12),
+            padding: WidgetStatePropertyAll(
+              EdgeInsets.symmetric(horizontal: 6.w, vertical: 6.h),
+            ),
+            minimumSize: WidgetStatePropertyAll(Size(width, 0)),
+            maximumSize: WidgetStatePropertyAll(Size(width, 340.h)),
+            shape: WidgetStatePropertyAll(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                side: const BorderSide(color: _fieldBorder),
+              ),
+            ),
           ),
-          items: _branches
-              .where((b) => b['isActive'] == true)
-              .map(
-                (b) => DropdownMenuItem<String>(
-                  value: '${b['_id']}',
-                  child: Text(
-                    _cityLabel(b),
-                    style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w500),
-                  ),
+          menuChildren: [
+            _buildCityMenuHeader(branches.length),
+            if (branches.isEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 14.h),
+                child: Text(
+                  'No branches available right now',
+                  style: GoogleFonts.poppins(fontSize: 13.sp, color: _inkMuted),
                 ),
               )
-              .toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedCityBranchId = value;
-              // Manual city choice overrides a stale GPS fix.
-              _detectedLat = null;
-              _detectedLng = null;
-              _blockedMessage = null;
-            });
-          },
+            else
+              ...branches.map(_buildCityOption),
+          ],
+          builder: (context, controller, child) => _buildCityTrigger(selected, controller),
+        );
+      },
+    );
+  }
+
+  Widget _buildCityTrigger(Map<String, dynamic> selected, MenuController controller) {
+    final hasSelection = selected.isNotEmpty;
+    final address = hasSelection ? _branchAddress(selected) : null;
+    final open = _cityMenuOpen;
+    final radius = BorderRadius.circular(12.r);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: [
+          if (open)
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.12),
+              spreadRadius: 4,
+            )
+          else
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+        ],
+      ),
+      child: Material(
+        color: Colors.white,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(
+            color: open
+                ? AppColors.primary
+                : hasSelection
+                    ? AppColors.primary.withOpacity(0.45)
+                    : _fieldBorder,
+            width: open ? 1.5 : 1,
+          ),
         ),
+        child: InkWell(
+          onTap: () => controller.isOpen ? controller.close() : controller.open(),
+          hoverColor: Colors.black.withOpacity(0.015),
+          splashColor: AppColors.primary.withOpacity(0.06),
+          highlightColor: Colors.transparent,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: 56.h),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 9.h),
+              child: Row(
+                children: [
+                  Icon(
+                    hasSelection ? Icons.storefront_rounded : Icons.storefront_outlined,
+                    size: 20.sp,
+                    color: hasSelection || open ? AppColors.primary : _inkHint,
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: hasSelection
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _branchName(selected),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: _ink,
+                                  height: 1.3,
+                                ),
+                              ),
+                              if (address != null)
+                                Text(
+                                  address,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.sp,
+                                    color: _inkMuted,
+                                    height: 1.3,
+                                  ),
+                                ),
+                            ],
+                          )
+                        : Text(
+                            'Choose your nearest branch',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(fontSize: 14.sp, color: _inkHint),
+                          ),
+                  ),
+                  SizedBox(width: 8.w),
+                  AnimatedRotation(
+                    turns: open ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 22.sp,
+                      color: open ? AppColors.primary : _inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCityMenuHeader(int count) {
+    final style = GoogleFonts.poppins(
+      fontSize: 10.5.sp,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.8,
+      color: _inkHint,
+    );
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10.w, 6.h, 10.w, 8.h),
+      child: Row(
+        children: [
+          Text('AVAILABLE BRANCHES', style: style),
+          const Spacer(),
+          if (count > 0)
+            Text(
+              '$count ${count == 1 ? 'LOCATION' : 'LOCATIONS'}',
+              style: style.copyWith(fontWeight: FontWeight.w500, letterSpacing: 0.4),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCityOption(Map<String, dynamic> b) {
+    final id = '${b['_id']}';
+    final isSelected = id == _selectedCityBranchId;
+    final address = _branchAddress(b);
+
+    return MenuItemButton(
+      onPressed: () => _onCitySelected(id),
+      style: ButtonStyle(
+        padding: WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+        ),
+        minimumSize: WidgetStatePropertyAll(Size(0, 60.h)),
+        backgroundColor: WidgetStatePropertyAll(
+          isSelected ? AppColors.primary.withOpacity(0.06) : Colors.transparent,
+        ),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return AppColors.primary.withOpacity(0.08);
+          }
+          if (states.contains(WidgetState.hovered) || states.contains(WidgetState.focused)) {
+            return isSelected
+                ? AppColors.primary.withOpacity(0.04)
+                : Colors.black.withOpacity(0.035);
+          }
+          return null;
+        }),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+        ),
+      ),
+      leadingIcon: _branchBadge(selected: isSelected),
+      trailingIcon: isSelected
+          ? Icon(Icons.check_rounded, size: 20.sp, color: AppColors.primary)
+          : null,
+      child: Padding(
+        padding: EdgeInsets.only(left: 2.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _branchName(b),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: _ink,
+                height: 1.3,
+              ),
+            ),
+            if (address != null)
+              Text(
+                address,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  fontSize: 12.sp,
+                  color: _inkMuted,
+                  height: 1.35,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _branchBadge({required bool selected}) {
+    return Container(
+      width: 40.w,
+      height: 40.w,
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primary : AppColors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10.r),
+      ),
+      child: Icon(
+        Icons.storefront_rounded,
+        size: 20.sp,
+        color: selected ? Colors.white : AppColors.primary,
       ),
     );
   }

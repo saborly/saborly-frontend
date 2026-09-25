@@ -1,5 +1,5 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:Saborly/shared/models/app_settings.dart';
 import 'package:Saborly/shared/models/user.dart';
@@ -106,10 +106,16 @@ class ApiService {
     try {
       final response = await _dio.get('/reviews/google');
       if (response.statusCode == 200 && response.data['success'] == true) {
-        return List<Map<String, dynamic>>.from(response.data['places'] ?? []);
+        final places = List<Map<String, dynamic>>.from(response.data['places'] ?? []);
+        // An empty list means the backend's Google lookups failed; don't let
+        // the 5-minute response cache pin that, so a retry can recover.
+        if (places.isEmpty) _responseCache.removeWhere((key, _) => key.contains('/reviews/google'));
+        return places;
       }
+      debugPrint('fetchGoogleReviews: unexpected response ${response.statusCode}');
       return [];
-    } catch (_) {
+    } catch (e) {
+      debugPrint('fetchGoogleReviews failed: $e');
       return [];
     }
   }

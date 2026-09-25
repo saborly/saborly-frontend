@@ -14,6 +14,9 @@ import 'package:Saborly/features/providers/home_provider.dart';
 import 'package:Saborly/features/providers/offer_provider.dart';
 import 'package:Saborly/features/home/widgets/mobile_categories_section.dart';
 import 'package:Saborly/features/home/widgets/web/web_google_reviews_section.dart';
+import 'package:Saborly/features/videos/data/saborly_videos.dart';
+import 'package:Saborly/features/videos/screens/video_reels_viewer.dart';
+import 'package:Saborly/features/videos/widgets/video_showcase_section.dart';
 import 'package:Saborly/shared/widgets/food_item_card.dart';
 import 'package:Saborly/shared/widgets/offersSection.dart';
 import 'package:Saborly/shared/widgets/ooter.dart';
@@ -441,12 +444,31 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
                                         SizedBox(height: isWeb ? 48.h : 28.h),
                                         SectionHeader(
-                                          'What People Are Saying',
-                                          kicker: 'Google Reviews',
+                                          AppStrings.get('videosTitle'),
+                                          kicker: AppStrings.get('videosKicker'),
                                           isWeb: isWeb,
+                                          onViewAll: () => VideoReelsViewer.open(context, videos: saborlyVideos),
                                         ),
                                         SizedBox(height: isWeb ? 24.h : 16.h),
-                                        const WebGoogleReviewsSection(),
+                                        ShowcaseShell(
+                                          child: VideoShowcaseSection(isWeb: isWeb),
+                                        ),
+
+                                        // Header lives inside the section so it's
+                                        // hidden too if the reviews fail to load.
+                                        WebGoogleReviewsSection(
+                                          header: Padding(
+                                            padding: EdgeInsets.only(
+                                              top: isWeb ? 48.h : 28.h,
+                                              bottom: isWeb ? 24.h : 16.h,
+                                            ),
+                                            child: SectionHeader(
+                                              'What People Are Saying',
+                                              kicker: 'Google Reviews',
+                                              isWeb: isWeb,
+                                            ),
+                                          ),
+                                        ),
                                       ],
 
                                       SizedBox(height: isWeb ? 64.h : 32.h),

@@ -39,11 +39,13 @@ class TimeUtils {
 
   static DateTime _getLastSundayOfMonth(int year, int month) {
     // Get last day of month
-    final lastDay = DateTime(year, month + 1, 0);
-    
+    final lastDay = DateTime.utc(year, month + 1, 0);
+
     // Find last Sunday
     final daysToSubtract = (lastDay.weekday == DateTime.sunday) ? 0 : lastDay.weekday;
-    return DateTime(year, month, lastDay.day - daysToSubtract, 2, 0, 0); // 2 AM transition
+    // EU clocks change at 01:00 UTC. Built as UTC so it compares correctly
+    // against the UTC `now` regardless of the viewer's own timezone.
+    return DateTime.utc(year, month, lastDay.day - daysToSubtract, 1, 0, 0);
   }
 
   /// Check if restaurant is currently open
@@ -77,34 +79,38 @@ class TimeUtils {
   }
 
   /// Get next opening time
+  ///
+  /// Like [getSpainTime], the result is a UTC-flagged DateTime whose fields
+  /// hold Spain wall-clock time — both sides must be UTC for comparisons to
+  /// be correct for viewers outside UTC.
   static DateTime? getNextOpeningTime() {
     final spainTime = getSpainTime();
-    
+
     // Check today first
     final todayHours = operatingHours[spainTime.weekday];
     if (todayHours != null) {
       final openTime = _parseTime(todayHours['open']!);
-      final todayOpening = DateTime(
+      final todayOpening = DateTime.utc(
         spainTime.year,
         spainTime.month,
         spainTime.day,
         openTime['hour']!,
         openTime['minute']!,
       );
-      
+
       if (spainTime.isBefore(todayOpening)) {
         return todayOpening;
       }
     }
-    
+
     // Check next 7 days
     for (int i = 1; i <= 7; i++) {
       final nextDay = spainTime.add(Duration(days: i));
       final nextDayHours = operatingHours[nextDay.weekday];
-      
+
       if (nextDayHours != null) {
         final openTime = _parseTime(nextDayHours['open']!);
-        return DateTime(
+        return DateTime.utc(
           nextDay.year,
           nextDay.month,
           nextDay.day,
@@ -113,7 +119,7 @@ class TimeUtils {
         );
       }
     }
-    
+
     return null;
   }
 
@@ -128,25 +134,27 @@ class TimeUtils {
     return _formatTime(closeTime);
   }
 
-  /// Get time remaining until closing
-  static String? getTimeUntilClosing() {
+  /// Duration until today's closing time, or null when currently closed.
+  static Duration? durationUntilClosing() {
     if (!isRestaurantOpen()) return null;
-    
+
     final spainTime = getSpainTime();
     final hours = getTodayHours();
     if (hours == null) return null;
-    
+
     final closeTime = _parseTime(hours['close']!);
-    final closingDateTime = DateTime(
-      spainTime.year,
-      spainTime.month,
-      spainTime.day,
-      closeTime['hour']! == 24 ? 23 : closeTime['hour']!,
-      closeTime['hour']! == 24 ? 59 : closeTime['minute']!,
-    );
-    
-    final difference = closingDateTime.difference(spainTime);
-    
+    // Adding the offset to midnight handles '24:00' as next-day midnight.
+    final closingDateTime = DateTime.utc(spainTime.year, spainTime.month, spainTime.day)
+        .add(Duration(hours: closeTime['hour']!, minutes: closeTime['minute']!));
+
+    return closingDateTime.difference(spainTime);
+  }
+
+  /// Get time remaining until closing
+  static String? getTimeUntilClosing() {
+    final difference = durationUntilClosing();
+    if (difference == null) return null;
+
     if (difference.inHours > 0) {
       return '${difference.inHours}h ${difference.inMinutes % 60}m';
     } else {
