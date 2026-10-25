@@ -27,8 +27,13 @@ class HomeMobileAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.background,
+      // White (not the page's cream) so the logo — which has a white
+      // background baked in — blends in instead of sitting in a box.
+      backgroundColor: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      shape: const Border(bottom: BorderSide(color: AppColors.divider)),
       toolbarHeight: 78.h,
       automaticallyImplyLeading: false,
       title: Consumer<CheckoutProvider>(

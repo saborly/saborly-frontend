@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
 
 /// Small banner shown above the search results grid on mobile, indicating
@@ -41,7 +42,7 @@ class SearchStatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Searching for "${provider.lastSearchQuery}"',
+                  AppStrings.get('homeSearchingFor').replaceAll('{query}', provider.lastSearchQuery),
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
@@ -53,8 +54,10 @@ class SearchStatusBanner extends StatelessWidget {
                 SizedBox(height: 2.h),
                 Text(
                   provider.isSearchLoading
-                      ? 'Loading...'
-                      : '$totalResults ${totalResults == 1 ? 'result' : 'results'} found',
+                      ? AppStrings.get('homeLoading')
+                      : totalResults == 1
+                          ? AppStrings.get('homeOneResultFound')
+                          : AppStrings.get('homeResultsFound').replaceAll('{count}', '$totalResults'),
                   style: TextStyle(fontSize: 12.sp, color: AppColors.textMedium),
                 ),
               ],

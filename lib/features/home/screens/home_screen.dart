@@ -231,7 +231,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   Widget build(BuildContext context) {
     final isWeb = ResponsiveUtils.isWeb(context);
-    final isTalet = ResponsiveUtils.isTablet(context);
+    // MainLayout shows its own app bar from 600px up, so the home screen only
+    // adds the mobile one below that (600–767px used to get both).
+    final showMobileAppBar = MediaQuery.sizeOf(context).width < 600;
 
     return Consumer<LanguageService>(
       builder: (context, languageService, _) {
@@ -246,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
 
             if (isWarning) {
               _lastPressedAt = now;
-              
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -262,25 +264,25 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
               );
               return;
             }
-            
+
             SystemNavigator.pop();
           },
           child: Scaffold(
             backgroundColor: AppColors.background,
-            appBar: isWeb || isTalet
-                ? null
-                : HomeMobileAppBar(
+            appBar: showMobileAppBar
+                ? HomeMobileAppBar(
                     onClearSearchSilently: _clearSearchSilently,
                     onClearSearch: _clearSearch,
-                  ),
+                  )
+                : null,
             body: Consumer2<HomeProvider, OffersProvider>(
               builder: (context, homeProvider, offersProvider, child) {
-                if (homeProvider.isLoading && 
-                    !homeProvider.isInSearchMode && 
+                if (homeProvider.isLoading &&
+                    !homeProvider.isInSearchMode &&
                     homeProvider.categories.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
-          
+
                 return RefreshIndicator(
                   onRefresh: () async {
                     _clearSearch();
@@ -295,7 +297,11 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                       final isTablet = constraints.maxWidth >= 600 && constraints.maxWidth < 1200;
                       final isDesktop = constraints.maxWidth >= 1200;
                       final screenWidth = constraints.maxWidth;
-          
+                      final isSearching = homeProvider.isInSearchMode;
+                      final sectionGap = SizedBox(height: isWeb ? 64 : 32);
+                      final hasOffers = offersProvider.itemsWithOffers.isNotEmpty ||
+                          offersProvider.allOffers.isNotEmpty;
+
                       return SingleChildScrollView(
                         controller: _scrollController,
                         physics: const ClampingScrollPhysics(),
@@ -314,72 +320,24 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      // ── Promotional Banner (Aligned with content) ──
-                                      if (!homeProvider.isInSearchMode)
-                                        const DynamicPromotionalBanner(),
-                                      SizedBox(height: isWeb ? 28.h : 18.h),
+                                      SizedBox(height: isWeb ? 28 : 14),
 
-                                      // ── Connection/server error (nothing loaded at all) ──
-                                      if (!homeProvider.isInSearchMode &&
-                                          homeProvider.error != null &&
-                                          homeProvider.categories.isEmpty &&
-                                          homeProvider.featuredItems.isEmpty &&
-                                          homeProvider.popularItems.isEmpty) ...[
-                                        HomeErrorBanner(onRetry: () => _refreshHomeData(force: true)),
-                                        SizedBox(height: isWeb ? 28.h : 18.h),
-                                      ],
-
-                                      // ── Categories (2nd section on both web & mobile) ──
-                                      if (!homeProvider.isInSearchMode) ...[
-                                        SectionHeader(
-                                          AppStrings.get('ourMenu'),
-                                          kicker: 'Categories',
-                                          isWeb: isWeb,
-                                          onViewAll: () {
-                                            _clearSearchSilently();
-                                            context.go(AppRoutes.menu);
-                                          },
-                                        ),
-                                        SizedBox(height: isWeb ? 24.h : 14.h),
-                                        if (isWeb)
-                                          ShowcaseShell(
-                                            child: CategoriesSlider(
-                                              provider: homeProvider,
-                                              isWeb: isWeb,
-                                              onClearSearchSilently: _clearSearchSilently,
-                                            ),
-                                          )
-                                        else
-                                          MobileCategoriesSection(
-                                            categories: homeProvider.categories,
-                                            onTap: (category) {
-                                              _clearSearchSilently();
-                                              context.push(AppRoutes.menu, extra: {'category': category.id});
-                                            },
-                                          ),
-                                        SizedBox(height: isWeb ? 48.h : 24.h),
-                                      ],
-
+                                      // ── Search (app: first thing on the page) ──
                                       if (!isWeb) ...[
-                                        HeroIntroSection(
-                                          isWeb: isWeb,
-                                          onClearSearchSilently: _clearSearchSilently,
-                                        ),
-                                        SizedBox(height: 18.h),
                                         SearchBarWidget(
                                           controller: _searchController,
                                           onSearch: _handleSearch,
                                         ),
-                                        SizedBox(height: 16.h),
-                                        if (homeProvider.isInSearchMode)
+                                        const SizedBox(height: 16),
+                                      ],
+
+                                      if (isSearching) ...[
+                                        if (!isWeb)
                                           SearchStatusBanner(
                                             provider: homeProvider,
                                             onClear: _clearSearch,
                                           ),
-                                      ],
-
-                                      if (homeProvider.isInSearchMode) ...[
-                                        SizedBox(height: 24.h),
+                                        const SizedBox(height: 24),
                                         SearchResultsSection(
                                           resultsKey: _searchResultsKey,
                                           provider: homeProvider,
@@ -390,96 +348,147 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                                           onClearSearch: _clearSearch,
                                         ),
                                       ] else ...[
-                                        // ── Hero (web: shown after categories) ──
-                                        if (isWeb) ...[
-                                          HeroIntroSection(
-                                            isWeb: isWeb,
-                                            onClearSearchSilently: _clearSearchSilently,
-                                          ),
-                                          SizedBox(height: 48.h),
+                                        // ── Promotional banner ──
+                                        const DynamicPromotionalBanner(),
+
+                                        // ── Connection/server error (nothing loaded at all) ──
+                                        if (homeProvider.error != null &&
+                                            homeProvider.categories.isEmpty &&
+                                            homeProvider.featuredItems.isEmpty &&
+                                            homeProvider.popularItems.isEmpty) ...[
+                                          SizedBox(height: isWeb ? 28 : 18),
+                                          HomeErrorBanner(onRetry: () => _refreshHomeData(force: true)),
                                         ],
 
-                                        SectionHeader(
-                                          AppStrings.get('featuredItems'),
-                                          kicker: 'Top Picks',
-                                          isWeb: isWeb,
-                                          onViewAll: () => _navigateToFeaturedPage(context, homeProvider),
-                                        ),
-                                        SizedBox(height: isWeb ? 24.h : 16.h),
-                                        ShowcaseShell(
-                                          child: FeaturedItemsSection(
-                                            provider: homeProvider,
-                                            isSmallScreen: isSmallScreen,
-                                            isTablet: isTablet,
-                                            isDesktop: isDesktop,
+                                        // ── Categories ──
+                                        if (homeProvider.categories.isNotEmpty) ...[
+                                          SizedBox(height: isWeb ? 48 : 28),
+                                          _section(
                                             isWeb: isWeb,
-                                            onClearSearchSilently: _clearSearchSilently,
+                                            title: AppStrings.get('ourMenu'),
+                                            kicker: AppStrings.get('homeKickerCategories'),
+                                            onViewAll: () {
+                                              _clearSearchSilently();
+                                              context.go(AppRoutes.menu);
+                                            },
+                                            child: isWeb
+                                                ? ShowcaseShell(
+                                                    child: CategoriesSlider(
+                                                      provider: homeProvider,
+                                                      isWeb: isWeb,
+                                                      onClearSearchSilently: _clearSearchSilently,
+                                                    ),
+                                                  )
+                                                : MobileCategoriesSection(
+                                                    categories: homeProvider.categories,
+                                                    onTap: (category) {
+                                                      _clearSearchSilently();
+                                                      context.push(AppRoutes.menu, extra: {'category': category.id});
+                                                    },
+                                                  ),
                                           ),
-                                        ),
-                                        SizedBox(height: isWeb ? 48.h : 24.h),
-
-                                        if (offersProvider.itemsWithOffers.isNotEmpty ||
-                                            offersProvider.allOffers.isNotEmpty) ...[
-                                          const OffersSection(),
-                                          SizedBox(height: isWeb ? 48.h : 24.h),
                                         ],
 
-                                        SectionHeader(
-                                          AppStrings.get('mostPopularItems'),
-                                          kicker: 'Trending Now',
-                                          isWeb: isWeb,
-                                          onViewAll: () => _navigateToPopularPage(context, homeProvider),
-                                        ),
-                                        SizedBox(height: isWeb ? 24.h : 16.h),
-                                        ShowcaseShell(
-                                          child: PopularItemsSection(
-                                            provider: homeProvider,
-                                            isSmallScreen: isSmallScreen,
-                                            isTablet: isTablet,
-                                            isDesktop: isDesktop,
+                                        // ── Top picks ──
+                                        if (homeProvider.featuredItems.isNotEmpty) ...[
+                                          sectionGap,
+                                          _section(
                                             isWeb: isWeb,
-                                            onClearSearchSilently: _clearSearchSilently,
+                                            title: AppStrings.get('featuredItems'),
+                                            kicker: AppStrings.get('homeKickerTopPicks'),
+                                            onViewAll: () => _navigateToFeaturedPage(context, homeProvider),
+                                            child: FeaturedItemsSection(
+                                              provider: homeProvider,
+                                              isSmallScreen: isSmallScreen,
+                                              isTablet: isTablet,
+                                              isDesktop: isDesktop,
+                                              isWeb: isWeb,
+                                              onClearSearchSilently: _clearSearchSilently,
+                                            ),
                                           ),
+                                        ],
+
+                                        // ── Brand band: why Saborly + order CTA ──
+                                        sectionGap,
+                                        HeroIntroSection(
+                                          isWeb: isWeb,
+                                          onClearSearchSilently: _clearSearchSilently,
                                         ),
 
-                                        SizedBox(height: isWeb ? 48.h : 28.h),
-                                        SectionHeader(
-                                          AppStrings.get('videosTitle'),
+                                        // ── Offers ──
+                                        if (hasOffers) ...[
+                                          sectionGap,
+                                          OffersSection(
+                                            header: Padding(
+                                              padding: EdgeInsets.only(bottom: isWeb ? 24 : 16),
+                                              child: SectionHeader(
+                                                AppStrings.get('specialOffers'),
+                                                kicker: AppStrings.get('homeKickerOffers'),
+                                                isWeb: isWeb,
+                                                onViewAll: () {
+                                                  _clearSearchSilently();
+                                                  context.go(AppRoutes.offer);
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+
+                                        // ── Trending now ──
+                                        if (homeProvider.popularItems.isNotEmpty) ...[
+                                          sectionGap,
+                                          _section(
+                                            isWeb: isWeb,
+                                            title: AppStrings.get('mostPopularItems'),
+                                            kicker: AppStrings.get('homeKickerTrending'),
+                                            onViewAll: () => _navigateToPopularPage(context, homeProvider),
+                                            child: PopularItemsSection(
+                                              provider: homeProvider,
+                                              isSmallScreen: isSmallScreen,
+                                              isTablet: isTablet,
+                                              isDesktop: isDesktop,
+                                              isWeb: isWeb,
+                                              onClearSearchSilently: _clearSearchSilently,
+                                            ),
+                                          ),
+                                        ],
+
+                                        // ── Videos ──
+                                        sectionGap,
+                                        _section(
+                                          isWeb: isWeb,
+                                          title: AppStrings.get('videosTitle'),
                                           kicker: AppStrings.get('videosKicker'),
-                                          isWeb: isWeb,
                                           onViewAll: () => VideoReelsViewer.open(context, videos: saborlyVideos),
-                                        ),
-                                        SizedBox(height: isWeb ? 24.h : 16.h),
-                                        ShowcaseShell(
                                           child: VideoShowcaseSection(isWeb: isWeb),
                                         ),
 
-                                        // Header lives inside the section so it's
-                                        // hidden too if the reviews fail to load.
+                                        // ── Google reviews ── (header lives inside the
+                                        // section so it's hidden too if reviews fail to load)
                                         WebGoogleReviewsSection(
                                           header: Padding(
                                             padding: EdgeInsets.only(
-                                              top: isWeb ? 48.h : 28.h,
-                                              bottom: isWeb ? 24.h : 16.h,
+                                              top: isWeb ? 52 : 20,
+                                              bottom: isWeb ? 24 : 16,
                                             ),
                                             child: SectionHeader(
-                                              'What People Are Saying',
-                                              kicker: 'Google Reviews',
+                                              AppStrings.get('homeReviewsTitle'),
+                                              kicker: AppStrings.get('homeKickerReviews'),
                                               isWeb: isWeb,
                                             ),
                                           ),
                                         ),
                                       ],
 
-                                      SizedBox(height: isWeb ? 64.h : 32.h),
+                                      SizedBox(height: isWeb ? 72 : 32),
                                     ],
                                   ),
                                 ),
                               ),
                             ),
 
-                            if (isWeb && !homeProvider.isInSearchMode)
-                              Container(
+                            if (isWeb && !isSearching)
+                              const SizedBox(
                                 width: double.infinity,
                                 child: FoodKingFooter(),
                               ),
@@ -494,6 +503,25 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
           ),
         );
       },
+    );
+  }
+
+  /// Header (kicker + title + "view all") above a section's content, with
+  /// the same spacing everywhere.
+  Widget _section({
+    required bool isWeb,
+    required String title,
+    required String kicker,
+    required Widget child,
+    VoidCallback? onViewAll,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(title, kicker: kicker, isWeb: isWeb, onViewAll: onViewAll),
+        SizedBox(height: isWeb ? 24 : 14),
+        child,
+      ],
     );
   }
 

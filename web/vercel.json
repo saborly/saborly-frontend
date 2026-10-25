@@ -3,7 +3,7 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/((?!sitemap\\.xml|robots\\.txt|favicon\\.ico|favicon\\.png|manifest\\.json|assets/|icons/|canvaskit/|flutter\\.js|flutter_bootstrap\\.js|flutter_service_worker\\.js|firebase-messaging-sw\\.js|main\\.dart\\.js).*)",
+      "source": "/((?!sitemap\\.xml|robots\\.txt|llms\\.txt|videos/|privacy\\.html|favicon\\.ico|favicon\\.png|manifest\\.json|assets/|icons/|canvaskit/|flutter\\.js|flutter_bootstrap\\.js|flutter_service_worker\\.js|firebase-messaging-sw\\.js|main\\.dart\\.js).*)",
       "destination": "/index.html"
     }
   ],

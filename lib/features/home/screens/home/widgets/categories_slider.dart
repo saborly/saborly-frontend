@@ -25,26 +25,31 @@ class CategoriesSlider extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Centered when every category fits on one line, scrollable otherwise
+    // (a shrink-wrapped ListView sizes to its content inside the Center).
+    // FoodCategoryCard carries its own right margin, so no extra gap here.
     return SizedBox(
       height: isWeb ? 140.h : 122.h,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: provider.categories.length,
-        itemBuilder: (context, index) {
-          final category = provider.categories[index];
-          final isLast = index == provider.categories.length - 1;
-          return Padding(
-            padding: EdgeInsets.only(right: isLast ? 0 : (isWeb ? 16.w : 15.w)),
-            child: FoodCategoryCard(
-              category: category,
-              onTap: () {
-                onClearSearchSilently();
-                context.push(AppRoutes.menu, extra: {'category': category.id});
-              },
-            ),
-          );
-        },
+      child: Center(
+        child: ListView.builder(
+          shrinkWrap: true,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: provider.categories.length,
+          itemBuilder: (context, index) {
+            final category = provider.categories[index];
+            // Centered vertically so short labels don't leave a gap below.
+            return Center(
+              child: FoodCategoryCard(
+                category: category,
+                onTap: () {
+                  onClearSearchSilently();
+                  context.push(AppRoutes.menu, extra: {'category': category.id});
+                },
+              ),
+            );
+          },
+        ),
       ),
     );
   }

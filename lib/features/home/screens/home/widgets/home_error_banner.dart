@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
 
 /// Shown when the homepage couldn't load anything at all (connection lost
 /// or the backend is down) — otherwise sections just silently disappear
@@ -39,12 +40,12 @@ class HomeErrorBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Couldn\'t load the menu',
+                  AppStrings.get('homeLoadErrorTitle'),
                   style: GoogleFonts.manrope(fontSize: 14.sp, fontWeight: FontWeight.w800, color: AppColors.textDark),
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  'Check your connection and try again.',
+                  AppStrings.get('homeLoadErrorBody'),
                   style: GoogleFonts.manrope(fontSize: 12.sp, color: AppColors.textMedium),
                 ),
               ],
@@ -59,7 +60,7 @@ class HomeErrorBanner extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
             ),
-            child: Text('Retry', style: GoogleFonts.manrope(fontSize: 13.sp, fontWeight: FontWeight.w800)),
+            child: Text(AppStrings.get('retry'), style: GoogleFonts.manrope(fontSize: 13.sp, fontWeight: FontWeight.w800)),
           ),
         ],
       ),

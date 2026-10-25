@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/core/routes/app_routes.dart';
 import 'package:Saborly/features/providers/home_provider.dart';
 import 'package:Saborly/shared/widgets/food_item_card.dart';
@@ -53,7 +54,7 @@ class SearchResultsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Search Results',
+          AppStrings.get('homeSearchResults'),
           style: TextStyle(
             fontSize: 24.sp,
             fontWeight: FontWeight.w700,
@@ -105,7 +106,7 @@ class _NoResultsView extends StatelessWidget {
             Icon(Icons.search_off, size: 80.sp, color: AppColors.textLight),
             SizedBox(height: 24.h),
             Text(
-              'No Results Found',
+              AppStrings.get('homeNoResults'),
               style: TextStyle(
                 fontSize: 20.sp,
                 fontWeight: FontWeight.w700,
@@ -114,14 +115,14 @@ class _NoResultsView extends StatelessWidget {
             ),
             SizedBox(height: 12.h),
             Text(
-              'Try searching with different keywords',
+              AppStrings.get('homeNoResultsBody'),
               style: TextStyle(fontSize: 14.sp, color: AppColors.textMedium),
             ),
             SizedBox(height: 24.h),
             TextButton.icon(
               onPressed: onClear,
               icon: Icon(Icons.clear_all, size: 20.sp),
-              label: Text('Clear Search', style: TextStyle(fontSize: 16.sp)),
+              label: Text(AppStrings.get('homeClearSearch'), style: TextStyle(fontSize: 16.sp)),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),

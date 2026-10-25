@@ -139,15 +139,27 @@ class _VideoReelsViewerState extends State<VideoReelsViewer> with WidgetsBinding
     for (final i in _controllers.keys.toList()) {
       if (!keep.contains(i)) _disposeController(i);
     }
-    for (final i in keep) {
-      if (!_controllers.containsKey(i) && !_failed.contains(i)) _createController(i);
-    }
+
+    // The current video loads first; neighbours are preloaded only once it
+    // plays, so on slow connections they don't eat into its bandwidth.
+    if (!_controllers.containsKey(_index) && !_failed.contains(_index)) _createController(_index);
 
     final current = _controllers[_index];
-    if (current != null && current.value.isInitialized && !current.value.isPlaying) {
-      current
-        ..setVolume(_muted ? 0 : 1)
-        ..play();
+    if (current != null && current.value.isInitialized) {
+      if (!current.value.isPlaying) {
+        current
+          ..setVolume(_muted ? 0 : 1)
+          ..play();
+      }
+      _preloadNeighbours();
+    }
+  }
+
+  void _preloadNeighbours() {
+    for (final i in [_index - 1, _index + 1]) {
+      if (i >= 0 && i < _videos.length && !_controllers.containsKey(i) && !_failed.contains(i)) {
+        _createController(i);
+      }
     }
   }
 
@@ -158,7 +170,10 @@ class _VideoReelsViewerState extends State<VideoReelsViewer> with WidgetsBinding
     controller.initialize().then((_) async {
       if (!mounted || _controllers[i] != controller) return;
       await controller.setVolume(_muted ? 0 : 1);
-      if (i == _index) await controller.play();
+      if (i == _index) {
+        await controller.play();
+        if (mounted && i == _index) _preloadNeighbours();
+      }
       if (mounted) setState(() {});
     }).catchError((Object error) {
       // Most failures also set value.hasError (handled in _onControllerUpdate),

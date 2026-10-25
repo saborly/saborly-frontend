@@ -36,7 +36,7 @@ class MobileCategoriesSection extends StatelessWidget {
         child: Row(
           children: [
             for (int i = 0; i < categories.length; i++) ...[
-              if (i > 0) SizedBox(width: 16.w),
+              if (i > 0) SizedBox(width: 8.w),
               _MobileCategoryChip(category: categories[i], onTap: () => onTap(categories[i])),
             ],
           ],
@@ -86,7 +86,9 @@ class _MobileCategoryChipState extends State<_MobileCategoryChip> {
         scale: _pressed ? 0.94 : 1.0,
         duration: const Duration(milliseconds: 120),
         child: SizedBox(
-          width: 78.w,
+          // Wide enough for "Hamburguesa"/"Hamburgueses" on one line —
+          // narrower chips broke those words mid-way on tablets.
+          width: 88.w,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

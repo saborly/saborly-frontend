@@ -7,14 +7,17 @@ import 'package:provider/provider.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/core/constant/app_strings.dart';
 import 'package:Saborly/core/routes/app_routes.dart';
-import 'package:Saborly/core/utils/responsive_utils.dart';
 import 'package:Saborly/features/providers/offer_provider.dart';
 import 'package:Saborly/shared/models/offer.dart';
 import 'package:Saborly/core/services/language_service.dart';
 
 /// ✅ FIXED: Use mixin for automatic language updates
 class OffersSection extends StatefulWidget {
-  const OffersSection({super.key});
+  /// Shown above the offer cards (and hidden with them when there are none)
+  /// — the home screen passes its shared section header.
+  final Widget? header;
+
+  const OffersSection({super.key, this.header});
 
   @override
   State<OffersSection> createState() => _OffersSectionState();
@@ -47,8 +50,7 @@ class _OffersSectionState extends State<OffersSection> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionHeader(context),
-            SizedBox(height: 16.h),
+            if (widget.header != null) widget.header!,
             _buildOffersGrid(context, offers),
           ],
         );
@@ -60,47 +62,25 @@ class _OffersSectionState extends State<OffersSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              width: 140.w,
-              height: 20.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-            ),
-            Container(
-              width: 60.w,
-              height: 16.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 16.h),
+        if (widget.header != null) widget.header!,
         LayoutBuilder(
           builder: (context, constraints) {
-            final screenWidth = constraints.maxWidth;
-            final isSmallScreen = screenWidth < 600;
+            final isSmallScreen = constraints.maxWidth < 600;
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: isSmallScreen ? 1 : 2,
-                crossAxisSpacing: 12.w,
-                mainAxisSpacing: 12.h,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
                 childAspectRatio: isSmallScreen ? 2.2 : 2.5,
               ),
               itemCount: 2,
               itemBuilder: (context, index) {
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(16.r),
+                    color: AppColors.shimmer,
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 );
               },
@@ -162,73 +142,6 @@ class _OffersSectionState extends State<OffersSection> {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context) {
-    final isWeb = ResponsiveUtils.isWeb(context);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            AppStrings.get('specialOffers'),
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textDark,
-            ),
-          ),
-        ),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () => context.go(AppRoutes.offer),
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: isWeb ? 20.w : 12.w,
-                vertical: isWeb ? 12.h : 8.h,
-              ),
-              decoration: BoxDecoration(
-                color: isWeb ? Colors.white : Colors.transparent,
-                borderRadius: BorderRadius.circular(8.r),
-                border: isWeb ? Border.all(
-                  color: AppColors.primary.withOpacity(0.3),
-                  width: 1.5,
-                ) : null,
-                boxShadow: isWeb ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ] : null,
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    AppStrings.get('viewAll'),
-                    style: TextStyle(
-                      fontSize: isWeb ? 16.sp : 18.sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  if (isWeb) ...[
-                    SizedBox(width: 6.w),
-                    Icon(
-                      Icons.arrow_forward,
-                      size: 18.sp,
-                      color: AppColors.primary,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildOffersGrid(BuildContext context, List<OfferModel> offers) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -241,8 +154,8 @@ class _OffersSectionState extends State<OffersSection> {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: isSmallScreen ? 1 : (isTablet ? 2 : 2),
-            crossAxisSpacing: 12.w,
-            mainAxisSpacing: 12.h,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
             childAspectRatio: isSmallScreen ? 2.2 : 2.5,
           ),
           itemCount: offers.length,
@@ -268,7 +181,7 @@ class _OffersSectionState extends State<OffersSection> {
             end: Alignment.bottomRight,
             colors: offer.gradientColors,
           ),
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
               color: offer.gradientColors.first.withOpacity(0.3),
@@ -282,7 +195,7 @@ class _OffersSectionState extends State<OffersSection> {
             // Background image
             Positioned.fill(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16.r),
+                borderRadius: BorderRadius.circular(20),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final dpr = MediaQuery.of(context).devicePixelRatio;
@@ -291,8 +204,7 @@ class _OffersSectionState extends State<OffersSection> {
                         : null;
                     return Image.network(
                       offer.imageUrl ?? 'https://via.placeholder.com/400x200.png?text=Offer',
-                      fit: BoxFit.contain,
-                      colorBlendMode: BlendMode.darken,
+                      fit: BoxFit.cover,
                       cacheWidth: targetWidth,
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: Colors.grey[300],
@@ -304,7 +216,7 @@ class _OffersSectionState extends State<OffersSection> {
                       ),
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
-                        return const Center(child: CircularProgressIndicator());
+                        return Container(color: AppColors.shimmer);
                       },
                     );
                   },

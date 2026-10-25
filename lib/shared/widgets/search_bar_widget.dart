@@ -148,7 +148,16 @@ class SearchBarWidgetState extends State<SearchBarWidget> with SingleTickerProvi
                         ),
                         decoration: InputDecoration(
                           isDense: true,
+                          // The app theme gives every field a fill, outline and
+                          // padding; this container already draws the field,
+                          // so opt out of all of it (otherwise a second boxed
+                          // field shows inside, squeezing the hint to "Bus…").
+                          filled: false,
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
                           hintText: widget.hintText ?? AppStrings.get('search'),
                           hintStyle: TextStyle(
                             fontSize: fontSize,

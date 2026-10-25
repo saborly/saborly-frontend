@@ -38,7 +38,7 @@ class VideoShowcaseSection extends StatefulWidget {
 
 class _VideoShowcaseSectionState extends State<VideoShowcaseSection> with WidgetsBindingObserver {
   // Room above/below the cards so the hover lift and shadow aren't clipped.
-  static const double _verticalBleed = 12;
+  static const double _verticalBleed = 32;
   static const Duration _hoverDelay = Duration(milliseconds: 350);
 
   /// Native apps preview automatically; the web previews on hover only.

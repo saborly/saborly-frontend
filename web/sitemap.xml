@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+<urlset xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+        xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
   <url>
@@ -63,4 +64,192 @@
     <priority>0.3</priority>
   </url>
 
+  <!-- videos:start -->
+  <url>
+    <loc>https://saborly.es/videos/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/sabor-de-pakistan-en-barcelona/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_taste_of_pakistan.jpg</video:thumbnail_loc>
+      <video:title>El sabor de Pakistán en Barcelona</video:title>
+      <video:description>Palitos de mozzarella que se estiran, pizza recién hecha, burgers con patatas fritas, batidos con nata y mocktails de colores: un recorrido de once segundos por la comida rápida de estilo paquistaní que servimos en Saborly Barcelona.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_taste_of_pakistan.mp4</video:content_loc>
+      <video:duration>12</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/amigos-familia-y-buena-comida/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_friends_and_family.jpg</video:thumbnail_loc>
+      <video:title>Amigos, familia y buena comida</video:title>
+      <video:description>Un paseo por Barcelona que termina en Saborly: burgers, pollo especiado recién salido de la parrilla y mocktails para brindar. Comida rápida paquistaní para compartir con amigos y familia en nuestro local de Pere IV.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_friends_and_family.mp4</video:content_loc>
+      <video:duration>34</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/bueno-bonito-y-barato/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_great_value.jpg</video:thumbnail_loc>
+      <video:title>Bueno, bonito y barato</video:title>
+      <video:description>Una clienta presenta Saborly como el restaurante de las «3B»: bueno, bonito y barato. Burgers jugosas, batidos que según ella son imprescindibles, un local cuidado y comida 100 % halal a precios económicos.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_great_value.mp4</video:content_loc>
+      <video:duration>13</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/nauman-ijaz-visita-saborly/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_nauman_ijaz_visit.jpg</video:thumbnail_loc>
+      <video:title>Nauman Ijaz visita Saborly</video:title>
+      <video:description>El actor paquistaní Nauman Ijaz visitó Saborly en Barcelona, probó nuestras burgers y bebidas y elogió nuestra comida rápida de estilo paquistaní.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_nauman_ijaz_visit.mp4</video:content_loc>
+      <video:duration>24</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/saborly-feria-de-sabadell/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_sabadell_fair.jpg</video:thumbnail_loc>
+      <video:title>Saborly en la Feria de Sabadell</video:title>
+      <video:description>Saborly se suma a la Feria de Sabadell: «la feria está encendida y Saborly también». Ven a probar nuestras smash burgers y pizzas 100 % halal en Saborly Sabadell, Av. Francesc Macià, 47.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_sabadell_fair.mp4</video:content_loc>
+      <video:duration>13</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/resena-burgers-y-pizza/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_food_review.jpg</video:thumbnail_loc>
+      <video:title>Reseña completa: burgers y pizza</video:title>
+      <video:description>Más de tres minutos de reseña sin cortes: un creador de contenido gastronómico (#reydelacomida) prueba en Saborly una pizza en bandeja, nuestras burgers con queso, un wrap y más, y cuenta con sinceridad qué le parece cada plato.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_food_review.mp4</video:content_loc>
+      <video:duration>197</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/mejor-con-quien-mas-quieres/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_family_moments.jpg</video:thumbnail_loc>
+      <video:title>Mejor con quien más quieres</video:title>
+      <video:description>Un día en bici por la ciudad que termina compartiendo pizza, burgers y bebidas en Saborly. Su protagonista lo resume así: es más bonito disfrutar con la familia o los amigos, y en Saborly el ambiente es elegante y limpio y la comida, muy sabrosa.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_family_moments.mp4</video:content_loc>
+      <video:duration>43</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/burger-o-pizza/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_burger_or_pizza.jpg</video:thumbnail_loc>
+      <video:title>¿Burger o pizza?</video:title>
+      <video:description>¿Con cuál te quedas? Un repaso rápido a las burgers, pizzas y wraps de Saborly para que elijas tu favorita… o no elijas y pidas las dos.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_burger_or_pizza.mp4</video:content_loc>
+      <video:duration>29</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/tacos-de-pollo/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_chicken_tacos.jpg</video:thumbnail_loc>
+      <video:title>Tacos de pollo irresistibles</video:title>
+      <video:description>Tacos de pollo con queso fundido que se estira, servidos calientes en papel de aluminio. ¿Antojo de algo lleno de sabor? Ven a probarlos a Saborly.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_chicken_tacos.mp4</video:content_loc>
+      <video:duration>11</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/mocktail-orange-blue/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_orange_blue_mocktail.jpg</video:thumbnail_loc>
+      <video:title>Orange Blue Mocktail</video:title>
+      <video:description>Nuestro Orange Blue Mocktail: un cóctel sin alcohol en capas azul y verde, con hierbabuena y mucho hielo. Refrescante, colorido y «una explosión de frescura en cada sorbo». Solo en Saborly.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_orange_blue_mocktail.mp4</video:content_loc>
+      <video:duration>11</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/ven-y-come-ahora/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_come_eat_now.jpg</video:thumbnail_loc>
+      <video:title>¿Se te antoja algo? ¡Ven y come!</video:title>
+      <video:description>Burgers de pollo crujiente y de ternera con queso, recién hechas. Te esperamos en C/ de Pere IV, 208 (Barcelona) y en la Av. Francesc Macià, 47 (Sabadell).</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_come_eat_now.mp4</video:content_loc>
+      <video:duration>19</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <url>
+    <loc>https://saborly.es/videos/tarta-red-velvet/</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <video:video>
+      <video:thumbnail_loc>https://saborly.es/assets/assets/videos/posters/saborly_red_velvet_cake.jpg</video:thumbnail_loc>
+      <video:title>Tarta Red Velvet</video:title>
+      <video:description>Nuestra tarta Red Velvet: bizcocho rojo esponjoso con capas de crema. El capricho perfecto para cualquier ocasión, ideal con un café o un té.</video:description>
+      <video:content_loc>https://saborly.es/assets/assets/videos/optimized/saborly_red_velvet_cake.mp4</video:content_loc>
+      <video:duration>5</video:duration>
+      <video:publication_date>2026-09-25T00:00:00+02:00</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+  </url>
+  <!-- videos:end -->
 </urlset>
