@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:Saborly/core/constant/app_colors.dart';
 import 'package:Saborly/shared/widgets/language_selector.dart';
 import 'package:Saborly/shared/widgets/search_bar_widget.dart';
 import '../../../../core/routes/app_routes.dart';
 import 'responsive_helper.dart';
 import 'cart_button.dart';
+import 'location_button.dart';
 import 'account_button.dart';
 
 /// Extracted from MainLayout._buildRightSection.
@@ -36,21 +38,51 @@ class RightSectionWidget extends StatelessWidget {
         if (isDesktop) ...[
           Flexible(
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 289),
-              child: GestureDetector(
-                onTap: () {
-                  // ✅ Navigate to search page when clicking search bar
-                  context.push(AppRoutes.search);
-                },
-                child: AbsorbPointer(
-                  child: SearchBarWidget(
-                    onSearch: (query) {},
-                    onSearchStarted: null,
+              constraints: const BoxConstraints(maxWidth: 200),
+              child: LocationButtonWidget(
+                isDesktop: isDesktop,
+                isTablet: isTablet,
+              ),
+            ),
+          ),
+          SizedBox(width: spacing),
+          if (MediaQuery.of(context).size.width < 1700)
+            // Not enough room for the full field next to the branch pill:
+            // an icon button that opens search.
+            Tooltip(
+              message: 'Search',
+              child: Material(
+                color: AppColors.primary.withOpacity(0.08),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => context.push(AppRoutes.search),
+                  child: SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Icon(Icons.search, size: 20, color: AppColors.primary),
+                  ),
+                ),
+              ),
+            )
+          else
+            Flexible(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 289),
+                child: GestureDetector(
+                  onTap: () {
+                    // ✅ Navigate to search page when clicking search bar
+                    context.push(AppRoutes.search);
+                  },
+                  child: AbsorbPointer(
+                    child: SearchBarWidget(
+                      onSearch: (query) {},
+                      onSearchStarted: null,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
           SizedBox(width: spacing),
         ],
         if (showLanguageSelector) ...[

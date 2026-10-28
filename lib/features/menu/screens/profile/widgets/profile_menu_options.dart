@@ -82,7 +82,7 @@ class ProfileMenuOptions extends StatelessWidget {
         title: 'Change Branch',
         subtitle: 'Switch to a different branch',
         onTap: () {
-          context.go(AppRoutes.branchSelect);
+          context.go(AppRoutes.branchChange);
         },
       ),
       ProfileMenuItem(

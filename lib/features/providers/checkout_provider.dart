@@ -242,17 +242,49 @@ Future<void> checkDeliveryAvailability() async {
     _setError(null);
 
     try {
-      _branches = [
-        Branch(
-          id: '1',
-          name: 'Saborly-Burgers',
-          address: 'Carrer de Pere IV, 208, Sant Martí, 08005 Barcelona, Spain',
-          phone: '+34 932112072',
-          latitude: shopLat,
-          longitude: shopLng,
-          isActive: true,
-        ),
-      ];
+      var branch = Branch(
+        id: '1',
+        name: 'Saborly-Burgers',
+        address: 'Carrer de Pere IV, 208, Sant Martí, 08005 Barcelona, Spain',
+        phone: '+34 932112072',
+        latitude: shopLat,
+        longitude: shopLng,
+        isActive: true,
+      );
+
+      // Use the branch the user actually picked (e.g. Sabadell); the
+      // placeholder above is only a fallback.
+      try {
+        final branchId = _apiService.branchId;
+        if (branchId != null && branchId.isNotEmpty) {
+          final res = await _apiService.dio.get('/branches/public');
+          final raw = (res.data['branches'] as List<dynamic>? ?? []);
+          final m = raw.cast<Map<String, dynamic>>().firstWhere(
+                (b) => '${b['_id']}' == branchId,
+                orElse: () => {},
+              );
+          if (m.isNotEmpty) {
+            final name = '${m['name'] ?? ''}';
+            final isBarcelona = RegExp('barcelona', caseSensitive: false).hasMatch(name) &&
+                !RegExp('sabadell', caseSensitive: false).hasMatch('$name ${m['location'] ?? ''}');
+            final addr = '${m['address'] ?? ''}'.isNotEmpty ? '${m['address']}' : '${m['location'] ?? ''}';
+            final phone = '${m['phone'] ?? ''}';
+            branch = Branch(
+              id: branchId,
+              name: name,
+              address: addr,
+              phone: phone.isNotEmpty ? phone : (isBarcelona ? branch.phone : ''),
+              latitude: (m['latitude'] as num?)?.toDouble() ?? branch.latitude,
+              longitude: (m['longitude'] as num?)?.toDouble() ?? branch.longitude,
+              isActive: true,
+            );
+          }
+        }
+      } catch (_) {
+        // keep placeholder
+      }
+
+      _branches = [branch];
 
       if (_branches.isNotEmpty) {
         _selectedBranch = _branches.first;

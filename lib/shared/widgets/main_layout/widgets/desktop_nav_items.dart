@@ -20,24 +20,33 @@ class DesktopNavItems extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = ResponsiveHelper.getResponsiveValue(
-      context,
-      mobile: 18.0,
-      tablet: 20.0,
-      desktop: 22.0
-    );
-    final fontSize = ResponsiveHelper.getResponsiveValue(
-      context,
-      mobile: 14.0,
-      tablet: 16.0,
-      desktop: 18.0
-    );
-    final horizontalPadding = ResponsiveHelper.getResponsiveValue(
-      context,
-      mobile: 4.0,
-      tablet: 8.0,
-      desktop: 12.0
-    );
+    // Below 1400px keep the labels compact so the branch pill, search, cart
+    // and account all fit next to the five links.
+    final tight = MediaQuery.of(context).size.width < 1400;
+    final iconSize = tight
+        ? 18.0
+        : ResponsiveHelper.getResponsiveValue(
+            context,
+            mobile: 18.0,
+            tablet: 20.0,
+            desktop: 22.0
+          );
+    final fontSize = tight
+        ? 15.0
+        : ResponsiveHelper.getResponsiveValue(
+            context,
+            mobile: 14.0,
+            tablet: 16.0,
+            desktop: 18.0
+          );
+    final horizontalPadding = tight
+        ? 2.0
+        : ResponsiveHelper.getResponsiveValue(
+            context,
+            mobile: 4.0,
+            tablet: 8.0,
+            desktop: 12.0
+          );
 
     return Center(
       child: SingleChildScrollView(

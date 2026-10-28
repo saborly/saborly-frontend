@@ -70,12 +70,12 @@ class MainAppBarWidget extends StatelessWidget implements PreferredSizeWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Flexible(
-              flex: isDesktop ? 2 : 3,
+              flex: isDesktop ? 3 : 6,
               child: LogoWidget(isTablet: isTablet),
             ),
             if (isDesktop)
               Flexible(
-                flex: 5,
+                flex: 9,
                 child: DesktopNavItems(
                   isSmallScreen: isSmallScreen,
                   navItems: desktopNavItems,
@@ -84,7 +84,7 @@ class MainAppBarWidget extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             Flexible(
-              flex: isDesktop ? 3 : 4,
+              flex: isDesktop ? 8 : 8,
               child: RightSectionWidget(
                 isDesktop: isDesktop,
                 isTablet: isTablet,

@@ -47,7 +47,7 @@ class HomeMobileAppBar extends StatelessWidget implements PreferredSizeWidget {
               _buildLogo(context),
               SizedBox(height: 2.h),
               GestureDetector(
-                onTap: () => context.go(AppRoutes.checkout),
+                onTap: () => context.go(AppRoutes.branchChange),
                 child: Row(
                   children: [
                     Icon(
@@ -67,6 +67,11 @@ class HomeMobileAppBar extends StatelessWidget implements PreferredSizeWidget {
                           color: AppColors.textMedium,
                         ),
                       ),
+                    ),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.textMedium,
+                      size: 16.sp,
                     ),
                   ],
                 ),

@@ -36,6 +36,8 @@ import '../../shared/models/food_item.dart';
 class AppRoutes {
   static const String splash = '/';
   static const String branchSelect = '/branch-select';
+  // Opens the picker even when a branch is already saved (no auto-skip to home).
+  static const String branchChange = '/branch-select?change=1';
   static const String login = '/login';
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot-password';
@@ -202,7 +204,9 @@ GoRoute(
       ),
       GoRoute(
         path: branchSelect,
-        builder: (context, state) => const BranchSelectionScreen(),
+        builder: (context, state) => BranchSelectionScreen(
+          allowChange: state.uri.queryParameters['change'] == '1',
+        ),
       ),
       GoRoute(
         path: emailVerification,
