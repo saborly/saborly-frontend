@@ -5,8 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Saborly/core/constant/app_colors.dart';
+import 'package:Saborly/features/providers/checkout_provider.dart';
+import 'package:Saborly/features/providers/home_provider.dart';
+import 'package:Saborly/features/providers/men_provider.dart';
 import 'package:Saborly/core/services/api_service.dart';
 import 'package:Saborly/core/services/geolocation_service.dart';
 
@@ -243,9 +247,23 @@ class _BranchSelectionScreenState extends State<BranchSelectionScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('cart_items');
     }
+    // Grab providers before any await so we can refresh them afterwards.
+    final checkout = context.read<CheckoutProvider>();
+    final home = context.read<HomeProvider>();
+    final menu = context.read<MenuProvider>();
+    final switched = currentBranchId != id;
     await ApiService().setBranchId(id);
     if (lat != null && lng != null) {
       await ApiService().setSelectedLocation(lat, lng, addressText: addressText);
+    }
+    if (switched) {
+      // Header chip, checkout and catalog were loaded for the previous
+      // branch; refresh them so the switch shows without a hard reload.
+      checkout.loadBranches();
+      checkout.loadCurrentBranchCoords();
+      home.loadHomeData();
+      menu.loadCategories();
+      menu.loadFoodItems();
     }
     if (mounted) context.go('/home');
   }
