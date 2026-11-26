@@ -436,6 +436,11 @@ class AuthProvider extends ChangeNotifier {
 
         _apiService.setAuthToken(token);
 
+        // NotificationService starts before the saved login is restored, so
+        // its own token upload is skipped on app launch. Upload it here.
+        // Not awaited, so startup doesn't wait on the network.
+        _registerFCMToken();
+
         final userId = _prefs.getString('user_id');
         final firstName = _prefs.getString('firstName');
         final lastName = _prefs.getString('lastName');
